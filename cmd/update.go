@@ -4,6 +4,7 @@ import (
 	"github.com/speatzle/go-passbolt-cli/folder"
 	"github.com/speatzle/go-passbolt-cli/group"
 	"github.com/speatzle/go-passbolt-cli/resource"
+	"github.com/speatzle/go-passbolt-cli/user"
 	"github.com/spf13/cobra"
 )
 
@@ -20,4 +21,5 @@ func init() {
 	updateCmd.AddCommand(resource.ResourceUpdateCmd)
 	updateCmd.AddCommand(folder.FolderUpdateCmd)
 	updateCmd.AddCommand(group.GroupUpdateCmd)
+	updateCmd.AddCommand(user.UserUpdateCmd)
 }
