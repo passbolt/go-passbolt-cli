@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/speatzle/go-passbolt-cli/folder"
+	"github.com/speatzle/go-passbolt-cli/group"
 	"github.com/speatzle/go-passbolt-cli/resource"
 	"github.com/spf13/cobra"
 )
@@ -18,6 +19,7 @@ func init() {
 	rootCmd.AddCommand(deleteCmd)
 	deleteCmd.AddCommand(resource.ResourceDeleteCmd)
 	deleteCmd.AddCommand(folder.FolderDeleteCmd)
+	deleteCmd.AddCommand(group.GroupDeleteCmd)
 
 	deleteCmd.PersistentFlags().String("id", "", "ID of the Entity to Delete")
 }
