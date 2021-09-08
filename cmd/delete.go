@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/speatzle/go-passbolt-cli/resource"
 	"github.com/spf13/cobra"
 )
 
@@ -14,6 +15,7 @@ var deleteCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(deleteCmd)
+	deleteCmd.AddCommand(resource.ResourceDeleteCmd)
 
 	deleteCmd.PersistentFlags().String("id", "", "ID of the Entity to Delete")
 }

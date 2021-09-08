@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/speatzle/go-passbolt-cli/resource"
 	"github.com/spf13/cobra"
 )
 
@@ -14,4 +15,6 @@ var updateCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(updateCmd)
+
+	updateCmd.AddCommand(resource.ResourceUpdateCmd)
 }
