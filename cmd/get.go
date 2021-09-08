@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/speatzle/go-passbolt-cli/folder"
 	"github.com/speatzle/go-passbolt-cli/resource"
 	"github.com/spf13/cobra"
 )
@@ -16,4 +17,5 @@ var getCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(getCmd)
 	getCmd.AddCommand(resource.ResourceGetCmd)
+	getCmd.AddCommand(folder.FolderGetCmd)
 }
