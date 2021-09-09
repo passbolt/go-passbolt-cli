@@ -1,4 +1,14 @@
 project_name: go-passbolt-cli
+before:
+  hooks:
+    - go mod tidy
+    - go run main.go completion bash > bash-completion
+    - go run main.go completion zsh > zsh-completion
+    - go run main.go completion fish > fish-completion
+    - mkdir man
+    - go run main.go gendoc --type man
+checksum:
+  name_template: 'checksums.txt'
 builds:
   - env: [CGO_ENABLED=0]
     goos:
@@ -9,14 +19,6 @@ builds:
       - amd64
       - arm64
     binary: passbolt
-    hooks:
-      pre: |
-        go run main.go completion bash > bash-completion
-        go run main.go completion zsh > zsh-completion
-        go run main.go completion fish > fish-completion
-        mkdir man
-        go run main.go gendoc --type man
-        ls
 archives:
   - replacements:
       darwin: Darwin
