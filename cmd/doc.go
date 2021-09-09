@@ -16,7 +16,7 @@ var genDocCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		cmd.DisableAutoGenTag = true
+		rootCmd.DisableAutoGenTag = true
 		switch docType {
 		case "markdown":
 			return doc.GenMarkdownTree(rootCmd, "doc")
