@@ -12,7 +12,7 @@ var configureCmd = &cobra.Command{
 	Use:   "configure",
 	Short: "Configure saves the provided global flags to the Config File",
 	Long: `Configure saves the provided global flags to the Config File.
-this makes using the cli easier as they don't have to be specifed all the time.`,
+this makes using the cli easier as they don't have to be specified all the time.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 
 		if viper.ConfigFileUsed() == "" {

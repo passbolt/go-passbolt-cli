@@ -23,7 +23,7 @@ var ResourceListCmd = &cobra.Command{
 }
 
 func init() {
-	ResourceListCmd.Flags().Bool("favorite", false, "Resources that are maked as favorite")
+	ResourceListCmd.Flags().Bool("favorite", false, "Resources that are marked as favorite")
 	ResourceListCmd.Flags().Bool("own", false, "Resources that are owned by me")
 
 	ResourceListCmd.Flags().StringArrayP("group", "g", []string{}, "Resources that are shared with group")

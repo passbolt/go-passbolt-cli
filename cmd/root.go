@@ -15,7 +15,7 @@ var cfgFile string
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "go-passbolt-cli",
+	Use:   "passbolt",
 	Short: "A CLI tool to interact with Passbolt.",
 	Long:  `A CLI tool to interact with Passbolt.`,
 }

@@ -1,0 +1,49 @@
+project_name: go-passbolt-cli
+builds:
+  - env: [CGO_ENABLED=0]
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    binary: passbolt
+    hooks:
+      post: |
+        ./passbolt completion bash > bash-completion
+        ./passbolt completion zsh > zsh-completion
+        ./passbolt completion fish > fish-completion
+        mkdir man
+        ./passbolt gendoc --type man 
+archives:
+  - replacements:
+      darwin: Darwin
+      linux: Linux
+      windows: Windows
+      386: i386
+      amd64: x86_64
+release:
+  draft: true
+  header: |
+    ## Release {{ .Tag }} - ({{ .Date }})
+nfpms:
+- maintainer: Samuel Lorch <sam@lorch.net>
+  description: A CLI for Passbolt.
+  homepage: https://github.com/speatzle/go-passbolt-cli
+  license: MIT
+  contents:
+    - src: bash-completion
+      dst: /usr/share/bash-completion/completions/passbolt
+    - src: zsh-completion
+      dst: /usr/share/zsh/site-functions/_passbolt
+    - src: fish-completion
+      dst: /usr/share/fish/vendor_completions.d/passbolt.fish
+    - src: man/*
+      dst: /usr/share/man/man1/
+  recommends:
+    - bash_completion
+  formats:
+    - deb
+    - rpm
+    - apk

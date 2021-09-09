@@ -25,7 +25,7 @@ You can then list all users:
 ```bash
 go-passbolt-cli list user
 ```
-For Sharing well need to know how we want to share, for that there are these Permission Types:
+For sharing we will need to know how we want to share, for that there are these Permission Types:
 
 | Code | Meaning | 
 | --- | --- | 
