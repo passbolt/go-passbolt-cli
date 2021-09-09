@@ -10,8 +10,8 @@ import (
 // configureCmd represents the configure command
 var configureCmd = &cobra.Command{
 	Use:   "configure",
-	Short: "configure saves the provided global flags to the config file",
-	Long: `configure saves the provided global flags to the config file.
+	Short: "Configure saves the provided global flags to the Config File",
+	Long: `Configure saves the provided global flags to the Config File.
 this makes using the cli easier as they don't have to be specifed all the time.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 

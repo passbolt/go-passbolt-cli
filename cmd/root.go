@@ -32,6 +32,8 @@ func Execute() {
 func init() {
 	cobra.OnInitialize(initConfig)
 
+	rootCmd.CompletionOptions.DisableDefaultCmd = true
+
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "Config File")
 
 	rootCmd.PersistentFlags().Bool("debug", false, "Enable Debug Logging")
