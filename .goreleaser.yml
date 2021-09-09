@@ -15,7 +15,8 @@ builds:
         go run main.go completion zsh > zsh-completion
         go run main.go completion fish > fish-completion
         mkdir man
-        go run main.go gendoc --type man 
+        go run main.go gendoc --type man
+        ls
 archives:
   - replacements:
       darwin: Darwin
@@ -46,4 +47,3 @@ nfpms:
   formats:
     - deb
     - rpm
-    - apk
