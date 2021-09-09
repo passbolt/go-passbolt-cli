@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"fmt"
+	"path"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/cobra/doc"
@@ -19,7 +21,7 @@ var genDocCmd = &cobra.Command{
 		rootCmd.DisableAutoGenTag = true
 		switch docType {
 		case "markdown":
-			return doc.GenMarkdownTree(rootCmd, "doc")
+			return doc.GenMarkdownTreeCustom(rootCmd, "doc", filePrepender, linkHandler)
 		case "man":
 			return doc.GenManTree(rootCmd, nil, "man")
 		default:
@@ -31,4 +33,12 @@ var genDocCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(genDocCmd)
 	genDocCmd.Flags().StringP("type", "t", "markdown", "what to generate, markdown or man")
+}
+
+func filePrepender(name string) string {
+	return name
+}
+
+func linkHandler(name string) string {
+	return strings.TrimSuffix(name, path.Ext(name))
 }
