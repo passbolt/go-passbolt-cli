@@ -5,6 +5,8 @@
 # Unignore all dirs
 !*/
 
+man/
+
 # Binaries for programs and plugins
 *.exe
 *.exe~

@@ -22,7 +22,7 @@ jobs:
         with:
           go-version: 1.17
       - 
-        name: test
+        name: Generate Man and Completions
         run: |
           go run main.go completion bash > bash-completion
           go run main.go completion zsh > zsh-completion
