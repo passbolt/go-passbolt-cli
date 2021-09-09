@@ -10,12 +10,12 @@ builds:
       - arm64
     binary: passbolt
     hooks:
-      post: |
-        ./passbolt completion bash > bash-completion
-        ./passbolt completion zsh > zsh-completion
-        ./passbolt completion fish > fish-completion
+      pre: |
+        go run main.go completion bash > bash-completion
+        go run main.go completion zsh > zsh-completion
+        go run main.go completion fish > fish-completion
         mkdir man
-        ./passbolt gendoc --type man 
+        go run main.go gendoc --type man 
 archives:
   - replacements:
       darwin: Darwin
