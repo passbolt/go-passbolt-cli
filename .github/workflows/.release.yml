@@ -23,7 +23,14 @@ jobs:
           go-version: 1.17
       - 
         name: test
-        run: pwd ; ls
+        run: |
+          go run main.go completion bash > bash-completion
+          go run main.go completion zsh > zsh-completion
+          go run main.go completion fish > fish-completion
+          mkdir man
+          go run main.go gendoc --type man
+          pwd
+          ls
       -
         name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v2
