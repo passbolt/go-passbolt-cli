@@ -1,11 +1,32 @@
 # go-passbolt-cli
 A CLI tool to interact with Passbolt, a Open source Password Manager for Teams.
 
-If you want to do something more complicated [this](https://github.com/speatzle/go-passbolt) Go Module to Interact with Passbolt from Go Might Intrest you.
+If you want to do something more complicated [this](https://github.com/speatzle/go-passbolt) Go Module to Interact with Passbolt from Go might Intrest you.
 
 # Install
 
+## Via Package:
+    Download your Package from the Latest Release.
+    install via your Distros Package manager like `dpkg -i`
+    
+## Via Archive:
+    Download your Archive
+Note: tab completion and manpages will be missing.
+
+## Via Go:
+    go install github.com/speatzle/go-passbolt-cli
+Note: this will install the binary as go-passbolt-cli also tab completion and manpages will be missing.
 # Getting Started
+First you need to Setup basic information: the Server Address, your Private Key and your Password.
+You have these options:
+- Save it in the config file using `passbolt configure --serverAddress https://passbolt.example.org --userPrivateKey 'private' --userPassword '1234'`
+- Setup Enviroment Variables
+- Provide the Flags manually every time
+
+Note: you can also just store the serverAddress and your Private Key, if your Password is not set it will prompt you for it every time
+
+# Usage
+
 Generally the Structure of Commands is like this:
 ```bash
 go-passbolt-cli action entity [arguments]
@@ -42,6 +63,7 @@ Note: you can supply the the users argument multiple times to share with multipl
 
 For sharing with groups the `--groups` argument exists.
 
-# Usage
+# Documentation
 Usage for all Subcommands is [here](https://github.com/speatzle/go-passbolt-cli/wiki/go-passbolt-cli).
+And is also available via `man passbolt`
 
