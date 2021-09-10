@@ -1,11 +1,11 @@
 # go-passbolt-cli
 A CLI tool to interact with Passbolt, a Open source Password Manager for Teams.
 
-If you want to do something more complicated [this](https://github.com/speatzle/go-passbolt) Go Module to Interact with Passbolt from Go might Intrest you.
+If you want to do something more complicated: [this](https://github.com/speatzle/go-passbolt) Go Module to Interact with Passbolt from Go might intrest you.
 
 # Install
 
-## Via Package:
+## Via Package (Prefered):
     Download the Package for your OS and architecture from the Latest Release.
     Install via your Distros Package manager like `dpkg -i`
 
