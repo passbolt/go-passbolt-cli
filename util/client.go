@@ -3,9 +3,11 @@ package util
 import (
 	"context"
 	"fmt"
+	"syscall"
 
 	"github.com/speatzle/go-passbolt/api"
 	"github.com/spf13/viper"
+	"golang.org/x/term"
 )
 
 // GetClient gets a Logged in Passbolt Client
@@ -22,7 +24,12 @@ func GetClient(ctx context.Context) (*api.Client, error) {
 
 	userPassword := viper.GetString("userPassword")
 	if userPassword == "" {
-		return nil, fmt.Errorf("userPassword is not defined")
+		fmt.Print("Enter Password:")
+		bytepw, err := term.ReadPassword(int(syscall.Stdin))
+		if err != nil {
+			return nil, fmt.Errorf("Reading Password: %w", err)
+		}
+		userPassword = string(bytepw)
 	}
 
 	client, err := api.NewClient(nil, "", serverAddress, userPrivateKey, userPassword)
