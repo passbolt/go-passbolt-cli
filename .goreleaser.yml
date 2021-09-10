@@ -3,6 +3,8 @@ checksum:
   name_template: 'checksums.txt'
 builds:
   - env: [CGO_ENABLED=0]
+  - flags:
+      - -trimpath
     goos:
       - linux
       - windows
@@ -12,12 +14,19 @@ builds:
       - arm64
     binary: passbolt
 archives:
-  - replacements:
-      darwin: Darwin
-      linux: Linux
-      windows: Windows
-      386: i386
-      amd64: x86_64
+  replacements:
+    darwin: Darwin
+    linux: Linux
+    windows: Windows
+    386: i386
+    amd64: x86_64
+  files:
+    - completion/*
+    - man/*
+  - id: windows
+    format_overrides:
+      - goos: windows
+        format: zip
 release:
   draft: true
   header: |
@@ -28,11 +37,11 @@ nfpms:
   homepage: https://github.com/speatzle/go-passbolt-cli
   license: MIT
   contents:
-    - src: /home/runner/work/go-passbolt-cli/go-passbolt-cli/bash-completion
+    - src: /home/runner/work/go-passbolt-cli/go-passbolt-cli/completion/bash
       dst: /usr/share/bash-completion/completions/passbolt
-    - src: /home/runner/work/go-passbolt-cli/go-passbolt-cli/zsh-completion
+    - src: /home/runner/work/go-passbolt-cli/go-passbolt-cli/completion/zsh
       dst: /usr/share/zsh/site-functions/_passbolt
-    - src: /home/runner/work/go-passbolt-cli/go-passbolt-cli/fish-completion
+    - src: /home/runner/work/go-passbolt-cli/go-passbolt-cli/completion/fish
       dst: /usr/share/fish/vendor_completions.d/passbolt.fish
     - src: /home/runner/work/go-passbolt-cli/go-passbolt-cli/man/*
       dst: /usr/share/man/man1/

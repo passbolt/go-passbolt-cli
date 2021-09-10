@@ -24,9 +24,11 @@ jobs:
       - 
         name: Generate Man and Completions
         run: |
-          go run main.go completion bash > bash-completion
-          go run main.go completion zsh > zsh-completion
-          go run main.go completion fish > fish-completion
+          mkdir completion
+          go run main.go completion bash > completion/bash
+          go run main.go completion zsh > completion/zsh
+          go run main.go completion fish > completion/fish
+          go run main.go completion powershell > completion/powershell
           mkdir man
           go run main.go gendoc --type man
           pwd

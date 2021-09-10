@@ -6,16 +6,16 @@ If you want to do something more complicated [this](https://github.com/speatzle/
 # Install
 
 ## Via Package:
-    Download your Package from the Latest Release.
-    install via your Distros Package manager like `dpkg -i`
-    
+    Download the Package for your OS and architecture from the Latest Release.
+    Install via your Distros Package manager like `dpkg -i`
+
 ## Via Archive:
-    Download your Archive
-Note: tab completion and manpages will be missing.
+    Download and Extract the Archive for your OS and architecture
+Note: tab completion and manpages will need to be installed manually.
 
 ## Via Go:
     go install github.com/speatzle/go-passbolt-cli
-Note: this will install the binary as go-passbolt-cli also tab completion and manpages will be missing.
+Note: this will install the binary as go-passbolt-cli, also tab completion and manpages will be missing.
 # Getting Started
 First you need to Setup basic information: the Server Address, your Private Key and your Password.
 You have these options:
