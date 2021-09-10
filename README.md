@@ -35,7 +35,7 @@ go-passbolt-cli action entity [arguments]
 Action is the Action you want to perform like Creating, Updating or Deleting a Entity.
 Entity is a Resource(Password), Folder, User or Group that you want to apply a action to.
 
-In Passbolt a Password is Usually Refert to as a Resource.
+In Passbolt a Password is usually revert to as a Resource.
 
 To Create a Resource you can do this, it will return the ID of the newly created Resource:
 ```bash
