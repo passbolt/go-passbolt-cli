@@ -22,7 +22,8 @@ var FolderListCmd = &cobra.Command{
 }
 
 func init() {
-	FolderListCmd.Flags().StringP("search", "s", "", "Folders that have this in the name")
+	FolderListCmd.Flags().StringP("search", "s", "", "Folders that have this in the Name")
+	FolderListCmd.Flags().StringArrayP("folder", "f", []string{}, "Folders that are in this Folder")
 	FolderListCmd.Flags().StringArrayP("group", "g", []string{}, "Folders that are shared with group")
 	FolderListCmd.Flags().StringArrayP("columns", "c", []string{"ID", "FolderParentID", "Name"}, "Columns to return, possible Columns:\nID, FolderParentID, Name")
 }
