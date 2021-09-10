@@ -23,10 +23,9 @@ archives:
   files:
     - completion/*
     - man/*
-  - id: windows
-    format_overrides:
-      - goos: windows
-        format: zip
+  format_overrides:
+    - goos: windows
+      format: zip
 release:
   draft: true
   header: |
