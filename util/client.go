@@ -27,9 +27,11 @@ func GetClient(ctx context.Context) (*api.Client, error) {
 		fmt.Print("Enter Password:")
 		bytepw, err := term.ReadPassword(int(syscall.Stdin))
 		if err != nil {
+			fmt.Println("\n")
 			return nil, fmt.Errorf("Reading Password: %w", err)
 		}
 		userPassword = string(bytepw)
+		fmt.Println("\n")
 	}
 
 	client, err := api.NewClient(nil, "", serverAddress, userPrivateKey, userPassword)
