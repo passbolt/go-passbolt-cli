@@ -25,7 +25,7 @@ func init() {
 	GroupListCmd.Flags().StringArrayP("users", "u", []string{}, "Groups that are shared with group")
 	GroupListCmd.Flags().StringArrayP("managers", "m", []string{}, "Groups that are in folder")
 
-	GroupListCmd.Flags().StringArrayP("columns", "c", []string{"ID", "Name"}, "Columns to return, possible Columns:\nID, Name")
+	GroupListCmd.Flags().StringArrayP("column", "c", []string{"ID", "Name"}, "Columns to return, possible Columns:\nID, Name")
 }
 
 func GroupList(cmd *cobra.Command, args []string) error {
@@ -37,7 +37,7 @@ func GroupList(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	columns, err := cmd.Flags().GetStringArray("columns")
+	columns, err := cmd.Flags().GetStringArray("column")
 	if err != nil {
 		return err
 	}

@@ -29,7 +29,7 @@ func init() {
 	ResourceListCmd.Flags().StringArrayP("group", "g", []string{}, "Resources that are shared with group")
 	ResourceListCmd.Flags().StringArrayP("folder", "f", []string{}, "Resources that are in folder")
 
-	ResourceListCmd.Flags().StringArrayP("columns", "c", []string{"ID", "FolderParentID", "Name", "Username", "URI"}, "Columns to return, possible Columns:\nID, FolderParentID, Name, Username, URI, Password, Description")
+	ResourceListCmd.Flags().StringArrayP("column", "c", []string{"ID", "FolderParentID", "Name", "Username", "URI"}, "Columns to return, possible Columns:\nID, FolderParentID, Name, Username, URI, Password, Description")
 }
 
 func ResourceList(cmd *cobra.Command, args []string) error {
@@ -49,7 +49,7 @@ func ResourceList(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	columns, err := cmd.Flags().GetStringArray("columns")
+	columns, err := cmd.Flags().GetStringArray("column")
 	if err != nil {
 		return err
 	}

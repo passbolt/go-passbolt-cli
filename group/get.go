@@ -22,7 +22,7 @@ var GroupGetCmd = &cobra.Command{
 func init() {
 	GroupGetCmd.Flags().String("id", "", "id of Group to Get")
 
-	GroupGetCmd.Flags().StringArrayP("columns", "c", []string{"UserID", "IsGroupManager"}, "Membership Columns to return, possible Columns:\nUserID, Username, UserFirstName, UserLastName, IsGroupManager")
+	GroupGetCmd.Flags().StringArrayP("column", "c", []string{"UserID", "IsGroupManager"}, "Membership Columns to return, possible Columns:\nUserID, Username, UserFirstName, UserLastName, IsGroupManager")
 
 	GroupGetCmd.MarkFlagRequired("id")
 }
@@ -32,7 +32,7 @@ func GroupGet(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	columns, err := cmd.Flags().GetStringArray("columns")
+	columns, err := cmd.Flags().GetStringArray("column")
 	if err != nil {
 		return err
 	}

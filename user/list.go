@@ -17,7 +17,7 @@ var UserListCmd = &cobra.Command{
 	Use:     "user",
 	Short:   "Lists Passbolt Users",
 	Long:    `Lists Passbolt Users`,
-	Aliases: []string{"groups"},
+	Aliases: []string{"users"},
 	RunE:    UserList,
 }
 
@@ -28,7 +28,7 @@ func init() {
 	UserListCmd.Flags().StringP("search", "s", "", "Search for Users")
 	UserListCmd.Flags().BoolP("admin", "a", false, "Only show Admins")
 
-	UserListCmd.Flags().StringArrayP("columns", "c", []string{"ID", "Username", "FirstName", "LastName", "Role"}, "Columns to return, possible Columns:\nID, Username, FirstName, LastName, Role")
+	UserListCmd.Flags().StringArrayP("column", "c", []string{"ID", "Username", "FirstName", "LastName", "Role"}, "Columns to return, possible Columns:\nID, Username, FirstName, LastName, Role")
 }
 
 func UserList(cmd *cobra.Command, args []string) error {
@@ -48,7 +48,7 @@ func UserList(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	columns, err := cmd.Flags().GetStringArray("columns")
+	columns, err := cmd.Flags().GetStringArray("column")
 	if err != nil {
 		return err
 	}
