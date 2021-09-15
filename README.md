@@ -24,7 +24,7 @@ You have these options:
 - Setup Enviroment Variables
 - Provide the Flags manually every time
 
-Note: you can also just store the serverAddress and your Private Key, if your Password is not set it will prompt you for it every time
+Note: userPrivateKey is the actual Private Key and not a path to a file. You can also just store the serverAddress and your Private Key, if your Password is not set it will prompt you for it every time
 
 # Usage
 
@@ -47,6 +47,9 @@ You can then list all users:
 ```bash
 go-passbolt-cli list user
 ```
+Note: you can adjust which columns should be listed using the flag `--column` or its short from `-c`, if you want multiple column then you need to specify this flag multiple times.
+
+
 For sharing we will need to know how we want to share, for that there are these Permission Types:
 
 | Code | Meaning | 
@@ -58,11 +61,11 @@ For sharing we will need to know how we want to share, for that there are these 
 
 Now that we have a Resource ID, know the ID's of other Users and about know about Permission Types, we can share the Resource with them:
 ```bash
-go-passbolt-cli share resource --id id_of_resource_to_share --type type_of_permission --users id_of_user_to_share_with
+go-passbolt-cli share resource --id id_of_resource_to_share --type type_of_permission --user id_of_user_to_share_with
 ```
 Note: you can supply the the users argument multiple times to share with multiple users
 
-For sharing with groups the `--groups` argument exists.
+For sharing with groups the `--group` argument exists.
 
 # Documentation
 Usage for all Subcommands is [here](https://github.com/speatzle/go-passbolt-cli/wiki/go-passbolt-cli).
