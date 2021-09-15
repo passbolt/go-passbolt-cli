@@ -22,8 +22,8 @@ var UserListCmd = &cobra.Command{
 }
 
 func init() {
-	UserListCmd.Flags().StringArrayP("groups", "g", []string{}, "Users that are members of groups")
-	UserListCmd.Flags().StringArrayP("resources", "r", []string{}, "Users that have access to resources")
+	UserListCmd.Flags().StringArrayP("group", "g", []string{}, "Users that are members of groups")
+	UserListCmd.Flags().StringArrayP("resource", "r", []string{}, "Users that have access to resources")
 
 	UserListCmd.Flags().StringP("search", "s", "", "Search for Users")
 	UserListCmd.Flags().BoolP("admin", "a", false, "Only show Admins")
@@ -32,11 +32,11 @@ func init() {
 }
 
 func UserList(cmd *cobra.Command, args []string) error {
-	groups, err := cmd.Flags().GetStringArray("groups")
+	groups, err := cmd.Flags().GetStringArray("group")
 	if err != nil {
 		return err
 	}
-	resources, err := cmd.Flags().GetStringArray("resources")
+	resources, err := cmd.Flags().GetStringArray("resource")
 	if err != nil {
 		return err
 	}

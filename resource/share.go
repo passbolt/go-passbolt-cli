@@ -20,8 +20,8 @@ var ResourceShareCmd = &cobra.Command{
 func init() {
 	ResourceShareCmd.Flags().String("id", "", "id of Resource to Share")
 	ResourceShareCmd.Flags().IntP("type", "t", 1, "Permission Type (1 Read Only, 7 Can Update, 15 Owner)")
-	ResourceShareCmd.Flags().StringArrayP("users", "u", []string{}, "User id's to share with")
-	ResourceShareCmd.Flags().StringArrayP("groups", "g", []string{}, "Group id's to share with")
+	ResourceShareCmd.Flags().StringArrayP("user", "u", []string{}, "User id's to share with")
+	ResourceShareCmd.Flags().StringArrayP("group", "g", []string{}, "Group id's to share with")
 
 	ResourceShareCmd.MarkFlagRequired("id")
 	ResourceShareCmd.MarkFlagRequired("type")
@@ -36,11 +36,11 @@ func ResourceShare(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	users, err := cmd.Flags().GetStringArray("users")
+	users, err := cmd.Flags().GetStringArray("user")
 	if err != nil {
 		return err
 	}
-	groups, err := cmd.Flags().GetStringArray("groups")
+	groups, err := cmd.Flags().GetStringArray("group")
 	if err != nil {
 		return err
 	}

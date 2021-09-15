@@ -20,8 +20,8 @@ var FolderShareCmd = &cobra.Command{
 func init() {
 	FolderShareCmd.Flags().String("id", "", "id of Folder to Share")
 	FolderShareCmd.Flags().IntP("type", "t", 1, "Permission Type (1 Read Only, 7 Can Update, 15 Owner)")
-	FolderShareCmd.Flags().StringArrayP("users", "u", []string{}, "User id's to share with")
-	FolderShareCmd.Flags().StringArrayP("groups", "g", []string{}, "Group id's to share with")
+	FolderShareCmd.Flags().StringArrayP("user", "u", []string{}, "User id's to share with")
+	FolderShareCmd.Flags().StringArrayP("group", "g", []string{}, "Group id's to share with")
 
 	FolderShareCmd.MarkFlagRequired("id")
 	FolderShareCmd.MarkFlagRequired("type")
@@ -36,11 +36,11 @@ func FolderShare(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	users, err := cmd.Flags().GetStringArray("users")
+	users, err := cmd.Flags().GetStringArray("user")
 	if err != nil {
 		return err
 	}
-	groups, err := cmd.Flags().GetStringArray("groups")
+	groups, err := cmd.Flags().GetStringArray("group")
 	if err != nil {
 		return err
 	}

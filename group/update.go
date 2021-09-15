@@ -23,8 +23,8 @@ func init() {
 
 	GroupUpdateCmd.Flags().BoolP("delete", "d", false, "Remove Users/Managers from Group (default is Adding Users/Managers)")
 
-	GroupUpdateCmd.Flags().StringArrayP("users", "u", []string{}, "Users to Add/Remove to/from Group(Including Group Managers)")
-	GroupUpdateCmd.Flags().StringArrayP("managers", "m", []string{}, "Managers to Add/Remove to/from Group")
+	GroupUpdateCmd.Flags().StringArrayP("user", "u", []string{}, "Users to Add/Remove to/from Group(Including Group Managers)")
+	GroupUpdateCmd.Flags().StringArrayP("manager", "m", []string{}, "Managers to Add/Remove to/from Group")
 
 	GroupUpdateCmd.MarkFlagRequired("id")
 }
@@ -42,11 +42,11 @@ func GroupUpdate(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	users, err := cmd.Flags().GetStringArray("users")
+	users, err := cmd.Flags().GetStringArray("user")
 	if err != nil {
 		return err
 	}
-	managers, err := cmd.Flags().GetStringArray("managers")
+	managers, err := cmd.Flags().GetStringArray("manager")
 	if err != nil {
 		return err
 	}

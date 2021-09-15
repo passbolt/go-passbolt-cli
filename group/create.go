@@ -20,11 +20,11 @@ var GroupCreateCmd = &cobra.Command{
 func init() {
 	GroupCreateCmd.Flags().StringP("name", "n", "", "Group Name")
 
-	GroupCreateCmd.Flags().StringArrayP("users", "u", []string{}, "Users to Add to Group")
-	GroupCreateCmd.Flags().StringArrayP("managers", "m", []string{}, "Managers to Add to Group (atleast 1 is required)")
+	GroupCreateCmd.Flags().StringArrayP("user", "u", []string{}, "Users to Add to Group")
+	GroupCreateCmd.Flags().StringArrayP("manager", "m", []string{}, "Managers to Add to Group (atleast 1 is required)")
 
 	GroupCreateCmd.MarkFlagRequired("name")
-	GroupCreateCmd.MarkFlagRequired("managers")
+	GroupCreateCmd.MarkFlagRequired("manager")
 }
 
 func GroupCreate(cmd *cobra.Command, args []string) error {
@@ -32,11 +32,11 @@ func GroupCreate(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	users, err := cmd.Flags().GetStringArray("users")
+	users, err := cmd.Flags().GetStringArray("user")
 	if err != nil {
 		return err
 	}
-	managers, err := cmd.Flags().GetStringArray("managers")
+	managers, err := cmd.Flags().GetStringArray("manager")
 	if err != nil {
 		return err
 	}

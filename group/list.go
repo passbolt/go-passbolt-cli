@@ -22,18 +22,18 @@ var GroupListCmd = &cobra.Command{
 }
 
 func init() {
-	GroupListCmd.Flags().StringArrayP("users", "u", []string{}, "Groups that are shared with group")
-	GroupListCmd.Flags().StringArrayP("managers", "m", []string{}, "Groups that are in folder")
+	GroupListCmd.Flags().StringArrayP("user", "u", []string{}, "Groups that are shared with group")
+	GroupListCmd.Flags().StringArrayP("manager", "m", []string{}, "Groups that are in folder")
 
 	GroupListCmd.Flags().StringArrayP("column", "c", []string{"ID", "Name"}, "Columns to return, possible Columns:\nID, Name")
 }
 
 func GroupList(cmd *cobra.Command, args []string) error {
-	users, err := cmd.Flags().GetStringArray("users")
+	users, err := cmd.Flags().GetStringArray("user")
 	if err != nil {
 		return err
 	}
-	managers, err := cmd.Flags().GetStringArray("managers")
+	managers, err := cmd.Flags().GetStringArray("manager")
 	if err != nil {
 		return err
 	}
