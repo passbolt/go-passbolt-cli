@@ -3,6 +3,8 @@ A CLI tool to interact with Passbolt, a Open source Password Manager for Teams.
 
 If you want to do something more complicated: [this](https://github.com/speatzle/go-passbolt) Go Module to Interact with Passbolt from Go might intrest you.
 
+
+Disclaimer: This project is community driven and not associated with Passbolt SA
 # Install
 
 ## Via Package (Prefered):
