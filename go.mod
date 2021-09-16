@@ -6,7 +6,7 @@ require (
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/pelletier/go-toml v1.9.4 // indirect
 	github.com/pterm/pterm v0.12.30
-	github.com/speatzle/go-passbolt v0.3.1
+	github.com/speatzle/go-passbolt v0.4.0
 	github.com/spf13/cast v1.4.1 // indirect
 	github.com/spf13/cobra v1.2.1
 	github.com/spf13/viper v1.8.1

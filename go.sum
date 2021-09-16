@@ -251,6 +251,8 @@ github.com/smartystreets/goconvey v1.6.4 h1:fv0U8FUIMPNf1L9lnHLvLhgicrIVChEkdzIK
 github.com/smartystreets/goconvey v1.6.4/go.mod h1:syvi0/a8iFYH4r/RixwvyeAJjdLS9QV7WQ/tjFTllLA=
 github.com/speatzle/go-passbolt v0.3.1 h1:FC2gX5QXOdkNE6xFcHrnyzZ1nwBBxxEVJCCfIfaNZMU=
 github.com/speatzle/go-passbolt v0.3.1/go.mod h1:fMxCWY6dYXyz070R6u8fzEeBfoxPG3xUquPeelXumso=
+github.com/speatzle/go-passbolt v0.4.0 h1:iWUaABdA+75K4HHdEKONNltF6Kyxzcqm9l2bLgPaJ20=
+github.com/speatzle/go-passbolt v0.4.0/go.mod h1:fMxCWY6dYXyz070R6u8fzEeBfoxPG3xUquPeelXumso=
 github.com/spf13/afero v1.6.0 h1:xoax2sJ2DT8S8xA2paPFjDCScCNeWsg75VG0DLRreiY=
 github.com/spf13/afero v1.6.0/go.mod h1:Ai8FlHk4v/PARR026UzYexafAt9roJ7LcLMAmO6Z93I=
 github.com/spf13/cast v1.3.1/go.mod h1:Qx5cxh0v+4UWYiBimWS+eyWzqEqokIECu5etghLkUJE=
