@@ -41,12 +41,22 @@ func init() {
 	rootCmd.PersistentFlags().String("serverAddress", "", "Passbolt Server Address (https://passbolt.example.com)")
 	rootCmd.PersistentFlags().String("userPrivateKey", "", "Passbolt User Private Key")
 	rootCmd.PersistentFlags().String("userPassword", "", "Passbolt User Password")
+	rootCmd.PersistentFlags().String("mfaMode", "interactive-totp", "How to Handle MFA, the following Modes exist: none, interactive-totp and noninteractive-totp")
+	rootCmd.PersistentFlags().String("totpToken", "", "Token to generate TOTP's, only used in nointeractive-totp mode")
+	rootCmd.PersistentFlags().Duration("totpOffset", time.Duration(0), "TOTP Generation offset only used in noninteractive-totp mode")
+	rootCmd.PersistentFlags().Uint("mfaRetrys", 3, "How often to retry TOTP Auth, only used in nointeractive modes")
+	rootCmd.PersistentFlags().Duration("mfaDelay", time.Second*10, "Delay between MFA Attempts, only used in noninteractive modes")
 
 	viper.BindPFlag("debug", rootCmd.PersistentFlags().Lookup("debug"))
 	viper.BindPFlag("timeout", rootCmd.PersistentFlags().Lookup("timeout"))
 	viper.BindPFlag("serverAddress", rootCmd.PersistentFlags().Lookup("serverAddress"))
 	viper.BindPFlag("userPrivateKey", rootCmd.PersistentFlags().Lookup("userPrivateKey"))
 	viper.BindPFlag("userPassword", rootCmd.PersistentFlags().Lookup("userPassword"))
+	viper.BindPFlag("mfaMode", rootCmd.PersistentFlags().Lookup("mfaMode"))
+	viper.BindPFlag("totpToken", rootCmd.PersistentFlags().Lookup("totpToken"))
+	viper.BindPFlag("totpOffset", rootCmd.PersistentFlags().Lookup("totpOffset"))
+	viper.BindPFlag("mfaRetrys", rootCmd.PersistentFlags().Lookup("mfaRetrys"))
+	viper.BindPFlag("mfaDelay", rootCmd.PersistentFlags().Lookup("mfaDelay"))
 }
 
 // initConfig reads in config file and ENV variables if set.

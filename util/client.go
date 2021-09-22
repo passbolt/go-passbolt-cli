@@ -2,10 +2,14 @@ package util
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
+	"net/http"
 	"syscall"
 
 	"github.com/speatzle/go-passbolt/api"
+	"github.com/speatzle/go-passbolt/helper"
 	"github.com/spf13/viper"
 	"golang.org/x/term"
 )
@@ -40,6 +44,55 @@ func GetClient(ctx context.Context) (*api.Client, error) {
 	}
 
 	client.Debug = viper.GetBool("debug")
+
+	switch viper.GetString("mfaMode") {
+	case "interactive-totp":
+		client.MFACallback = func(ctx context.Context, c *api.Client, res *api.APIResponse) (http.Cookie, error) {
+			challange := api.MFAChallange{}
+			err := json.Unmarshal(res.Body, &challange)
+			if err != nil {
+				return http.Cookie{}, fmt.Errorf("Parsing MFA Challange")
+			}
+			if challange.Provider.TOTP == "" {
+				return http.Cookie{}, fmt.Errorf("Server Provided no TOTP Provider")
+			}
+			for {
+				var code string
+				fmt.Print("Enter TOTP:")
+				bytepw, err := term.ReadPassword(int(syscall.Stdin))
+				if err != nil {
+					fmt.Println("\n")
+					return http.Cookie{}, fmt.Errorf("Reading TOTP: %w", err)
+				}
+				code = string(bytepw)
+				fmt.Println("\n")
+				req := api.MFAChallangeResponse{
+					TOTP: code,
+				}
+				var raw *http.Response
+				raw, _, err = c.DoCustomRequestAndReturnRawResponse(ctx, "POST", "mfa/verify/totp.json", "v2", req, nil)
+				if err != nil {
+					if errors.Unwrap(err) != api.ErrAPIResponseErrorStatusCode {
+						return http.Cookie{}, fmt.Errorf("Doing MFA Challange Response: %w", err)
+					}
+					fmt.Println("TOTP Verification Failed")
+				} else {
+					// MFA worked so lets find the cookie and return it
+					for _, cookie := range raw.Cookies() {
+						if cookie.Name == "passbolt_mfa" {
+							return *cookie, nil
+						}
+					}
+					return http.Cookie{}, fmt.Errorf("Unable to find Passbolt MFA Cookie")
+				}
+			}
+			return http.Cookie{}, fmt.Errorf("Failed MFA Challange 3 times: %w", err)
+		}
+	case "noninteractive-totp":
+		helper.AddMFACallbackTOTP(client, viper.GetUint("mfaRetrys"), viper.GetDuration("mfaDelay"), viper.GetDuration("totpOffset"), viper.GetString("totpToken"))
+	case "none":
+	default:
+	}
 
 	err = client.Login(ctx)
 	if err != nil {
