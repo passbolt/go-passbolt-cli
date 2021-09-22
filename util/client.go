@@ -31,11 +31,11 @@ func GetClient(ctx context.Context) (*api.Client, error) {
 		fmt.Print("Enter Password:")
 		bytepw, err := term.ReadPassword(int(syscall.Stdin))
 		if err != nil {
-			fmt.Println("\n")
+			fmt.Println()
 			return nil, fmt.Errorf("Reading Password: %w", err)
 		}
 		userPassword = string(bytepw)
-		fmt.Println("\n")
+		fmt.Println()
 	}
 
 	client, err := api.NewClient(nil, "", serverAddress, userPrivateKey, userPassword)
@@ -44,6 +44,16 @@ func GetClient(ctx context.Context) (*api.Client, error) {
 	}
 
 	client.Debug = viper.GetBool("debug")
+
+	token := viper.GetString("serverVerifyToken")
+	encToken := viper.GetString("serverVerifyEncToken")
+
+	if token != "" {
+		err = client.VerifyServer(ctx, token, encToken)
+		if err != nil {
+			return nil, fmt.Errorf("Verifing Server: %w", err)
+		}
+	}
 
 	switch viper.GetString("mfaMode") {
 	case "interactive-totp":
