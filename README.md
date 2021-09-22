@@ -26,7 +26,7 @@ You have these options:
 - Setup Enviroment Variables
 - Provide the Flags manually every time
 
-Note: userPrivateKey is the actual Private Key and not a path to a file. You can also just store the serverAddress and your Private Key, if your Password is not set it will prompt you for it every time
+Note: userPrivateKey is the actual Private Key and not a path to a file. You can also just store the serverAddress and your Private Key, if your Password is not set it will prompt you for it every time. MFA settings can also be save permenantly this ways
 
 # Usage
 
@@ -68,6 +68,18 @@ go-passbolt-cli share resource --id id_of_resource_to_share --type type_of_permi
 Note: you can supply the the users argument multiple times to share with multiple users
 
 For sharing with groups the `--group` argument exists.
+
+# MFA
+you can setup MFA also using the configuration sub command, only TOTP is supported, there are mulitple modes for MFA: `none`, `interactive-totp` and `noninteractive-totp`. 
+| Mode | Description |
+| --- | --- |
+|`none`|just errors if challanged for MFA.
+|`interactive-totp` | prompts for interactive entry of TOTP Codes.
+|`noninteractive-totp` | automatically generates TOTP Codes when challenged, it requires the `totpToken` flag to be set to your totp Secret, you can configure the behavior using the `mfaDelay`, `mfaRetrys` and `totpOffset` flags
+
+
+# Server Verification
+to enable Server Verification you need to run `passbolt verify` once, after that the server will always be verified if the same config is used
 
 # Documentation
 Usage for all Subcommands is [here](https://github.com/speatzle/go-passbolt-cli/wiki/go-passbolt-cli).
