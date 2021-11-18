@@ -7,7 +7,7 @@ require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.1 // indirect
 	github.com/gookit/color v1.5.0 // indirect
 	github.com/pterm/pterm v0.12.33
-	github.com/speatzle/go-passbolt v0.5.1
+	github.com/speatzle/go-passbolt v0.5.2
 	github.com/spf13/cobra v1.2.1
 	github.com/spf13/viper v1.9.0
 	golang.org/x/crypto v0.0.0-20211117183948-ae814b36b871 // indirect
