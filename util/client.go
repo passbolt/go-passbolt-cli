@@ -66,16 +66,16 @@ func GetClient(ctx context.Context) (*api.Client, error) {
 			if challange.Provider.TOTP == "" {
 				return http.Cookie{}, fmt.Errorf("Server Provided no TOTP Provider")
 			}
-			for {
+			for i := 0; i < 3; i++ {
 				var code string
 				fmt.Print("Enter TOTP:")
 				bytepw, err := term.ReadPassword(int(syscall.Stdin))
 				if err != nil {
-					fmt.Println("\n")
+					fmt.Printf("\n")
 					return http.Cookie{}, fmt.Errorf("Reading TOTP: %w", err)
 				}
 				code = string(bytepw)
-				fmt.Println("\n")
+				fmt.Printf("\n")
 				req := api.MFAChallangeResponse{
 					TOTP: code,
 				}
