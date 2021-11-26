@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
 
 	"github.com/spf13/viper"
@@ -30,6 +31,8 @@ func Execute() {
 }
 
 func init() {
+	pterm.DisableStyling()
+
 	cobra.OnInitialize(initConfig)
 
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
