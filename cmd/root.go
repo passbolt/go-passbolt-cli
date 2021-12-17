@@ -73,8 +73,9 @@ func initConfig() {
 		cobra.CheckErr(err)
 
 		confDir = filepath.Join(confDir, "go-passbolt-cli")
-		_ = os.MkdirAll(confDir, 0755)
+		_ = os.MkdirAll(confDir, 0700)
 
+		viper.SetConfigPermissions(os.FileMode(0600))
 		viper.AddConfigPath(confDir)
 		viper.SetConfigType("toml")
 		viper.SetConfigName("go-passbolt-cli")
