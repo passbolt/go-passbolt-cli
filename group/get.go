@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/alessio/shellescape"
 	"github.com/pterm/pterm"
 	"github.com/speatzle/go-passbolt-cli/util"
 	"github.com/speatzle/go-passbolt/helper"
@@ -68,11 +69,11 @@ func GroupGet(cmd *cobra.Command, args []string) error {
 				case "isgroupmanager":
 					entry[i] = fmt.Sprint(membership.IsGroupManager)
 				case "username":
-					entry[i] = fmt.Sprint(membership.Username)
+					entry[i] = shellescape.StripUnsafe(membership.Username)
 				case "userfirstname":
-					entry[i] = fmt.Sprint(membership.UserFirstName)
+					entry[i] = shellescape.StripUnsafe(membership.UserFirstName)
 				case "userlastname":
-					entry[i] = fmt.Sprint(membership.UserLastName)
+					entry[i] = shellescape.StripUnsafe(membership.UserLastName)
 				default:
 					cmd.SilenceUsage = false
 					return fmt.Errorf("Unknown Column: %v", columns[i])

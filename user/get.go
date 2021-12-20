@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/alessio/shellescape"
 	"github.com/speatzle/go-passbolt-cli/util"
 	"github.com/speatzle/go-passbolt/helper"
 	"github.com/spf13/cobra"
@@ -38,7 +39,7 @@ func UserGet(cmd *cobra.Command, args []string) error {
 	defer client.Logout(context.TODO())
 	cmd.SilenceUsage = true
 
-	username, firstname, lastname, role, err := helper.GetUser(
+	role, username, firstname, lastname, err := helper.GetUser(
 		ctx,
 		client,
 		id,
@@ -46,10 +47,10 @@ func UserGet(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("Getting User: %w", err)
 	}
-	fmt.Printf("Username: %v\n", username)
-	fmt.Printf("FirstName: %v\n", firstname)
-	fmt.Printf("LastName: %v\n", lastname)
-	fmt.Printf("Role: %v\n", role)
+	fmt.Printf("Username: %v\n", shellescape.StripUnsafe(username))
+	fmt.Printf("FirstName: %v\n", shellescape.StripUnsafe(firstname))
+	fmt.Printf("LastName: %v\n", shellescape.StripUnsafe(lastname))
+	fmt.Printf("Role: %v\n", shellescape.StripUnsafe(role))
 
 	return nil
 }

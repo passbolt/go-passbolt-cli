@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/alessio/shellescape"
 	"github.com/speatzle/go-passbolt-cli/util"
 	"github.com/speatzle/go-passbolt/api"
 	"github.com/spf13/cobra"
@@ -84,13 +85,13 @@ func UserList(cmd *cobra.Command, args []string) error {
 			case "id":
 				entry[i] = user.ID
 			case "username":
-				entry[i] = user.Username
+				entry[i] = shellescape.StripUnsafe(user.Username)
 			case "firstname":
-				entry[i] = user.Profile.FirstName
+				entry[i] = shellescape.StripUnsafe(user.Profile.FirstName)
 			case "lastname":
-				entry[i] = user.Profile.LastName
+				entry[i] = shellescape.StripUnsafe(user.Profile.LastName)
 			case "role":
-				entry[i] = user.Role.Name
+				entry[i] = shellescape.StripUnsafe(user.Role.Name)
 			default:
 				cmd.SilenceUsage = false
 				return fmt.Errorf("Unknown Column: %v", columns[i])

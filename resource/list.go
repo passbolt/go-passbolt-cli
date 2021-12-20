@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/alessio/shellescape"
 	"github.com/speatzle/go-passbolt-cli/util"
 	"github.com/speatzle/go-passbolt/api"
 	"github.com/speatzle/go-passbolt/helper"
@@ -87,23 +88,23 @@ func ResourceList(cmd *cobra.Command, args []string) error {
 			case "folderparentid":
 				entry[i] = resource.FolderParentID
 			case "name":
-				entry[i] = resource.Name
+				entry[i] = shellescape.StripUnsafe(resource.Name)
 			case "username":
-				entry[i] = resource.Username
+				entry[i] = shellescape.StripUnsafe(resource.Username)
 			case "uri":
-				entry[i] = resource.URI
+				entry[i] = shellescape.StripUnsafe(resource.URI)
 			case "password":
 				_, _, _, _, pass, _, err := helper.GetResource(ctx, client, resource.ID)
 				if err != nil {
 					return fmt.Errorf("Get Resource %w", err)
 				}
-				entry[i] = pass
+				entry[i] = shellescape.StripUnsafe(pass)
 			case "description":
 				_, _, _, _, _, desc, err := helper.GetResource(ctx, client, resource.ID)
 				if err != nil {
 					return fmt.Errorf("Get Resource %w", err)
 				}
-				entry[i] = desc
+				entry[i] = shellescape.StripUnsafe(desc)
 			default:
 				cmd.SilenceUsage = false
 				return fmt.Errorf("Unknown Column: %v", columns[i])

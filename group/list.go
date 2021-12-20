@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/alessio/shellescape"
 	"github.com/speatzle/go-passbolt-cli/util"
 	"github.com/speatzle/go-passbolt/api"
 	"github.com/spf13/cobra"
@@ -71,7 +72,7 @@ func GroupList(cmd *cobra.Command, args []string) error {
 			case "id":
 				entry[i] = resource.ID
 			case "name":
-				entry[i] = resource.Name
+				entry[i] = shellescape.StripUnsafe(resource.Name)
 			default:
 				cmd.SilenceUsage = false
 				return fmt.Errorf("Unknown Column: %v", columns[i])

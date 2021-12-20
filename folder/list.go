@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/alessio/shellescape"
 	"github.com/speatzle/go-passbolt-cli/util"
 	"github.com/speatzle/go-passbolt/api"
 	"github.com/spf13/cobra"
@@ -73,7 +74,7 @@ func FolderList(cmd *cobra.Command, args []string) error {
 			case "folderparentid":
 				entry[i] = folder.FolderParentID
 			case "name":
-				entry[i] = folder.Name
+				entry[i] = shellescape.StripUnsafe(folder.Name)
 			default:
 				cmd.SilenceUsage = false
 				return fmt.Errorf("Unknown Column: %v", columns[i])

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/alessio/shellescape"
 	"github.com/speatzle/go-passbolt-cli/util"
 	"github.com/speatzle/go-passbolt/helper"
 	"github.com/spf13/cobra"
@@ -47,10 +48,10 @@ func ResourceGet(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("Getting Resource: %w", err)
 	}
 	fmt.Printf("FolderParentID: %v\n", folderParentID)
-	fmt.Printf("Name: %v\n", name)
-	fmt.Printf("Username: %v\n", username)
-	fmt.Printf("URI: %v\n", uri)
-	fmt.Printf("Password: %v\n", password)
-	fmt.Printf("Description: %v\n", description)
+	fmt.Printf("Name: %v\n", shellescape.StripUnsafe(name))
+	fmt.Printf("Username: %v\n", shellescape.StripUnsafe(username))
+	fmt.Printf("URI: %v\n", shellescape.StripUnsafe(uri))
+	fmt.Printf("Password: %v\n", shellescape.StripUnsafe(password))
+	fmt.Printf("Description: %v\n", shellescape.StripUnsafe(description))
 	return nil
 }
