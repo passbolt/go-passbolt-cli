@@ -22,11 +22,21 @@ Note: this will install the binary as go-passbolt-cli, also tab completion and m
 # Getting Started
 First you need to Setup basic information: the Server Address, your Private Key and your Password.
 You have these options:
-- Save it in the config file using `passbolt configure --serverAddress https://passbolt.example.org --userPrivateKey 'private' --userPassword '1234'`
+- Save it in the config file using
+```
+passbolt configure --serverAddress https://passbolt.example.org --userPassword '1234' --userPrivateKeyFile 'keys/privatekey.asc' 
+```
+or
+```
+passbolt configure --serverAddress https://passbolt.example.org --userPassword '1234' --userPrivateKey '-----BEGIN PGP PRIVATE KEY BLOCK-----' 
+```
 - Setup Enviroment Variables
 - Provide the Flags manually every time
 
-Note: userPrivateKey is the actual Private Key and not a path to a file. You can also just store the serverAddress and your Private Key, if your Password is not set it will prompt you for it every time. MFA settings can also be save permenantly this ways
+Notes:
+- You can set the Private Key using the flags `--userPrivateKey` or `--userPrivateKeyFile` where `--userPrivateKey` takes the actual private key and `--userPrivateKeyFile` loads the content of a file as the PrivateKey, `--userPrivateKeyFile` overwrites the value of `--userPrivateKey`.
+- You can also just store the serverAddress and your Private Key, if your Password is not set it will prompt you for it every time.
+- MFA settings can also be save permenantly this ways
 
 # Usage
 

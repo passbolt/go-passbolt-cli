@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
@@ -16,9 +17,10 @@ var cfgFile string
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "passbolt",
-	Short: "A CLI tool to interact with Passbolt.",
-	Long:  `A CLI tool to interact with Passbolt.`,
+	Use:          "passbolt",
+	Short:        "A CLI tool to interact with Passbolt.",
+	Long:         `A CLI tool to interact with Passbolt.`,
+	SilenceUsage: true,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -43,6 +45,7 @@ func init() {
 	rootCmd.PersistentFlags().Duration("timeout", time.Minute, "Timeout for the Context")
 	rootCmd.PersistentFlags().String("serverAddress", "", "Passbolt Server Address (https://passbolt.example.com)")
 	rootCmd.PersistentFlags().String("userPrivateKey", "", "Passbolt User Private Key")
+	rootCmd.PersistentFlags().String("userPrivateKeyFile", "", "Passbolt User Private Key File, if set then the userPrivateKey will be Overwritten with the File Content")
 	rootCmd.PersistentFlags().String("userPassword", "", "Passbolt User Password")
 	rootCmd.PersistentFlags().String("mfaMode", "interactive-totp", "How to Handle MFA, the following Modes exist: none, interactive-totp and noninteractive-totp")
 	rootCmd.PersistentFlags().String("totpToken", "", "Token to generate TOTP's, only used in nointeractive-totp mode")
@@ -90,5 +93,19 @@ func initConfig() {
 		}
 		// update Config file Permissions
 		os.Chmod(viper.ConfigFileUsed(), 0600)
+	}
+
+	// Read in Private Key from File if userprivatekeyfile is set
+	userprivatekeyfile, err := rootCmd.PersistentFlags().GetString("userPrivateKeyFile")
+	if err != nil && userprivatekeyfile != "" {
+		if viper.GetBool("debug") {
+			fmt.Fprintln(os.Stderr, "Loading Private Key from File:", userprivatekeyfile)
+		}
+		content, err := ioutil.ReadFile(userprivatekeyfile)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "Error Loading Private Key from File: ", err)
+			os.Exit(1)
+		}
+		viper.Set("userprivatekey", string(content))
 	}
 }
