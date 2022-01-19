@@ -97,7 +97,7 @@ func initConfig() {
 
 	// Read in Private Key from File if userprivatekeyfile is set
 	userprivatekeyfile, err := rootCmd.PersistentFlags().GetString("userPrivateKeyFile")
-	if err != nil && userprivatekeyfile != "" {
+	if err == nil && userprivatekeyfile != "" {
 		if viper.GetBool("debug") {
 			fmt.Fprintln(os.Stderr, "Loading Private Key from File:", userprivatekeyfile)
 		}
@@ -107,5 +107,7 @@ func initConfig() {
 			os.Exit(1)
 		}
 		viper.Set("userprivatekey", string(content))
+	} else if err != nil && viper.GetBool("debug") {
+		fmt.Fprintln(os.Stderr, "Getting Private Key File Flag:", err)
 	}
 }
