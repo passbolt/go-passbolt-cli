@@ -23,7 +23,7 @@ var GroupGetCmd = &cobra.Command{
 func init() {
 	GroupGetCmd.Flags().String("id", "", "id of Group to Get")
 
-	GroupGetCmd.Flags().StringArrayP("column", "c", []string{"UserID", "IsGroupManager"}, "Membership Columns to return, possible Columns:\nUserID, Username, UserFirstName, UserLastName, IsGroupManager")
+	GroupGetCmd.Flags().StringArrayP("column", "c", []string{"UserID", "Username", "UserFirstName", "UserLastName", "IsGroupManager"}, "Membership Columns to return, possible Columns:\nUserID, Username, UserFirstName, UserLastName, IsGroupManager")
 
 	GroupGetCmd.MarkFlagRequired("id")
 }
