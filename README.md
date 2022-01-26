@@ -36,6 +36,7 @@ passbolt configure --serverAddress https://passbolt.example.org --userPassword '
 Notes:
 - You can set the Private Key using the flags `--userPrivateKey` or `--userPrivateKeyFile` where `--userPrivateKey` takes the actual private key and `--userPrivateKeyFile` loads the content of a file as the PrivateKey, `--userPrivateKeyFile` overwrites the value of `--userPrivateKey`.
 - You can also just store the serverAddress and your Private Key, if your Password is not set it will prompt you for it every time.
+- Passwordless PrivateKeys are unsupported
 - MFA settings can also be save permenantly this ways
 
 # Usage
