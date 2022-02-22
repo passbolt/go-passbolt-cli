@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"syscall"
 
-	"github.com/speatzle/go-passbolt-cli/util"
-	"github.com/speatzle/go-passbolt/api"
+	"github.com/passbolt/go-passbolt-cli/util"
+	"github.com/passbolt/go-passbolt/api"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"golang.org/x/term"

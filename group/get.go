@@ -6,9 +6,9 @@ import (
 	"strings"
 
 	"github.com/alessio/shellescape"
+	"github.com/passbolt/go-passbolt-cli/util"
+	"github.com/passbolt/go-passbolt/helper"
 	"github.com/pterm/pterm"
-	"github.com/speatzle/go-passbolt-cli/util"
-	"github.com/speatzle/go-passbolt/helper"
 	"github.com/spf13/cobra"
 )
 

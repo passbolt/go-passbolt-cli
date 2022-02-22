@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/alessio/shellescape"
-	"github.com/speatzle/go-passbolt-cli/util"
-	"github.com/speatzle/go-passbolt/helper"
+	"github.com/passbolt/go-passbolt-cli/util"
+	"github.com/passbolt/go-passbolt/helper"
 	"github.com/spf13/cobra"
 )
 

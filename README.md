@@ -1,7 +1,7 @@
 # go-passbolt-cli
 A CLI tool to interact with Passbolt, a Open source Password Manager for Teams.
 
-If you want to do something more complicated: [this](https://github.com/speatzle/go-passbolt) Go Module to Interact with Passbolt from Go might intrest you.
+If you want to do something more complicated: [this](https://github.com/passbolt/go-passbolt) Go Module to Interact with Passbolt from Go might intrest you.
 
 
 Disclaimer: This project is community driven and not associated with Passbolt SA
@@ -16,7 +16,7 @@ Disclaimer: This project is community driven and not associated with Passbolt SA
 Note: tab completion and manpages will need to be installed manually.
 
 ## Via Go:
-    go install github.com/speatzle/go-passbolt-cli
+    go install github.com/passbolt/go-passbolt-cli
 Note: this will install the binary as go-passbolt-cli, also tab completion and manpages will be missing.
 
 # Getting Started
@@ -93,6 +93,6 @@ you can setup MFA also using the configuration sub command, only TOTP is support
 to enable Server Verification you need to run `passbolt verify` once, after that the server will always be verified if the same config is used
 
 # Documentation
-Usage for all Subcommands is [here](https://github.com/speatzle/go-passbolt-cli/wiki/go-passbolt-cli).
+Usage for all Subcommands is [here](https://github.com/passbolt/go-passbolt-cli/wiki/go-passbolt-cli).
 And is also available via `man passbolt`
 

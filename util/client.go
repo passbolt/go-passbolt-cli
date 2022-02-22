@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"syscall"
 
-	"github.com/speatzle/go-passbolt/api"
-	"github.com/speatzle/go-passbolt/helper"
+	"github.com/passbolt/go-passbolt/api"
+	"github.com/passbolt/go-passbolt/helper"
 	"github.com/spf13/viper"
 	"golang.org/x/term"
 )

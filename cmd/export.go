@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/speatzle/go-passbolt-cli/keepass"
+	"github.com/passbolt/go-passbolt-cli/keepass"
 	"github.com/spf13/cobra"
 )
 

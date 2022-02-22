@@ -6,10 +6,10 @@ import (
 	"os"
 	"syscall"
 
+	"github.com/passbolt/go-passbolt-cli/util"
+	"github.com/passbolt/go-passbolt/api"
+	"github.com/passbolt/go-passbolt/helper"
 	"github.com/pterm/pterm"
-	"github.com/speatzle/go-passbolt-cli/util"
-	"github.com/speatzle/go-passbolt/api"
-	"github.com/speatzle/go-passbolt/helper"
 	"github.com/spf13/cobra"
 	"github.com/tobischo/gokeepasslib/v3"
 	w "github.com/tobischo/gokeepasslib/v3/wrappers"
@@ -85,6 +85,7 @@ func KeepassExport(cmd *cobra.Command, args []string) error {
 	rootGroup.Name = "root"
 
 	pterm.EnableStyling()
+	pterm.DisableColor()
 	progressbar, err := pterm.DefaultProgressbar.WithTitle("Decryping Resources").WithTotal(len(resources)).Start()
 	if err != nil {
 		return fmt.Errorf("Progress: %w", err)

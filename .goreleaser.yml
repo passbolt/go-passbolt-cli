@@ -33,7 +33,7 @@ release:
 nfpms:
 - maintainer: Samuel Lorch <sam@lorch.net>
   description: A CLI for Passbolt.
-  homepage: https://github.com/speatzle/go-passbolt-cli
+  homepage: https://github.com/passbolt/go-passbolt-cli
   license: MIT
   contents:
     - src: /home/runner/work/go-passbolt-cli/go-passbolt-cli/completion/bash

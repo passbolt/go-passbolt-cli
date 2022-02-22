@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/speatzle/go-passbolt-cli/util"
+	"github.com/passbolt/go-passbolt-cli/util"
 	"github.com/spf13/cobra"
 )
 
