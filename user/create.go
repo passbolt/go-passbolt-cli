@@ -2,10 +2,11 @@ package user
 
 import (
 	"context"
+    "encoding/json"
 	"fmt"
 
 	"github.com/passbolt/go-passbolt-cli/util"
-	"github.com/passbolt/go-passbolt/helper"
+	"github.com/passbolt/go-passbolt/api"
 	"github.com/spf13/cobra"
 )
 
@@ -45,6 +46,11 @@ func UserCreate(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+    jsonOutput, err := cmd.Flags().GetBool("json")
+    if err != nil {
+        return err
+    }
+
 	ctx := util.GetContext()
 
 	client, err := util.GetClient(ctx)
@@ -54,18 +60,31 @@ func UserCreate(cmd *cobra.Command, args []string) error {
 	defer client.Logout(context.TODO())
 	cmd.SilenceUsage = true
 
-	id, err := helper.CreateUser(
+	user, err := client.CreateUser(
 		ctx,
-		client,
-		role,
-		username,
-		firstname,
-		lastname,
+		api.User{
+            Username: username,
+            Profile: &api.Profile{
+                FirstName: firstname,
+                LastName: lastname,
+            },
+            Role: &api.Role{
+                Name: role,
+            },
+        },
 	)
 	if err != nil {
 		return fmt.Errorf("Creating User: %w", err)
 	}
 
-	fmt.Printf("UserID: %v\n", id)
-	return nil
+    if jsonOutput {
+        jsonUser, err := json.MarshalIndent(user, "", "  ")
+        if err != nil {
+            return err
+        }
+        fmt.Println(string(jsonUser))
+    } else {
+	    fmt.Printf("UserID: %v\n", user.ID)
+    }
+    return nil
 }
