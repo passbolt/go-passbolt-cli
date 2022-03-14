@@ -2,7 +2,7 @@ package user
 
 import (
 	"context"
-    "encoding/json"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -57,10 +57,10 @@ func UserList(cmd *cobra.Command, args []string) error {
 	if len(columns) == 0 {
 		return fmt.Errorf("You need to specify atleast one column to return")
 	}
-    jsonOutput, err := cmd.Flags().GetBool("json")
-    if err != nil {
-        return err
-    }
+	jsonOutput, err := cmd.Flags().GetBool("json")
+	if err != nil {
+		return err
+	}
 	ctx := util.GetContext()
 
 	client, err := util.GetClient(ctx)
@@ -80,38 +80,38 @@ func UserList(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("Listing User: %w", err)
 	}
 
-    if jsonOutput {
-        jsonUser, err := json.MarshalIndent(users, "", "  ")
-        if err != nil {
-            return err
-        }
-        fmt.Println(string(jsonUser))
-    } else {
-        data := pterm.TableData{columns}
+	if jsonOutput {
+		jsonUser, err := json.MarshalIndent(users, "", "  ")
+		if err != nil {
+			return err
+		}
+		fmt.Println(string(jsonUser))
+	} else {
+		data := pterm.TableData{columns}
 
-        for _, user := range users {
-            entry := make([]string, len(columns))
-            for i := range columns {
-                switch strings.ToLower(columns[i]) {
-                case "id":
-                    entry[i] = user.ID
-                case "username":
-                    entry[i] = shellescape.StripUnsafe(user.Username)
-                case "firstname":
-                    entry[i] = shellescape.StripUnsafe(user.Profile.FirstName)
-                case "lastname":
-                    entry[i] = shellescape.StripUnsafe(user.Profile.LastName)
-                case "role":
-                    entry[i] = shellescape.StripUnsafe(user.Role.Name)
-                default:
-                    cmd.SilenceUsage = false
-                    return fmt.Errorf("Unknown Column: %v", columns[i])
-                }
-            }
-            data = append(data, entry)
-        }
+		for _, user := range users {
+			entry := make([]string, len(columns))
+			for i := range columns {
+				switch strings.ToLower(columns[i]) {
+				case "id":
+					entry[i] = user.ID
+				case "username":
+					entry[i] = shellescape.StripUnsafe(user.Username)
+				case "firstname":
+					entry[i] = shellescape.StripUnsafe(user.Profile.FirstName)
+				case "lastname":
+					entry[i] = shellescape.StripUnsafe(user.Profile.LastName)
+				case "role":
+					entry[i] = shellescape.StripUnsafe(user.Role.Name)
+				default:
+					cmd.SilenceUsage = false
+					return fmt.Errorf("Unknown Column: %v", columns[i])
+				}
+			}
+			data = append(data, entry)
+		}
 
-        pterm.DefaultTable.WithHasHeader().WithData(data).Render()
-    }
-    return nil
+		pterm.DefaultTable.WithHasHeader().WithData(data).Render()
+	}
+	return nil
 }
