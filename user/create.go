@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/passbolt/go-passbolt-cli/util"
-	"github.com/passbolt/go-passbolt/api"
+	"github.com/passbolt/go-passbolt/helper"
 	"github.com/spf13/cobra"
 )
 
@@ -60,31 +60,30 @@ func UserCreate(cmd *cobra.Command, args []string) error {
 	defer client.Logout(context.TODO())
 	cmd.SilenceUsage = true
 
-	user, err := client.CreateUser(
+	id, err := helper.CreateUser(
 		ctx,
-		api.User{
-			Username: username,
-			Profile: &api.Profile{
-				FirstName: firstname,
-				LastName:  lastname,
-			},
-			Role: &api.Role{
-				Name: role,
-			},
-		},
+		client,
+		role,
+		username,
+		firstname,
+		lastname,
 	)
 	if err != nil {
 		return fmt.Errorf("Creating User: %w", err)
 	}
 
 	if jsonOutput {
-		jsonUser, err := json.MarshalIndent(user, "", "  ")
+		jsonId, err := json.MarshalIndent(
+			map[string]string{"id": id},
+			"",
+			"  ",
+		)
 		if err != nil {
 			return err
 		}
-		fmt.Println(string(jsonUser))
+		fmt.Println(string(jsonId))
 	} else {
-		fmt.Printf("UserID: %v\n", user.ID)
+		fmt.Printf("UserID: %v\n", id)
 	}
 	return nil
 }
