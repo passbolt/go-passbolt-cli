@@ -2,6 +2,7 @@ package group
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -45,7 +46,10 @@ func GroupList(cmd *cobra.Command, args []string) error {
 	if len(columns) == 0 {
 		return fmt.Errorf("You need to specify atleast one column to return")
 	}
-
+	jsonOutput, err := cmd.Flags().GetBool("json")
+	if err != nil {
+		return err
+	}
 	ctx := util.GetContext()
 
 	client, err := util.GetClient(ctx)
@@ -56,31 +60,42 @@ func GroupList(cmd *cobra.Command, args []string) error {
 	cmd.SilenceUsage = true
 
 	resources, err := client.GetGroups(ctx, &api.GetGroupsOptions{
-		FilterHasUsers:    users,
-		FilterHasManagers: managers,
+		FilterHasUsers:                users,
+		FilterHasManagers:             managers,
+		ContainGroupsUsers:            true,
+		ContainGroupsUsersUser:        true,
+		ContainGroupsUsersUserProfile: true,
 	})
 	if err != nil {
 		return fmt.Errorf("Listing Group: %w", err)
 	}
 
-	data := pterm.TableData{columns}
-
-	for _, resource := range resources {
-		entry := make([]string, len(columns))
-		for i := range columns {
-			switch strings.ToLower(columns[i]) {
-			case "id":
-				entry[i] = resource.ID
-			case "name":
-				entry[i] = shellescape.StripUnsafe(resource.Name)
-			default:
-				cmd.SilenceUsage = false
-				return fmt.Errorf("Unknown Column: %v", columns[i])
-			}
+	if jsonOutput {
+		jsonGroup, err := json.MarshalIndent(resources, "", "  ")
+		if err != nil {
+			return err
 		}
-		data = append(data, entry)
-	}
+		fmt.Println(string(jsonGroup))
+	} else {
+		data := pterm.TableData{columns}
 
-	pterm.DefaultTable.WithHasHeader().WithData(data).Render()
+		for _, resource := range resources {
+			entry := make([]string, len(columns))
+			for i := range columns {
+				switch strings.ToLower(columns[i]) {
+				case "id":
+					entry[i] = resource.ID
+				case "name":
+					entry[i] = shellescape.StripUnsafe(resource.Name)
+				default:
+					cmd.SilenceUsage = false
+					return fmt.Errorf("Unknown Column: %v", columns[i])
+				}
+			}
+			data = append(data, entry)
+		}
+
+		pterm.DefaultTable.WithHasHeader().WithData(data).Render()
+	}
 	return nil
 }
