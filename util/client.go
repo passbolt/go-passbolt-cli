@@ -1,18 +1,46 @@
 package util
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
+	"strings"
 	"syscall"
 
 	"github.com/passbolt/go-passbolt/api"
 	"github.com/passbolt/go-passbolt/helper"
 	"github.com/spf13/viper"
+	"golang.org/x/crypto/ssh/terminal"
 	"golang.org/x/term"
 )
+
+func readPassword() (string, error) {
+	var fd int
+	var pass []byte
+	if terminal.IsTerminal(syscall.Stdin) {
+		fmt.Print("Enter Password:")
+
+		fd = syscall.Stdin
+		inputPass, err := terminal.ReadPassword(fd)
+		if err != nil {
+			return "", err
+		}
+		pass = inputPass
+	} else {
+		reader := bufio.NewReader(os.Stdin)
+		s, err := reader.ReadString('\n')
+		if err != nil {
+			return "", err
+		}
+		pass = []byte(s)
+	}
+
+	return strings.Replace(string(pass), "\n", "", 1), nil
+}
 
 // GetClient gets a Logged in Passbolt Client
 func GetClient(ctx context.Context) (*api.Client, error) {
@@ -28,13 +56,13 @@ func GetClient(ctx context.Context) (*api.Client, error) {
 
 	userPassword := viper.GetString("userPassword")
 	if userPassword == "" {
-		fmt.Print("Enter Password:")
-		bytepw, err := term.ReadPassword(int(syscall.Stdin))
+		cliPassword, err := readPassword()
 		if err != nil {
 			fmt.Println()
 			return nil, fmt.Errorf("Reading Password: %w", err)
 		}
-		userPassword = string(bytepw)
+
+		userPassword = cliPassword
 		fmt.Println()
 	}
 
