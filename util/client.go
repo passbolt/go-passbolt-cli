@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"syscall"
 
 	"github.com/passbolt/go-passbolt/api"
 	"github.com/passbolt/go-passbolt/helper"
@@ -19,12 +18,11 @@ import (
 
 // ReadPassword reads a Password interactively or via Pipe
 func ReadPassword() (string, error) {
-	var fd int
+	fd := int(os.Stdin.Fd())
 	var pass []byte
-	if term.IsTerminal(syscall.Stdin) {
+	if term.IsTerminal(fd) {
 		fmt.Print("Enter Password:")
 
-		fd = syscall.Stdin
 		inputPass, err := term.ReadPassword(fd)
 		if err != nil {
 			return "", err
