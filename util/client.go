@@ -17,7 +17,8 @@ import (
 	"golang.org/x/term"
 )
 
-func readPassword() (string, error) {
+// ReadPassword reads a Password interactively or via Pipe
+func ReadPassword() (string, error) {
 	var fd int
 	var pass []byte
 	if term.IsTerminal(syscall.Stdin) {
@@ -55,7 +56,7 @@ func GetClient(ctx context.Context) (*api.Client, error) {
 
 	userPassword := viper.GetString("userPassword")
 	if userPassword == "" {
-		cliPassword, err := readPassword()
+		cliPassword, err := ReadPassword()
 		if err != nil {
 			fmt.Println()
 			return nil, fmt.Errorf("Reading Password: %w", err)
