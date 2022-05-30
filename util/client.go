@@ -97,12 +97,11 @@ func GetClient(ctx context.Context) (*api.Client, error) {
 			for i := 0; i < 3; i++ {
 				var code string
 				fmt.Print("Enter TOTP:")
-				bytepw, err := term.ReadPassword(int(syscall.Stdin))
+				code, err := ReadPassword()
 				if err != nil {
 					fmt.Printf("\n")
 					return http.Cookie{}, fmt.Errorf("Reading TOTP: %w", err)
 				}
-				code = string(bytepw)
 				fmt.Printf("\n")
 				req := api.MFAChallangeResponse{
 					TOTP: code,

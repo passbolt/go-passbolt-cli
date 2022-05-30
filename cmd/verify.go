@@ -2,13 +2,11 @@ package cmd
 
 import (
 	"fmt"
-	"syscall"
 
 	"github.com/passbolt/go-passbolt-cli/util"
 	"github.com/passbolt/go-passbolt/api"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"golang.org/x/term"
 )
 
 // verifyCMD represents the verify command
@@ -35,12 +33,12 @@ var verifyCMD = &cobra.Command{
 		userPassword := viper.GetString("userPassword")
 		if userPassword == "" {
 			fmt.Print("Enter Password:")
-			bytepw, err := term.ReadPassword(int(syscall.Stdin))
+			pw, err := util.ReadPassword()
 			if err != nil {
 				fmt.Println()
 				return fmt.Errorf("Reading Password: %w", err)
 			}
-			userPassword = string(bytepw)
+			userPassword = pw
 			fmt.Println()
 		}
 

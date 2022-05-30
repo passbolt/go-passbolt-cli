@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"syscall"
 
 	"github.com/passbolt/go-passbolt-cli/util"
 	"github.com/passbolt/go-passbolt/api"
@@ -13,7 +12,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/tobischo/gokeepasslib/v3"
 	w "github.com/tobischo/gokeepasslib/v3/wrappers"
-	"golang.org/x/term"
 )
 
 // KeepassExportCmd Exports a Passbolt Keepass
@@ -56,12 +54,12 @@ func KeepassExport(cmd *cobra.Command, args []string) error {
 
 	if keepassPassword == "" {
 		fmt.Print("Enter Keepass Password:")
-		bytepw, err := term.ReadPassword(int(syscall.Stdin))
+		pw, err := util.ReadPassword()
 		if err != nil {
 			fmt.Println()
 			return fmt.Errorf("Reading Keepass Password: %w", err)
 		}
-		keepassPassword = string(bytepw)
+		keepassPassword = pw
 		fmt.Println()
 	}
 
