@@ -14,18 +14,17 @@ import (
 	"github.com/passbolt/go-passbolt/api"
 	"github.com/passbolt/go-passbolt/helper"
 	"github.com/spf13/viper"
-	"golang.org/x/crypto/ssh/terminal"
 	"golang.org/x/term"
 )
 
 func readPassword() (string, error) {
 	var fd int
 	var pass []byte
-	if terminal.IsTerminal(syscall.Stdin) {
+	if term.IsTerminal(syscall.Stdin) {
 		fmt.Print("Enter Password:")
 
 		fd = syscall.Stdin
-		inputPass, err := terminal.ReadPassword(fd)
+		inputPass, err := term.ReadPassword(fd)
 		if err != nil {
 			return "", err
 		}
