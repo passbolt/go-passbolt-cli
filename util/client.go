@@ -19,7 +19,7 @@ import (
 // ReadPassword reads a Password interactively or via Pipe
 func ReadPassword() (string, error) {
 	fd := int(os.Stdin.Fd())
-	var pass []byte
+	var pass string
 	if term.IsTerminal(fd) {
 		fmt.Print("Enter Password:")
 
@@ -27,17 +27,17 @@ func ReadPassword() (string, error) {
 		if err != nil {
 			return "", err
 		}
-		pass = inputPass
+		pass = string(inputPass)
 	} else {
 		reader := bufio.NewReader(os.Stdin)
 		s, err := reader.ReadString('\n')
 		if err != nil {
 			return "", err
 		}
-		pass = []byte(s)
+		pass = s
 	}
 
-	return strings.Replace(string(pass), "\n", "", 1), nil
+	return strings.Replace(pass, "\n", "", 1), nil
 }
 
 // GetClient gets a Logged in Passbolt Client
