@@ -1,7 +1,7 @@
 # go-passbolt-cli
-A CLI tool to interact with Passbolt, a Open source Password Manager for Teams.
+A CLI tool to interact with Passbolt, an Open source Password Manager for teams.
 
-If you want to do something more complicated: [this](https://github.com/passbolt/go-passbolt) Go Module to Interact with Passbolt from Go might intrest you.
+If you want to do something more complicated: [this Go Module](https://github.com/passbolt/go-passbolt) to Interact with Passbolt from Go might intrest you.
 
 
 Disclaimer: This project is community driven and not associated with Passbolt SA
@@ -30,14 +30,14 @@ or
 ```
 passbolt configure --serverAddress https://passbolt.example.org --userPassword '1234' --userPrivateKey '-----BEGIN PGP PRIVATE KEY BLOCK-----' 
 ```
-- Setup Enviroment Variables
+- Setup Environment Variables
 - Provide the Flags manually every time
 
 Notes:
 - You can set the Private Key using the flags `--userPrivateKey` or `--userPrivateKeyFile` where `--userPrivateKey` takes the actual private key and `--userPrivateKeyFile` loads the content of a file as the PrivateKey, `--userPrivateKeyFile` overwrites the value of `--userPrivateKey`.
 - You can also just store the serverAddress and your Private Key, if your Password is not set it will prompt you for it every time.
 - Passwordless PrivateKeys are unsupported
-- MFA settings can also be save permenantly this ways
+- MFA settings can also be save permanently this ways
 
 # Usage
 
@@ -46,8 +46,8 @@ Generally the Structure of Commands is like this:
 go-passbolt-cli action entity [arguments]
 ```
 
-Action is the Action you want to perform like Creating, Updating or Deleting a Entity.
-Entity is a Resource(Password), Folder, User or Group that you want to apply a action to.
+Action is the Action you want to perform like Creating, Updating or Deleting an Entity.
+Entity is a Resource(Password), Folder, User or Group that you want to apply an action to.
 
 In Passbolt a Password is usually revert to as a Resource.
 
@@ -81,7 +81,7 @@ Note: you can supply the the users argument multiple times to share with multipl
 For sharing with groups the `--group` argument exists.
 
 # MFA
-you can setup MFA also using the configuration sub command, only TOTP is supported, there are mulitple modes for MFA: `none`, `interactive-totp` and `noninteractive-totp`. 
+You can setup MFA also using the configuration sub command, only TOTP is supported, there are multiple modes for MFA: `none`, `interactive-totp` and `noninteractive-totp`. 
 | Mode | Description |
 | --- | --- |
 |`none`|just errors if challanged for MFA.
@@ -90,7 +90,7 @@ you can setup MFA also using the configuration sub command, only TOTP is support
 
 
 # Server Verification
-to enable Server Verification you need to run `passbolt verify` once, after that the server will always be verified if the same config is used
+To enable Server Verification you need to run `passbolt verify` once, after that the server will always be verified if the same config is used
 
 # Documentation
 Usage for all Subcommands is [here](https://github.com/passbolt/go-passbolt-cli/wiki/go-passbolt-cli).
