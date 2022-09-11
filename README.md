@@ -16,7 +16,7 @@ Disclaimer: This project is community driven and not associated with Passbolt SA
 Note: tab completion and manpages will need to be installed manually.
 
 ## Via Go:
-    go install github.com/passbolt/go-passbolt-cli
+    go install github.com/passbolt/go-passbolt-cli@latest
 Note: this will install the binary as go-passbolt-cli, also tab completion and manpages will be missing.
 
 # Getting Started
