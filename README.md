@@ -92,6 +92,11 @@ You can setup MFA also using the configuration sub command, only TOTP is support
 # Server Verification
 To enable Server Verification you need to run `passbolt verify` once, after that the server will always be verified if the same config is used
 
+# Scripting
+For Scripting we have a -j or --json flag to convert the Output for the create, get and list commands to JSON for easier Parsing in Scripts.
+
+Note: The JSON Output does not cover Error Messages, you can detect Errors by checking if the Exitcode is not 0
+
 # Documentation
 Usage for all Subcommands is [here](https://github.com/passbolt/go-passbolt-cli/wiki/go-passbolt-cli).
 And is also available via `man passbolt`

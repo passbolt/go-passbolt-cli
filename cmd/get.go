@@ -18,6 +18,7 @@ var getCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(getCmd)
+	getCmd.PersistentFlags().BoolP("json", "j", false, "Output JSON")
 	getCmd.AddCommand(resource.ResourceGetCmd)
 	getCmd.AddCommand(folder.FolderGetCmd)
 	getCmd.AddCommand(group.GroupGetCmd)

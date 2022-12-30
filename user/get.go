@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/alessio/shellescape"
@@ -29,6 +30,10 @@ func UserGet(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	jsonOutput, err := cmd.Flags().GetBool("json")
+	if err != nil {
+		return err
+	}
 
 	ctx := util.GetContext()
 
@@ -47,10 +52,22 @@ func UserGet(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("Getting User: %w", err)
 	}
-	fmt.Printf("Username: %v\n", shellescape.StripUnsafe(username))
-	fmt.Printf("FirstName: %v\n", shellescape.StripUnsafe(firstname))
-	fmt.Printf("LastName: %v\n", shellescape.StripUnsafe(lastname))
-	fmt.Printf("Role: %v\n", shellescape.StripUnsafe(role))
-
+	if jsonOutput {
+		jsonUser, err := json.MarshalIndent(UserJsonOutput{
+			Username:  &username,
+			FirstName: &firstname,
+			LastName:  &lastname,
+			Role:      &role,
+		}, "", "  ")
+		if err != nil {
+			return err
+		}
+		fmt.Println(string(jsonUser))
+	} else {
+		fmt.Printf("Username: %v\n", shellescape.StripUnsafe(username))
+		fmt.Printf("FirstName: %v\n", shellescape.StripUnsafe(firstname))
+		fmt.Printf("LastName: %v\n", shellescape.StripUnsafe(lastname))
+		fmt.Printf("Role: %v\n", shellescape.StripUnsafe(role))
+	}
 	return nil
 }

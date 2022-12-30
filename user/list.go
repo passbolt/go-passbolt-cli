@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -57,6 +58,10 @@ func UserList(cmd *cobra.Command, args []string) error {
 	if len(columns) == 0 {
 		return fmt.Errorf("You need to specify atleast one column to return")
 	}
+	jsonOutput, err := cmd.Flags().GetBool("json")
+	if err != nil {
+		return err
+	}
 
 	ctx := util.GetContext()
 
@@ -77,34 +82,54 @@ func UserList(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("Listing User: %w", err)
 	}
 
-	data := pterm.TableData{columns}
-
-	for _, user := range users {
-		entry := make([]string, len(columns))
-		for i := range columns {
-			switch strings.ToLower(columns[i]) {
-			case "id":
-				entry[i] = user.ID
-			case "username":
-				entry[i] = shellescape.StripUnsafe(user.Username)
-			case "firstname":
-				entry[i] = shellescape.StripUnsafe(user.Profile.FirstName)
-			case "lastname":
-				entry[i] = shellescape.StripUnsafe(user.Profile.LastName)
-			case "role":
-				entry[i] = shellescape.StripUnsafe(user.Role.Name)
-			case "createdtimestamp":
-				entry[i] = user.Created.Format(time.RFC3339)
-			case "modifiedtimestamp":
-				entry[i] = user.Modified.Format(time.RFC3339)
-			default:
-				cmd.SilenceUsage = false
-				return fmt.Errorf("Unknown Column: %v", columns[i])
-			}
+	if jsonOutput {
+		outputUsers := []UserJsonOutput{}
+		for i := range users {
+			outputUsers = append(outputUsers, UserJsonOutput{
+				ID:                &users[i].ID,
+				Username:          &users[i].Username,
+				FirstName:         &users[i].Profile.FirstName,
+				LastName:          &users[i].Profile.LastName,
+				Role:              &users[i].Role.Name,
+				CreatedTimestamp:  &users[i].Created.Time,
+				ModifiedTimestamp: &users[i].Modified.Time,
+			})
 		}
-		data = append(data, entry)
-	}
+		jsonUsers, err := json.MarshalIndent(outputUsers, "", "  ")
+		if err != nil {
+			return err
+		}
+		fmt.Println(string(jsonUsers))
+	} else {
+		data := pterm.TableData{columns}
 
-	pterm.DefaultTable.WithHasHeader().WithData(data).Render()
+		for _, user := range users {
+			entry := make([]string, len(columns))
+			for i := range columns {
+				switch strings.ToLower(columns[i]) {
+				case "id":
+					entry[i] = user.ID
+				case "username":
+					entry[i] = shellescape.StripUnsafe(user.Username)
+				case "firstname":
+					entry[i] = shellescape.StripUnsafe(user.Profile.FirstName)
+				case "lastname":
+					entry[i] = shellescape.StripUnsafe(user.Profile.LastName)
+				case "role":
+					entry[i] = shellescape.StripUnsafe(user.Role.Name)
+				case "createdtimestamp":
+					entry[i] = user.Created.Format(time.RFC3339)
+				case "modifiedtimestamp":
+					entry[i] = user.Modified.Format(time.RFC3339)
+				default:
+					cmd.SilenceUsage = false
+					return fmt.Errorf("Unknown Column: %v", columns[i])
+				}
+			}
+			data = append(data, entry)
+		}
+
+		pterm.DefaultTable.WithHasHeader().WithData(data).Render()
+	}
 	return nil
 }

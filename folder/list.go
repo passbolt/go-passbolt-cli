@@ -2,6 +2,7 @@ package folder
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -46,6 +47,10 @@ func FolderList(cmd *cobra.Command, args []string) error {
 	if len(columns) == 0 {
 		return fmt.Errorf("You need to Specify atleast one column to return")
 	}
+	jsonOutput, err := cmd.Flags().GetBool("json")
+	if err != nil {
+		return err
+	}
 
 	ctx := util.GetContext()
 	cmd.SilenceUsage = true
@@ -64,30 +69,48 @@ func FolderList(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("Listing Folder: %w", err)
 	}
 
-	data := pterm.TableData{columns}
-
-	for _, folder := range folders {
-		entry := make([]string, len(columns))
-		for i := range columns {
-			switch strings.ToLower(columns[i]) {
-			case "id":
-				entry[i] = folder.ID
-			case "folderparentid":
-				entry[i] = folder.FolderParentID
-			case "name":
-				entry[i] = shellescape.StripUnsafe(folder.Name)
-			case "createdtimestamp":
-				entry[i] = folder.Created.Format(time.RFC3339)
-			case "modifiedtimestamp":
-				entry[i] = folder.Modified.Format(time.RFC3339)
-			default:
-				cmd.SilenceUsage = false
-				return fmt.Errorf("Unknown Column: %v", columns[i])
-			}
+	if jsonOutput {
+		outputFolders := []FolderJsonOutput{}
+		for i := range folders {
+			outputFolders = append(outputFolders, FolderJsonOutput{
+				ID:                &folders[i].ID,
+				FolderParentID:    &folders[i].FolderParentID,
+				Name:              &folders[i].Name,
+				CreatedTimestamp:  &folders[i].Created.Time,
+				ModifiedTimestamp: &folders[i].Modified.Time,
+			})
 		}
-		data = append(data, entry)
-	}
+		jsonFolders, err := json.MarshalIndent(outputFolders, "", "  ")
+		if err != nil {
+			return err
+		}
+		fmt.Println(string(jsonFolders))
+	} else {
+		data := pterm.TableData{columns}
 
-	pterm.DefaultTable.WithHasHeader().WithData(data).Render()
+		for _, folder := range folders {
+			entry := make([]string, len(columns))
+			for i := range columns {
+				switch strings.ToLower(columns[i]) {
+				case "id":
+					entry[i] = folder.ID
+				case "folderparentid":
+					entry[i] = folder.FolderParentID
+				case "name":
+					entry[i] = shellescape.StripUnsafe(folder.Name)
+				case "createdtimestamp":
+					entry[i] = folder.Created.Format(time.RFC3339)
+				case "modifiedtimestamp":
+					entry[i] = folder.Modified.Format(time.RFC3339)
+				default:
+					cmd.SilenceUsage = false
+					return fmt.Errorf("Unknown Column: %v", columns[i])
+				}
+			}
+			data = append(data, entry)
+		}
+
+		pterm.DefaultTable.WithHasHeader().WithData(data).Render()
+	}
 	return nil
 }

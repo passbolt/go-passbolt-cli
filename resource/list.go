@@ -2,6 +2,7 @@ package resource
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -58,6 +59,10 @@ func ResourceList(cmd *cobra.Command, args []string) error {
 	if len(columns) == 0 {
 		return fmt.Errorf("You need to specify atleast one column to return")
 	}
+	jsonOutput, err := cmd.Flags().GetBool("json")
+	if err != nil {
+		return err
+	}
 
 	ctx := util.GetContext()
 
@@ -78,46 +83,72 @@ func ResourceList(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("Listing Resource: %w", err)
 	}
 
-	data := pterm.TableData{columns}
-
-	for _, resource := range resources {
-		entry := make([]string, len(columns))
-		for i := range columns {
-			switch strings.ToLower(columns[i]) {
-			case "id":
-				entry[i] = resource.ID
-			case "folderparentid":
-				entry[i] = resource.FolderParentID
-			case "name":
-				entry[i] = shellescape.StripUnsafe(resource.Name)
-			case "username":
-				entry[i] = shellescape.StripUnsafe(resource.Username)
-			case "uri":
-				entry[i] = shellescape.StripUnsafe(resource.URI)
-			case "password":
-				_, _, _, _, pass, _, err := helper.GetResource(ctx, client, resource.ID)
-				if err != nil {
-					return fmt.Errorf("Get Resource %w", err)
-				}
-				entry[i] = shellescape.StripUnsafe(pass)
-			case "description":
-				_, _, _, _, _, desc, err := helper.GetResource(ctx, client, resource.ID)
-				if err != nil {
-					return fmt.Errorf("Get Resource %w", err)
-				}
-				entry[i] = shellescape.StripUnsafe(desc)
-			case "createdtimestamp":
-				entry[i] = resource.Created.Format(time.RFC3339)
-			case "modifiedtimestamp":
-				entry[i] = resource.Modified.Format(time.RFC3339)
-			default:
-				cmd.SilenceUsage = false
-				return fmt.Errorf("Unknown Column: %v", columns[i])
+	if jsonOutput {
+		outputResources := []ResourceJsonOutput{}
+		for i := range resources {
+			_, _, _, _, pass, desc, err := helper.GetResource(ctx, client, resources[i].ID)
+			if err != nil {
+				return fmt.Errorf("Get Resource %w", err)
 			}
+			outputResources = append(outputResources, ResourceJsonOutput{
+				ID:                &resources[i].ID,
+				FolderParentID:    &resources[i].FolderParentID,
+				Name:              &resources[i].Name,
+				Username:          &resources[i].Username,
+				URI:               &resources[i].URI,
+				Password:          &pass,
+				Description:       &desc,
+				CreatedTimestamp:  &resources[i].Created.Time,
+				ModifiedTimestamp: &resources[i].Modified.Time,
+			})
 		}
-		data = append(data, entry)
-	}
+		jsonResources, err := json.MarshalIndent(outputResources, "", "  ")
+		if err != nil {
+			return err
+		}
+		fmt.Println(string(jsonResources))
+	} else {
+		data := pterm.TableData{columns}
 
-	pterm.DefaultTable.WithHasHeader().WithData(data).Render()
+		for _, resource := range resources {
+			entry := make([]string, len(columns))
+			for i := range columns {
+				switch strings.ToLower(columns[i]) {
+				case "id":
+					entry[i] = resource.ID
+				case "folderparentid":
+					entry[i] = resource.FolderParentID
+				case "name":
+					entry[i] = shellescape.StripUnsafe(resource.Name)
+				case "username":
+					entry[i] = shellescape.StripUnsafe(resource.Username)
+				case "uri":
+					entry[i] = shellescape.StripUnsafe(resource.URI)
+				case "password":
+					_, _, _, _, pass, _, err := helper.GetResource(ctx, client, resource.ID)
+					if err != nil {
+						return fmt.Errorf("Get Resource %w", err)
+					}
+					entry[i] = shellescape.StripUnsafe(pass)
+				case "description":
+					_, _, _, _, _, desc, err := helper.GetResource(ctx, client, resource.ID)
+					if err != nil {
+						return fmt.Errorf("Get Resource %w", err)
+					}
+					entry[i] = shellescape.StripUnsafe(desc)
+				case "createdtimestamp":
+					entry[i] = resource.Created.Format(time.RFC3339)
+				case "modifiedtimestamp":
+					entry[i] = resource.Modified.Format(time.RFC3339)
+				default:
+					cmd.SilenceUsage = false
+					return fmt.Errorf("Unknown Column: %v", columns[i])
+				}
+			}
+			data = append(data, entry)
+		}
+
+		pterm.DefaultTable.WithHasHeader().WithData(data).Render()
+	}
 	return nil
 }
