@@ -2,6 +2,7 @@ package group
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -46,6 +47,10 @@ func GroupList(cmd *cobra.Command, args []string) error {
 	if len(columns) == 0 {
 		return fmt.Errorf("You need to specify atleast one column to return")
 	}
+	jsonOutput, err := cmd.Flags().GetBool("json")
+	if err != nil {
+		return err
+	}
 
 	ctx := util.GetContext()
 
@@ -64,28 +69,45 @@ func GroupList(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("Listing Group: %w", err)
 	}
 
-	data := pterm.TableData{columns}
-
-	for _, group := range groups {
-		entry := make([]string, len(columns))
-		for i := range columns {
-			switch strings.ToLower(columns[i]) {
-			case "id":
-				entry[i] = group.ID
-			case "name":
-				entry[i] = shellescape.StripUnsafe(group.Name)
-			case "createdtimestamp":
-				entry[i] = group.Created.Format(time.RFC3339)
-			case "modifiedtimestamp":
-				entry[i] = group.Modified.Format(time.RFC3339)
-			default:
-				cmd.SilenceUsage = false
-				return fmt.Errorf("Unknown Column: %v", columns[i])
-			}
+	if jsonOutput {
+		outputGroups := []GroupJsonOutput{}
+		for i := range groups {
+			outputGroups = append(outputGroups, GroupJsonOutput{
+				ID:                &groups[i].ID,
+				Name:              &groups[i].Name,
+				CreatedTimestamp:  &groups[i].Created.Time,
+				ModifiedTimestamp: &groups[i].Modified.Time,
+			})
 		}
-		data = append(data, entry)
-	}
+		jsonGroups, err := json.MarshalIndent(outputGroups, "", "  ")
+		if err != nil {
+			return err
+		}
+		fmt.Println(string(jsonGroups))
+	} else {
+		data := pterm.TableData{columns}
 
-	pterm.DefaultTable.WithHasHeader().WithData(data).Render()
+		for _, group := range groups {
+			entry := make([]string, len(columns))
+			for i := range columns {
+				switch strings.ToLower(columns[i]) {
+				case "id":
+					entry[i] = group.ID
+				case "name":
+					entry[i] = shellescape.StripUnsafe(group.Name)
+				case "createdtimestamp":
+					entry[i] = group.Created.Format(time.RFC3339)
+				case "modifiedtimestamp":
+					entry[i] = group.Modified.Format(time.RFC3339)
+				default:
+					cmd.SilenceUsage = false
+					return fmt.Errorf("Unknown Column: %v", columns[i])
+				}
+			}
+			data = append(data, entry)
+		}
+
+		pterm.DefaultTable.WithHasHeader().WithData(data).Render()
+	}
 	return nil
 }
