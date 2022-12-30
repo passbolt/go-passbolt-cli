@@ -2,6 +2,7 @@ package resource
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/alessio/shellescape"
@@ -29,6 +30,10 @@ func ResourceGet(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	jsonOutput, err := cmd.Flags().GetBool("json")
+	if err != nil {
+		return err
+	}
 
 	ctx := util.GetContext()
 
@@ -47,11 +52,27 @@ func ResourceGet(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("Getting Resource: %w", err)
 	}
-	fmt.Printf("FolderParentID: %v\n", folderParentID)
-	fmt.Printf("Name: %v\n", shellescape.StripUnsafe(name))
-	fmt.Printf("Username: %v\n", shellescape.StripUnsafe(username))
-	fmt.Printf("URI: %v\n", shellescape.StripUnsafe(uri))
-	fmt.Printf("Password: %v\n", shellescape.StripUnsafe(password))
-	fmt.Printf("Description: %v\n", shellescape.StripUnsafe(description))
+
+	if jsonOutput {
+		jsonResource, err := json.MarshalIndent(ResourceJsonOutput{
+			FolderParentID: &folderParentID,
+			Name:           &name,
+			Username:       &username,
+			URI:            &uri,
+			Password:       &password,
+			Description:    &description,
+		}, "", "  ")
+		if err != nil {
+			return err
+		}
+		fmt.Println(string(jsonResource))
+	} else {
+		fmt.Printf("FolderParentID: %v\n", folderParentID)
+		fmt.Printf("Name: %v\n", shellescape.StripUnsafe(name))
+		fmt.Printf("Username: %v\n", shellescape.StripUnsafe(username))
+		fmt.Printf("URI: %v\n", shellescape.StripUnsafe(uri))
+		fmt.Printf("Password: %v\n", shellescape.StripUnsafe(password))
+		fmt.Printf("Description: %v\n", shellescape.StripUnsafe(description))
+	}
 	return nil
 }
