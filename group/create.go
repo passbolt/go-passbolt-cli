@@ -2,6 +2,7 @@ package group
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/passbolt/go-passbolt-cli/util"
@@ -40,6 +41,10 @@ func GroupCreate(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	jsonOutput, err := cmd.Flags().GetBool("json")
+	if err != nil {
+		return err
+	}
 
 	ops := []helper.GroupMembershipOperation{}
 	for _, user := range users {
@@ -74,6 +79,18 @@ func GroupCreate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("Creating Group: %w", err)
 	}
 
-	fmt.Printf("GroupID: %v\n", id)
+	if jsonOutput {
+		jsonId, err := json.MarshalIndent(
+			map[string]string{"id": id},
+			"",
+			"  ",
+		)
+		if err != nil {
+			return fmt.Errorf("Marshalling Json: %w", err)
+		}
+		fmt.Println(string(jsonId))
+	} else {
+		fmt.Printf("GroupID: %v\n", id)
+	}
 	return nil
 }

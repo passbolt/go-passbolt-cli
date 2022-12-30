@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/passbolt/go-passbolt-cli/util"
@@ -45,6 +46,11 @@ func UserCreate(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	jsonOutput, err := cmd.Flags().GetBool("json")
+	if err != nil {
+		return err
+	}
+
 	ctx := util.GetContext()
 
 	client, err := util.GetClient(ctx)
@@ -66,6 +72,18 @@ func UserCreate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("Creating User: %w", err)
 	}
 
-	fmt.Printf("UserID: %v\n", id)
+	if jsonOutput {
+		jsonId, err := json.MarshalIndent(
+			map[string]string{"id": id},
+			"",
+			"  ",
+		)
+		if err != nil {
+			return fmt.Errorf("Marshalling Json: %w", err)
+		}
+		fmt.Println(string(jsonId))
+	} else {
+		fmt.Printf("UserID: %v\n", id)
+	}
 	return nil
 }
