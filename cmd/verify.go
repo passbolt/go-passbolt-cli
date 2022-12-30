@@ -32,8 +32,7 @@ var verifyCMD = &cobra.Command{
 
 		userPassword := viper.GetString("userPassword")
 		if userPassword == "" {
-			fmt.Print("Enter Password:")
-			pw, err := util.ReadPassword()
+			pw, err := util.ReadPassword("Enter Password:")
 			if err != nil {
 				fmt.Println()
 				return fmt.Errorf("Reading Password: %w", err)

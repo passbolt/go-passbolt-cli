@@ -17,11 +17,11 @@ import (
 )
 
 // ReadPassword reads a Password interactively or via Pipe
-func ReadPassword() (string, error) {
+func ReadPassword(prompt string) (string, error) {
 	fd := int(os.Stdin.Fd())
 	var pass string
 	if term.IsTerminal(fd) {
-		fmt.Print("Enter Password:")
+		fmt.Print(prompt)
 
 		inputPass, err := term.ReadPassword(fd)
 		if err != nil {
@@ -54,7 +54,7 @@ func GetClient(ctx context.Context) (*api.Client, error) {
 
 	userPassword := viper.GetString("userPassword")
 	if userPassword == "" {
-		cliPassword, err := ReadPassword()
+		cliPassword, err := ReadPassword("Enter Password:")
 		if err != nil {
 			fmt.Println()
 			return nil, fmt.Errorf("Reading Password: %w", err)
@@ -94,8 +94,7 @@ func GetClient(ctx context.Context) (*api.Client, error) {
 			}
 			for i := 0; i < 3; i++ {
 				var code string
-				fmt.Print("Enter TOTP:")
-				code, err := ReadPassword()
+				code, err := ReadPassword("Enter TOTP:")
 				if err != nil {
 					fmt.Printf("\n")
 					return http.Cookie{}, fmt.Errorf("Reading TOTP: %w", err)

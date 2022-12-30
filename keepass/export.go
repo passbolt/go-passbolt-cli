@@ -53,8 +53,7 @@ func KeepassExport(cmd *cobra.Command, args []string) error {
 	cmd.SilenceUsage = true
 
 	if keepassPassword == "" {
-		fmt.Print("Enter Keepass Password:")
-		pw, err := util.ReadPassword()
+		pw, err := util.ReadPassword("Enter Keepass Password:")
 		if err != nil {
 			fmt.Println()
 			return fmt.Errorf("Reading Keepass Password: %w", err)
