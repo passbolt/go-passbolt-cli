@@ -55,7 +55,7 @@ func GroupList(cmd *cobra.Command, args []string) error {
 	defer client.Logout(context.TODO())
 	cmd.SilenceUsage = true
 
-	resources, err := client.GetGroups(ctx, &api.GetGroupsOptions{
+	groups, err := client.GetGroups(ctx, &api.GetGroupsOptions{
 		FilterHasUsers:    users,
 		FilterHasManagers: managers,
 	})
@@ -65,14 +65,14 @@ func GroupList(cmd *cobra.Command, args []string) error {
 
 	data := pterm.TableData{columns}
 
-	for _, resource := range resources {
+	for _, group := range groups {
 		entry := make([]string, len(columns))
 		for i := range columns {
 			switch strings.ToLower(columns[i]) {
 			case "id":
-				entry[i] = resource.ID
+				entry[i] = group.ID
 			case "name":
-				entry[i] = shellescape.StripUnsafe(resource.Name)
+				entry[i] = shellescape.StripUnsafe(group.Name)
 			default:
 				cmd.SilenceUsage = false
 				return fmt.Errorf("Unknown Column: %v", columns[i])
