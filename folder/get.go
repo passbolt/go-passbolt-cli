@@ -2,11 +2,11 @@ package folder
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/alessio/shellescape"
 	"github.com/passbolt/go-passbolt-cli/util"
-	"github.com/passbolt/go-passbolt/helper"
 	"github.com/spf13/cobra"
 )
 
@@ -29,6 +29,10 @@ func FolderGet(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	jsonOutput, err := cmd.Flags().GetBool("json")
+	if err != nil {
+		return err
+	}
 
 	ctx := util.GetContext()
 
@@ -39,15 +43,22 @@ func FolderGet(cmd *cobra.Command, args []string) error {
 	defer client.Logout(context.TODO())
 	cmd.SilenceUsage = true
 
-	folderParentID, name, err := helper.GetFolder(
-		ctx,
-		client,
-		id,
-	)
+	folder, err := client.GetFolder(ctx, id, nil)
 	if err != nil {
 		return fmt.Errorf("Getting Folder: %w", err)
 	}
-	fmt.Printf("FolderParentID: %v\n", folderParentID)
-	fmt.Printf("Name: %v\n", shellescape.StripUnsafe(name))
+	if jsonOutput {
+		jsonGroup, err := json.MarshalIndent(FolderJsonOutput{
+			FolderParentID: &folder.FolderParentID,
+			Name:           &folder.Name,
+		}, "", "  ")
+		if err != nil {
+			return err
+		}
+		fmt.Println(string(jsonGroup))
+	} else {
+		fmt.Printf("FolderParentID: %v\n", folder.FolderParentID)
+		fmt.Printf("Name: %v\n", shellescape.StripUnsafe(folder.Name))
+	}
 	return nil
 }
