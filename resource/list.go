@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/alessio/shellescape"
 	"github.com/passbolt/go-passbolt-cli/util"
@@ -30,7 +31,7 @@ func init() {
 	ResourceListCmd.Flags().StringP("group", "g", "", "Resources that are shared with group")
 	ResourceListCmd.Flags().StringArrayP("folder", "f", []string{}, "Resources that are in folder")
 
-	ResourceListCmd.Flags().StringArrayP("column", "c", []string{"ID", "FolderParentID", "Name", "Username", "URI"}, "Columns to return, possible Columns:\nID, FolderParentID, Name, Username, URI, Password, Description")
+	ResourceListCmd.Flags().StringArrayP("column", "c", []string{"ID", "FolderParentID", "Name", "Username", "URI"}, "Columns to return, possible Columns:\nID, FolderParentID, Name, Username, URI, Password, Description, CreatedTimestamp, ModifiedTimestamp")
 }
 
 func ResourceList(cmd *cobra.Command, args []string) error {
@@ -105,6 +106,10 @@ func ResourceList(cmd *cobra.Command, args []string) error {
 					return fmt.Errorf("Get Resource %w", err)
 				}
 				entry[i] = shellescape.StripUnsafe(desc)
+			case "createdtimestamp":
+				entry[i] = resource.Created.Format(time.RFC3339)
+			case "modifiedtimestamp":
+				entry[i] = resource.Modified.Format(time.RFC3339)
 			default:
 				cmd.SilenceUsage = false
 				return fmt.Errorf("Unknown Column: %v", columns[i])

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/alessio/shellescape"
 	"github.com/passbolt/go-passbolt-cli/util"
@@ -26,7 +27,7 @@ func init() {
 	GroupListCmd.Flags().StringArrayP("user", "u", []string{}, "Groups that are shared with group")
 	GroupListCmd.Flags().StringArrayP("manager", "m", []string{}, "Groups that are in folder")
 
-	GroupListCmd.Flags().StringArrayP("column", "c", []string{"ID", "Name"}, "Columns to return, possible Columns:\nID, Name")
+	GroupListCmd.Flags().StringArrayP("column", "c", []string{"ID", "Name"}, "Columns to return, possible Columns:\nID, Name, CreatedTimestamp, ModifiedTimestamp")
 }
 
 func GroupList(cmd *cobra.Command, args []string) error {
@@ -73,6 +74,10 @@ func GroupList(cmd *cobra.Command, args []string) error {
 				entry[i] = group.ID
 			case "name":
 				entry[i] = shellescape.StripUnsafe(group.Name)
+			case "createdtimestamp":
+				entry[i] = group.Created.Format(time.RFC3339)
+			case "modifiedtimestamp":
+				entry[i] = group.Modified.Format(time.RFC3339)
 			default:
 				cmd.SilenceUsage = false
 				return fmt.Errorf("Unknown Column: %v", columns[i])

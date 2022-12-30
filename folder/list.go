@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/alessio/shellescape"
 	"github.com/passbolt/go-passbolt-cli/util"
@@ -26,7 +27,7 @@ func init() {
 	FolderListCmd.Flags().StringP("search", "s", "", "Folders that have this in the Name")
 	FolderListCmd.Flags().StringArrayP("folder", "f", []string{}, "Folders that are in this Folder")
 	FolderListCmd.Flags().StringArrayP("group", "g", []string{}, "Folders that are shared with group")
-	FolderListCmd.Flags().StringArrayP("column", "c", []string{"ID", "FolderParentID", "Name"}, "Columns to return, possible Columns:\nID, FolderParentID, Name")
+	FolderListCmd.Flags().StringArrayP("column", "c", []string{"ID", "FolderParentID", "Name"}, "Columns to return, possible Columns:\nID, FolderParentID, Name, CreatedTimestamp, ModifiedTimestamp")
 }
 
 func FolderList(cmd *cobra.Command, args []string) error {
@@ -75,6 +76,10 @@ func FolderList(cmd *cobra.Command, args []string) error {
 				entry[i] = folder.FolderParentID
 			case "name":
 				entry[i] = shellescape.StripUnsafe(folder.Name)
+			case "createdtimestamp":
+				entry[i] = folder.Created.Format(time.RFC3339)
+			case "modifiedtimestamp":
+				entry[i] = folder.Modified.Format(time.RFC3339)
 			default:
 				cmd.SilenceUsage = false
 				return fmt.Errorf("Unknown Column: %v", columns[i])

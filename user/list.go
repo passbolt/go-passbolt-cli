@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/alessio/shellescape"
 	"github.com/passbolt/go-passbolt-cli/util"
@@ -29,7 +30,7 @@ func init() {
 	UserListCmd.Flags().StringP("search", "s", "", "Search for Users")
 	UserListCmd.Flags().BoolP("admin", "a", false, "Only show Admins")
 
-	UserListCmd.Flags().StringArrayP("column", "c", []string{"ID", "Username", "FirstName", "LastName", "Role"}, "Columns to return, possible Columns:\nID, Username, FirstName, LastName, Role")
+	UserListCmd.Flags().StringArrayP("column", "c", []string{"ID", "Username", "FirstName", "LastName", "Role"}, "Columns to return, possible Columns:\nID, Username, FirstName, LastName, Role, CreatedTimestamp, ModifiedTimestamp")
 }
 
 func UserList(cmd *cobra.Command, args []string) error {
@@ -92,6 +93,10 @@ func UserList(cmd *cobra.Command, args []string) error {
 				entry[i] = shellescape.StripUnsafe(user.Profile.LastName)
 			case "role":
 				entry[i] = shellescape.StripUnsafe(user.Role.Name)
+			case "createdtimestamp":
+				entry[i] = user.Created.Format(time.RFC3339)
+			case "modifiedtimestamp":
+				entry[i] = user.Modified.Format(time.RFC3339)
 			default:
 				cmd.SilenceUsage = false
 				return fmt.Errorf("Unknown Column: %v", columns[i])
