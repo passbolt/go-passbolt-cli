@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -25,6 +26,7 @@ var GroupListCmd = &cobra.Command{
 }
 
 func init() {
+	GroupListCmd.Flags().String("filter", "", "Filtercriteria on group name by a regular expression.\nExample:--filter '.*somegroup?'")
 	GroupListCmd.Flags().StringArrayP("user", "u", []string{}, "Groups that are shared with group")
 	GroupListCmd.Flags().StringArrayP("manager", "m", []string{}, "Groups that are in folder")
 
@@ -51,6 +53,10 @@ func GroupList(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	filter, err := cmd.Flags().GetString("filter")
+	if err != nil {
+		return err
+	}
 
 	ctx := util.GetContext()
 
@@ -69,9 +75,14 @@ func GroupList(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("Listing Group: %w", err)
 	}
 
+	filteredGroups, err := filteredGroups(&groups, filter)
+	if err != nil {
+		return fmt.Errorf("Listing filtered Groups: %w", err)
+	}
+
 	if jsonOutput {
 		outputGroups := []GroupJsonOutput{}
-		for i := range groups {
+		for i := range *filteredGroups {
 			outputGroups = append(outputGroups, GroupJsonOutput{
 				ID:                &groups[i].ID,
 				Name:              &groups[i].Name,
@@ -87,7 +98,7 @@ func GroupList(cmd *cobra.Command, args []string) error {
 	} else {
 		data := pterm.TableData{columns}
 
-		for _, group := range groups {
+		for _, group := range *filteredGroups {
 			entry := make([]string, len(columns))
 			for i := range columns {
 				switch strings.ToLower(columns[i]) {
@@ -110,4 +121,25 @@ func GroupList(cmd *cobra.Command, args []string) error {
 		pterm.DefaultTable.WithHasHeader().WithData(data).Render()
 	}
 	return nil
+}
+
+func filteredGroups(groups *[]api.Group, filter string) (*[]api.Group, error) {
+	if filter == "" {
+		return groups, nil
+	}
+
+	filteredGroups := []api.Group{}
+
+	for _, group := range *groups {
+
+		matches, err := regexp.MatchString(filter, group.Name)
+		if err != nil {
+			return nil, err
+		}
+		if matches {
+			filteredGroups = append(filteredGroups, group)
+		}
+	}
+
+	return &filteredGroups, nil
 }
