@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -28,6 +29,7 @@ var ResourceListCmd = &cobra.Command{
 func init() {
 	ResourceListCmd.Flags().Bool("favorite", false, "Resources that are marked as favorite")
 	ResourceListCmd.Flags().Bool("own", false, "Resources that are owned by me")
+	ResourceListCmd.Flags().StringArray("filter", []string{}, "Filtercriteria of available column by pattern: column=<regexpr>.\nPossible columns: Name, Username, URI\nExample:--filter 'Name=.*somenames?'")
 
 	ResourceListCmd.Flags().StringP("group", "g", "", "Resources that are shared with group")
 	ResourceListCmd.Flags().StringArrayP("folder", "f", []string{}, "Resources that are in folder")
@@ -63,6 +65,10 @@ func ResourceList(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	filters, err := cmd.Flags().GetStringArray("filter")
+	if err != nil {
+		return err
+	}
 
 	ctx := util.GetContext()
 
@@ -83,9 +89,13 @@ func ResourceList(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("Listing Resource: %w", err)
 	}
 
+	filteredResources, err := filteredResources(&resources, filters)
+	if err != nil {
+		return fmt.Errorf("Listing filtered Resources: %w", err)
+	}
 	if jsonOutput {
 		outputResources := []ResourceJsonOutput{}
-		for i := range resources {
+		for i := range *filteredResources {
 			_, _, _, _, pass, desc, err := helper.GetResource(ctx, client, resources[i].ID)
 			if err != nil {
 				return fmt.Errorf("Get Resource %w", err)
@@ -110,7 +120,7 @@ func ResourceList(cmd *cobra.Command, args []string) error {
 	} else {
 		data := pterm.TableData{columns}
 
-		for _, resource := range resources {
+		for _, resource := range *filteredResources {
 			entry := make([]string, len(columns))
 			for i := range columns {
 				switch strings.ToLower(columns[i]) {
@@ -151,4 +161,51 @@ func ResourceList(cmd *cobra.Command, args []string) error {
 		pterm.DefaultTable.WithHasHeader().WithData(data).Render()
 	}
 	return nil
+}
+
+func filteredResources(resources *[]api.Resource, filters []string) (*[]api.Resource, error) {
+	if len(filters) == 0 {
+		return resources, nil
+	}
+
+	filteredResources := []api.Resource{}
+
+	for _, resource := range *resources {
+		putResource := true
+		for _, filter := range filters {
+			var value string
+			columnFilterPair := strings.Split(filter, "=")
+			if len(columnFilterPair) != 2 {
+				return nil, fmt.Errorf("Filter %s has wrong pattern!", filter)
+			}
+
+			column := columnFilterPair[0]
+			filter := columnFilterPair[1]
+
+			switch strings.ToLower(column) {
+			case "name":
+				value = shellescape.StripUnsafe(resource.Name)
+			case "username":
+				value = shellescape.StripUnsafe(resource.Username)
+			case "uri":
+				value = shellescape.StripUnsafe(resource.URI)
+			default:
+				return nil, fmt.Errorf("Unknown Column: %s", column)
+			}
+
+			matches, err := regexp.MatchString(filter, value)
+			if err != nil {
+				return nil, err
+			}
+			if !matches {
+				putResource = false
+			}
+		}
+
+		if putResource {
+			filteredResources = append(filteredResources, resource)
+		}
+	}
+
+	return &filteredResources, nil
 }
