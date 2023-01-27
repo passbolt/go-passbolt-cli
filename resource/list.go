@@ -12,6 +12,7 @@ import (
 	"github.com/passbolt/go-passbolt/api"
 	"github.com/passbolt/go-passbolt/helper"
 	"github.com/spf13/cobra"
+	"golang.org/x/exp/slices"
 
 	"github.com/pterm/pterm"
 )
@@ -73,11 +74,15 @@ func ResourceList(cmd *cobra.Command, args []string) error {
 	defer client.Logout(context.TODO())
 	cmd.SilenceUsage = true
 
+	secretNeeded := jsonOutput || slices.Contains(columns, "password") || slices.Contains(columns, "description")
+
 	resources, err := client.GetResources(ctx, &api.GetResourcesOptions{
 		FilterIsFavorite:        favorite,
 		FilterIsOwnedByMe:       own,
 		FilterIsSharedWithGroup: group,
 		FilterHasParent:         folderParents,
+		ContainSecret:           secretNeeded,
+		ContainResourceType:     secretNeeded,
 	})
 	if err != nil {
 		return fmt.Errorf("Listing Resource: %w", err)
@@ -86,10 +91,14 @@ func ResourceList(cmd *cobra.Command, args []string) error {
 	if jsonOutput {
 		outputResources := []ResourceJsonOutput{}
 		for i := range resources {
-			_, _, _, _, pass, desc, err := helper.GetResource(ctx, client, resources[i].ID)
-			if err != nil {
-				return fmt.Errorf("Get Resource %w", err)
+			var pass, desc string
+			if secretNeeded {
+				_, _, _, _, pass, desc, err = helper.GetResourceFromData(client, resources[i], resources[i].Secrets[0], resources[i].ResourceType)
+				if err != nil {
+					return fmt.Errorf("Get Resource From Data %w", err)
+				}
 			}
+
 			outputResources = append(outputResources, ResourceJsonOutput{
 				ID:                &resources[i].ID,
 				FolderParentID:    &resources[i].FolderParentID,
@@ -111,6 +120,14 @@ func ResourceList(cmd *cobra.Command, args []string) error {
 		data := pterm.TableData{columns}
 
 		for _, resource := range resources {
+			var pass, desc string
+			if secretNeeded {
+				_, _, _, _, pass, desc, err = helper.GetResourceFromData(client, resource, resource.Secrets[0], resource.ResourceType)
+				if err != nil {
+					return fmt.Errorf("Get Resource From Data %w", err)
+				}
+			}
+
 			entry := make([]string, len(columns))
 			for i := range columns {
 				switch strings.ToLower(columns[i]) {
@@ -125,16 +142,8 @@ func ResourceList(cmd *cobra.Command, args []string) error {
 				case "uri":
 					entry[i] = shellescape.StripUnsafe(resource.URI)
 				case "password":
-					_, _, _, _, pass, _, err := helper.GetResource(ctx, client, resource.ID)
-					if err != nil {
-						return fmt.Errorf("Get Resource %w", err)
-					}
 					entry[i] = shellescape.StripUnsafe(pass)
 				case "description":
-					_, _, _, _, _, desc, err := helper.GetResource(ctx, client, resource.ID)
-					if err != nil {
-						return fmt.Errorf("Get Resource %w", err)
-					}
 					entry[i] = shellescape.StripUnsafe(desc)
 				case "createdtimestamp":
 					entry[i] = resource.Created.Format(time.RFC3339)

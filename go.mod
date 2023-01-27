@@ -9,6 +9,7 @@ require (
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/viper v1.14.0
 	github.com/tobischo/gokeepasslib/v3 v3.4.1
+	golang.org/x/exp v0.0.0-20220909182711-5c715a9e8561
 	golang.org/x/term v0.3.0
 )
 
