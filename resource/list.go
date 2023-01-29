@@ -58,7 +58,11 @@ var celEnvOptions = []cel.EnvOption{
 func init() {
 	ResourceListCmd.Flags().Bool("favorite", false, "Resources that are marked as favorite")
 	ResourceListCmd.Flags().Bool("own", false, "Resources that are owned by me")
-	ResourceListCmd.Flags().String("filter", "", "Define a CEl expression as filter for resources.")
+	ResourceListCmd.Flags().String("filter", "",
+		"Define a CEl expression as filter for resources. In the expression, all available columns can be used (see -c/--column).\n"+
+			"See also CEl specifications under https://github.com/google/cel-spec."+
+			"\nExample:\n\t--filter '(Name == \"SomeName\" || matches(Name, \"RegExpr\")) && URI.startsWith(\"https://auth.\")'\n"+
+			"Available builtin functions:\n\tparseTimestamp(string): It parses a string to an timestamp like the layout '2006-01-02+15:04:05' (see golangs time.Parse documentation)")
 
 	ResourceListCmd.Flags().StringP("group", "g", "", "Resources that are shared with group")
 	ResourceListCmd.Flags().StringArrayP("folder", "f", []string{}, "Resources that are in folder")
