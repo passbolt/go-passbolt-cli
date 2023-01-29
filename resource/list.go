@@ -37,7 +37,23 @@ var celEnvOptions = []cel.EnvOption{
 	cel.Variable("Password", cel.StringType),
 	cel.Variable("Description", cel.StringType),
 	cel.Variable("CreatedTimestamp", cel.TimestampType),
-	cel.Variable("ModifiedTimestamp", cel.TimestampType)}
+	cel.Variable("ModifiedTimestamp", cel.TimestampType),
+	cel.Function("parseTimestamp",
+		cel.Overload("parse_timestamp_string",
+			[]*cel.Type{cel.StringType},
+			cel.TimestampType,
+			cel.UnaryBinding(func(timeStampInput ref.Val) ref.Val {
+				timeStampString := fmt.Sprintf("%s", timeStampInput.Value())
+				timeStamp, err := time.Parse(`2006-01-02+15:04:05`, timeStampString)
+				if err != nil {
+					fmt.Printf("Error while parsing timestamp: %v\n", err)
+				}
+				return types.Timestamp{Time: timeStamp}
+			},
+			),
+		),
+	),
+}
 
 func init() {
 	ResourceListCmd.Flags().Bool("favorite", false, "Resources that are marked as favorite")
