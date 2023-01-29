@@ -28,7 +28,7 @@ var ResourceListCmd = &cobra.Command{
 	RunE:    ResourceList,
 }
 
-var CelEnvOptions = []cel.EnvOption{
+var celEnvOptions = []cel.EnvOption{
 	cel.Variable("ID", cel.StringType),
 	cel.Variable("FolderParentID", cel.StringType),
 	cel.Variable("Name", cel.StringType),
@@ -182,7 +182,7 @@ func filterResources(resources *[]api.Resource, celCmd string, ctx context.Conte
 		return *resources, nil
 	}
 
-	env, err := cel.NewEnv(CelEnvOptions...)
+	env, err := cel.NewEnv(celEnvOptions...)
 	if err != nil {
 		return nil, err
 	}
