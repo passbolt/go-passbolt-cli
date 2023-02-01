@@ -31,8 +31,8 @@ func init() {
 	ResourceListCmd.Flags().String("filter", "",
 		"Define a CEl expression as filter for resources. In the expression, all available columns can be used (see -c/--column).\n"+
 			"See also CEl specifications under https://github.com/google/cel-spec."+
-			"\nExample:\n\t--filter '(Name == \"SomeName\" || matches(Name, \"RegExpr\")) && URI.startsWith(\"https://auth.\")'\n"+
-			"Available builtin functions:\n\tparseTimestamp(string): It parses a string to an timestamp like the layout '2006-01-02+15:04:05' (see golangs time.Parse documentation)")
+			"\nExamples:\n\t--filter '(Name == \"SomeName\" || matches(Name, \"RegExpr\")) && URI.startsWith(\"https://auth.\")'\n"+
+			"\t--filter 'Username == \"User\" && CreatedTimestamp > timestamp(\"2022-06-10T00:00:00.000-00:00\")'")
 
 	ResourceListCmd.Flags().StringP("group", "g", "", "Resources that are shared with group")
 	ResourceListCmd.Flags().StringArrayP("folder", "f", []string{}, "Resources that are in folder")

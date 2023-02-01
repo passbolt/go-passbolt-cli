@@ -3,7 +3,6 @@ package resource
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/google/cel-go/cel"
 	"github.com/google/cel-go/common/types"
@@ -23,21 +22,6 @@ var celEnvOptions = []cel.EnvOption{
 	cel.Variable("Description", cel.StringType),
 	cel.Variable("CreatedTimestamp", cel.TimestampType),
 	cel.Variable("ModifiedTimestamp", cel.TimestampType),
-	cel.Function("parseTimestamp",
-		cel.Overload("parse_timestamp_string",
-			[]*cel.Type{cel.StringType},
-			cel.TimestampType,
-			cel.UnaryBinding(func(timeStampInput ref.Val) ref.Val {
-				timeStampString := fmt.Sprintf("%s", timeStampInput.Value())
-				timeStamp, err := time.Parse(time.R, timeStampString)
-				if err != nil {
-					fmt.Printf("Error while parsing timestamp: %v\n", err)
-				}
-				return types.Timestamp{Time: timeStamp}
-			},
-			),
-		),
-	),
 }
 
 // Filters the slice resources by invoke CEL program for each resource
