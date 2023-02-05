@@ -7,6 +7,7 @@ import (
 	"github.com/google/cel-go/cel"
 	"github.com/google/cel-go/common/types"
 	"github.com/google/cel-go/common/types/ref"
+	"github.com/passbolt/go-passbolt-cli/util"
 	"github.com/passbolt/go-passbolt/api"
 	"github.com/passbolt/go-passbolt/helper"
 )
@@ -30,24 +31,14 @@ func filterResources(resources *[]api.Resource, celCmd string, ctx context.Conte
 		return *resources, nil
 	}
 
-	env, err := cel.NewEnv(celEnvOptions...)
-	if err != nil {
-		return nil, err
-	}
-
-	ast, issue := env.Compile(celCmd)
-	if issue.Err() != nil {
-		return nil, issue.Err()
-	}
-
-	program, err := env.Program(ast)
+	program, err := util.InitCELProgram(celCmd, celEnvOptions...)
 	if err != nil {
 		return nil, err
 	}
 
 	filteredResources := []api.Resource{}
 	for _, resource := range *resources {
-		val, _, err := program.ContextEval(ctx, map[string]any{
+		val, _, err := (*program).ContextEval(ctx, map[string]any{
 			"Id":             resource.ID,
 			"FolderParentID": resource.FolderParentID,
 			"Name":           resource.Name,

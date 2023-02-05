@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/google/cel-go/cel"
+	"github.com/passbolt/go-passbolt-cli/util"
 	"github.com/passbolt/go-passbolt/api"
 )
 
@@ -25,24 +26,14 @@ func filterUsers(users *[]api.User, celCmd string, ctx context.Context) ([]api.U
 		return *users, nil
 	}
 
-	env, err := cel.NewEnv(celEnvOptions...)
-	if err != nil {
-		return nil, err
-	}
-
-	ast, issue := env.Compile(celCmd)
-	if issue.Err() != nil {
-		return nil, issue.Err()
-	}
-
-	program, err := env.Program(ast)
+	program, err := util.InitCELProgram(celCmd, celEnvOptions...)
 	if err != nil {
 		return nil, err
 	}
 
 	filteredUsers := []api.User{}
 	for _, user := range *users {
-		val, _, err := program.ContextEval(ctx, map[string]any{
+		val, _, err := (*program).ContextEval(ctx, map[string]any{
 			"ID":                user.ID,
 			"Username":          user.Username,
 			"FirstName":         user.Profile.FirstName,

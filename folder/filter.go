@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/google/cel-go/cel"
+	"github.com/passbolt/go-passbolt-cli/util"
 	"github.com/passbolt/go-passbolt/api"
 )
 
@@ -23,24 +24,14 @@ func filterFolders(folders *[]api.Folder, celCmd string, ctx context.Context) ([
 		return *folders, nil
 	}
 
-	env, err := cel.NewEnv(celEnvOptions...)
-	if err != nil {
-		return nil, err
-	}
-
-	ast, issue := env.Compile(celCmd)
-	if issue.Err() != nil {
-		return nil, issue.Err()
-	}
-
-	program, err := env.Program(ast)
+	program, err := util.InitCELProgram(celCmd, celEnvOptions...)
 	if err != nil {
 		return nil, err
 	}
 
 	filteredFolders := []api.Folder{}
 	for _, folder := range *folders {
-		val, _, err := program.ContextEval(ctx, map[string]any{
+		val, _, err := (*program).ContextEval(ctx, map[string]any{
 			"ID":                folder.ID,
 			"FolderParentID":    folder.FolderParentID,
 			"Name":              folder.Name,
