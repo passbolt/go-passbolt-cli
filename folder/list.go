@@ -51,6 +51,10 @@ func FolderList(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	celFilter, err := cmd.Flags().GetString("filter")
+	if err != nil {
+		return err
+	}
 
 	ctx := util.GetContext()
 	cmd.SilenceUsage = true
@@ -67,6 +71,11 @@ func FolderList(cmd *cobra.Command, args []string) error {
 	})
 	if err != nil {
 		return fmt.Errorf("Listing Folder: %w", err)
+	}
+
+	folders, err = filterFolders(&folders, celFilter, ctx)
+	if err != nil {
+		return err
 	}
 
 	if jsonOutput {
