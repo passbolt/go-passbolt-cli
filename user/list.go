@@ -62,6 +62,10 @@ func UserList(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	celFilter, err := cmd.Flags().GetString("filter")
+	if err != nil {
+		return err
+	}
 
 	ctx := util.GetContext()
 
@@ -80,6 +84,11 @@ func UserList(cmd *cobra.Command, args []string) error {
 	})
 	if err != nil {
 		return fmt.Errorf("Listing User: %w", err)
+	}
+
+	users, err = filterUsers(&users, celFilter, ctx)
+	if err != nil {
+		return err
 	}
 
 	if jsonOutput {
