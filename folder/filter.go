@@ -17,6 +17,7 @@ var celEnvOptions = []cel.EnvOption{
 	cel.Variable("ModifiedTimestamp", cel.TimestampType),
 }
 
+// Filters the slice folders by invoke CEL program for each folder
 func filterFolders(folders *[]api.Folder, celCmd string, ctx context.Context) ([]api.Folder, error) {
 	if celCmd == "" {
 		return *folders, nil
