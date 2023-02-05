@@ -51,6 +51,10 @@ func GroupList(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	celFilter, err := cmd.Flags().GetString("filter")
+	if err != nil {
+		return err
+	}
 
 	ctx := util.GetContext()
 
@@ -67,6 +71,11 @@ func GroupList(cmd *cobra.Command, args []string) error {
 	})
 	if err != nil {
 		return fmt.Errorf("Listing Group: %w", err)
+	}
+
+	groups, err = filterGroups(&groups, celFilter, ctx)
+	if err != nil {
+		return err
 	}
 
 	if jsonOutput {
