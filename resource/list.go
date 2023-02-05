@@ -28,15 +28,8 @@ var ResourceListCmd = &cobra.Command{
 func init() {
 	ResourceListCmd.Flags().Bool("favorite", false, "Resources that are marked as favorite")
 	ResourceListCmd.Flags().Bool("own", false, "Resources that are owned by me")
-	ResourceListCmd.Flags().String("filter", "",
-		"Define a CEl expression as filter for resources. In the expression, all available columns can be used (see -c/--column).\n"+
-			"See also CEl specifications under https://github.com/google/cel-spec."+
-			"\nExamples:\n\t--filter '(Name == \"SomeName\" || matches(Name, \"RegExpr\")) && URI.startsWith(\"https://auth.\")'\n"+
-			"\t--filter 'Username == \"User\" && CreatedTimestamp > timestamp(\"2022-06-10T00:00:00.000-00:00\")'")
-
 	ResourceListCmd.Flags().StringP("group", "g", "", "Resources that are shared with group")
 	ResourceListCmd.Flags().StringArrayP("folder", "f", []string{}, "Resources that are in folder")
-
 	ResourceListCmd.Flags().StringArrayP("column", "c", []string{"ID", "FolderParentID", "Name", "Username", "URI"}, "Columns to return, possible Columns:\nID, FolderParentID, Name, Username, URI, Password, Description, CreatedTimestamp, ModifiedTimestamp")
 }
 
