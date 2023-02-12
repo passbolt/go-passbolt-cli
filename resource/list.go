@@ -28,10 +28,8 @@ var ResourceListCmd = &cobra.Command{
 func init() {
 	ResourceListCmd.Flags().Bool("favorite", false, "Resources that are marked as favorite")
 	ResourceListCmd.Flags().Bool("own", false, "Resources that are owned by me")
-
 	ResourceListCmd.Flags().StringP("group", "g", "", "Resources that are shared with group")
 	ResourceListCmd.Flags().StringArrayP("folder", "f", []string{}, "Resources that are in folder")
-
 	ResourceListCmd.Flags().StringArrayP("column", "c", []string{"ID", "FolderParentID", "Name", "Username", "URI"}, "Columns to return, possible Columns:\nID, FolderParentID, Name, Username, URI, Password, Description, CreatedTimestamp, ModifiedTimestamp")
 }
 
@@ -63,6 +61,10 @@ func ResourceList(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	celFilter, err := cmd.Flags().GetString("filter")
+	if err != nil {
+		return err
+	}
 
 	ctx := util.GetContext()
 
@@ -81,6 +83,11 @@ func ResourceList(cmd *cobra.Command, args []string) error {
 	})
 	if err != nil {
 		return fmt.Errorf("Listing Resource: %w", err)
+	}
+
+	resources, err = filterResources(&resources, celFilter, ctx, client)
+	if err != nil {
+		return err
 	}
 
 	if jsonOutput {
