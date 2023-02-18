@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/passbolt/go-passbolt-cli/folder"
 	"github.com/passbolt/go-passbolt-cli/resource"
 	"github.com/spf13/cobra"
 )
@@ -22,5 +23,6 @@ func init() {
 			"\t--filter '(Name == \"SomeName\" || matches(Name, \"RegExpr\")) && URI.startsWith(\"https://auth.\")'\n"+
 			"\t--filter 'Username == \"User\" && CreatedTimestamp > timestamp(\"2022-06-10T00:00:00.000-00:00\")'")
 	toclipboardCmd.PersistentFlags().IntP("delay", "d", 5, "Seconds of delay to iterating over the column entries.")
+	toclipboardCmd.AddCommand(folder.FolderToClipboardCommand)
 	toclipboardCmd.AddCommand(resource.ResourceToClipboardCommand)
 }
