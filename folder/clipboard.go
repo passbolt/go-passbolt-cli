@@ -103,7 +103,7 @@ func FolderToClipboard(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// If more than one resource are selected, print an table an ask for selection of entry
+// If more than one folders are selected, print an table an ask for selection of entry
 func choseFolderEntry(folders *[]api.Folder) (*api.Folder, error) {
 	if len(*folders) == 0 {
 		return nil, fmt.Errorf("No folders to select!")
