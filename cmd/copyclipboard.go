@@ -4,6 +4,7 @@ import (
 	"github.com/passbolt/go-passbolt-cli/folder"
 	"github.com/passbolt/go-passbolt-cli/group"
 	"github.com/passbolt/go-passbolt-cli/resource"
+	"github.com/passbolt/go-passbolt-cli/user"
 	"github.com/spf13/cobra"
 )
 
@@ -27,4 +28,5 @@ func init() {
 	toclipboardCmd.AddCommand(folder.FolderToClipboardCommand)
 	toclipboardCmd.AddCommand(group.GroupToClipboardCommand)
 	toclipboardCmd.AddCommand(resource.ResourceToClipboardCommand)
+	toclipboardCmd.AddCommand(user.UserToClipboardCommand)
 }
