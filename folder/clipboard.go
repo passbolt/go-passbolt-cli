@@ -23,8 +23,8 @@ var FolderToClipboardCommand = &cobra.Command{
 }
 
 func init() {
-	FolderListCmd.Flags().StringP("search", "s", "", "Folders that have this in the Name")
-	FolderListCmd.Flags().StringArrayP("column", "c", []string{"Name"}, "Columns to return, possible Columns:\nID, FolderParentID, Name, CreatedTimestamp, ModifiedTimestamp")
+	FolderToClipboardCommand.Flags().StringP("search", "s", "", "Folders that have this in the Name")
+	FolderToClipboardCommand.Flags().StringArrayP("column", "c", []string{"Name"}, "Columns to return, possible Columns:\nID, FolderParentID, Name, CreatedTimestamp, ModifiedTimestamp")
 }
 
 func FolderToClipboard(cmd *cobra.Command, args []string) error {
