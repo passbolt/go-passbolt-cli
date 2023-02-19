@@ -137,7 +137,7 @@ func choseResourceEntry(resources *[]api.Resource) (*api.Resource, error) {
 	var selectedResource *api.Resource
 	for selectedResource == nil {
 		pterm.DefaultTable.WithHasHeader().WithData(data).Render()
-		fmt.Print("Please chose an index of Resource (c to abbort): ")
+		fmt.Print("Please chose an index of resource (c to abbort): ")
 		var cliInput string
 		fmt.Scanln(&cliInput)
 		if cliInput == "c" {

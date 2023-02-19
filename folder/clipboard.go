@@ -122,7 +122,7 @@ func choseFolderEntry(folders *[]api.Folder) (*api.Folder, error) {
 	var selectedFolder *api.Folder
 	for selectedFolder == nil {
 		pterm.DefaultTable.WithHasHeader().WithData(data).Render()
-		fmt.Print("Please chose an index of Resource (c to abbort): ")
+		fmt.Print("Please chose an index of folder (c to abbort): ")
 		var cliInput string
 		fmt.Scanln(&cliInput)
 		if cliInput == "c" {
