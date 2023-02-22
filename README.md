@@ -24,11 +24,11 @@ First you need to Setup basic information: the Server Address, your Private Key 
 You have these options:
 - Save it in the config file using
 ```
-passbolt configure --serverAddress https://passbolt.example.org --userPassword '1234' --userPrivateKeyFile 'keys/privatekey.asc' 
+go-passbolt-cli configure --serverAddress https://passbolt.example.org --userPassword '1234' --userPrivateKeyFile 'keys/privatekey.asc' 
 ```
 or
 ```
-passbolt configure --serverAddress https://passbolt.example.org --userPassword '1234' --userPrivateKey '-----BEGIN PGP PRIVATE KEY BLOCK-----' 
+go-passbolt-cli configure --serverAddress https://passbolt.example.org --userPassword '1234' --userPrivateKey '-----BEGIN PGP PRIVATE KEY BLOCK-----' 
 ```
 - Setup Environment Variables
 - Provide the Flags manually every time
