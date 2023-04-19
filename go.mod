@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/alessio/shellescape v1.4.1
-	github.com/passbolt/go-passbolt v0.5.8
+	github.com/passbolt/go-passbolt v0.6.0
 	github.com/pterm/pterm v0.12.51
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/viper v1.14.0
