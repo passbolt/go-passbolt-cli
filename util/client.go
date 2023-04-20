@@ -84,12 +84,12 @@ func GetClient(ctx context.Context) (*api.Client, error) {
 	switch viper.GetString("mfaMode") {
 	case "interactive-totp":
 		client.MFACallback = func(ctx context.Context, c *api.Client, res *api.APIResponse) (http.Cookie, error) {
-			challange := api.MFAChallange{}
-			err := json.Unmarshal(res.Body, &challange)
+			challenge := api.MFAChallenge{}
+			err := json.Unmarshal(res.Body, &challenge)
 			if err != nil {
-				return http.Cookie{}, fmt.Errorf("Parsing MFA Challange")
+				return http.Cookie{}, fmt.Errorf("Parsing MFA Challenge")
 			}
-			if challange.Provider.TOTP == "" {
+			if challenge.Provider.TOTP == "" {
 				return http.Cookie{}, fmt.Errorf("Server Provided no TOTP Provider")
 			}
 			for i := 0; i < 3; i++ {
@@ -100,14 +100,14 @@ func GetClient(ctx context.Context) (*api.Client, error) {
 					return http.Cookie{}, fmt.Errorf("Reading TOTP: %w", err)
 				}
 				fmt.Printf("\n")
-				req := api.MFAChallangeResponse{
+				req := api.MFAChallengeResponse{
 					TOTP: code,
 				}
 				var raw *http.Response
 				raw, _, err = c.DoCustomRequestAndReturnRawResponse(ctx, "POST", "mfa/verify/totp.json", "v2", req, nil)
 				if err != nil {
 					if errors.Unwrap(err) != api.ErrAPIResponseErrorStatusCode {
-						return http.Cookie{}, fmt.Errorf("Doing MFA Challange Response: %w", err)
+						return http.Cookie{}, fmt.Errorf("Doing MFA Challenge Response: %w", err)
 					}
 					fmt.Println("TOTP Verification Failed")
 				} else {
@@ -120,7 +120,7 @@ func GetClient(ctx context.Context) (*api.Client, error) {
 					return http.Cookie{}, fmt.Errorf("Unable to find Passbolt MFA Cookie")
 				}
 			}
-			return http.Cookie{}, fmt.Errorf("Failed MFA Challange 3 times: %w", err)
+			return http.Cookie{}, fmt.Errorf("Failed MFA Challenge 3 times: %w", err)
 		}
 	case "noninteractive-totp":
 		helper.AddMFACallbackTOTP(client, viper.GetUint("mfaRetrys"), viper.GetDuration("mfaDelay"), viper.GetDuration("totpOffset"), viper.GetString("totpToken"))

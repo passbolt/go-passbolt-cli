@@ -84,7 +84,7 @@ For sharing with groups the `--group` argument exists.
 You can setup MFA also using the configuration sub command, only TOTP is supported, there are multiple modes for MFA: `none`, `interactive-totp` and `noninteractive-totp`. 
 | Mode | Description |
 | --- | --- |
-|`none`|just errors if challanged for MFA.
+|`none`|just errors if challenged for MFA.
 |`interactive-totp` | prompts for interactive entry of TOTP Codes.
 |`noninteractive-totp` | automatically generates TOTP Codes when challenged, it requires the `totpToken` flag to be set to your totp Secret, you can configure the behavior using the `mfaDelay`, `mfaRetrys` and `totpOffset` flags
 
