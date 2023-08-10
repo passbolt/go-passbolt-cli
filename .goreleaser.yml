@@ -14,13 +14,7 @@ builds:
       - arm64
     binary: passbolt
 archives:
-  - replacements:
-      darwin: Darwin
-      linux: Linux
-      windows: Windows
-      386: i386
-      amd64: x86_64
-    files:
+  - files:
       - completion/*
       - man/*
     format_overrides:
@@ -31,7 +25,7 @@ release:
   header: |
     ## Release {{ .Tag }} - ({{ .Date }})
 nfpms:
-- maintainer: Samuel Lorch <sam@lorch.net>
+- maintainer: Samuel Lorch <sam@soontm.de>
   description: A CLI for Passbolt.
   homepage: https://github.com/passbolt/go-passbolt-cli
   license: MIT
