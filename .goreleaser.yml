@@ -54,7 +54,7 @@ brews:
       bash_completion.install "completion/bash" => "passbolt"
       zsh_completion.install "completion/zsh" => "_passbolt"
       fish_completion.install "completion/fish" => "passbolt.fish"
-      man1.install "man/*"
+      man1.install Dir["man/*"]
       # ...
     repository:
       owner: passbolt
