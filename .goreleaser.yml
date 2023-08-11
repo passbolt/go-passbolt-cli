@@ -51,10 +51,10 @@ brews:
     folder: Formula
     install: |
       bin.install "passbolt"
-      bash_completion.install "/home/runner/work/go-passbolt-cli/go-passbolt-cli/completion/bash" => "passbolt"
-      zsh_completion.install "/home/runner/work/go-passbolt-cli/go-passbolt-cli/completion/zsh" => "_passbolt"
-      fish_completion.install "/home/runner/work/go-passbolt-cli/go-passbolt-cli/completion/fish" => "passbolt.fish"
-      man1.install "/home/runner/work/go-passbolt-cli/go-passbolt-cli/man/*"
+      bash_completion.install "completion/bash" => "passbolt"
+      zsh_completion.install "completion/zsh" => "_passbolt"
+      fish_completion.install "completion/fish" => "passbolt.fish"
+      man1.install "man/*"
       # ...
     repository:
       owner: passbolt
