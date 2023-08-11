@@ -43,3 +43,21 @@ nfpms:
   formats:
     - deb
     - rpm
+brews:
+  - homepage: https://github.com/passbolt/go-passbolt-cli
+    license: "MIT"
+    skip_upload: false
+    description: "A CLI tool to interact with Passbolt, a Open source Password Manager for Teams"
+    install: |
+      bin.install "passbolt"
+      bash_completion.install "/home/runner/work/go-passbolt-cli/go-passbolt-cli/completion/bash" => "passbolt"
+      zsh_completion.install "/home/runner/work/go-passbolt-cli/go-passbolt-cli/completion/zsh" => "_passbolt"
+      fish_completion.install "/home/runner/work/go-passbolt-cli/go-passbolt-cli/completion/fish" => "passbolt.fish"
+      man1.install "/home/runner/work/go-passbolt-cli/go-passbolt-cli/man/*"
+      # ...
+    repository:
+      owner: passbolt
+      name: homebrew-tap
+      token: "{{ .Env.TAP_GITHUB_TOKEN }}"
+        
+
