@@ -11,6 +11,9 @@ Disclaimer: This project is community driven and not associated with Passbolt SA
     Download the Package for your OS and architecture from the Latest Release.
     Install via your Distros Package manager like `dpkg -i`
 
+## Via Homebrew
+    brew install passbolt/tap/go-passbolt-cli
+
 ## Via Archive:
     Download and Extract the Archive for your OS and architecture from the Latest Release.
 Note: tab completion and manpages will need to be installed manually.
