@@ -101,6 +101,6 @@ For Scripting we have a -j or --json flag to convert the Output for the create, 
 Note: The JSON Output does not cover Error Messages, you can detect Errors by checking if the Exitcode is not 0
 
 # Documentation
-Usage for all Subcommands is [here](https://github.com/passbolt/go-passbolt-cli/wiki/go-passbolt-cli).
+Usage for all Subcommands is [here](https://github.com/passbolt/go-passbolt-cli/wiki/passbolt).
 And is also available via `man passbolt`
 
