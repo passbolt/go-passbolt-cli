@@ -4,13 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"os"
+	"sort"
+	"strconv"
+	"strings"
 
 	"github.com/passbolt/go-passbolt-cli/util"
 	"github.com/passbolt/go-passbolt/api"
 	"github.com/passbolt/go-passbolt/helper"
-	"github.com/pquerna/otp"
-	"github.com/pquerna/otp/totp"
 	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
 	"github.com/tobischo/gokeepasslib/v3"
@@ -92,7 +94,7 @@ func KeepassExport(cmd *cobra.Command, args []string) error {
 	}
 
 	for _, resource := range resources {
-		entry, err := GetKeepassEntry(client, resource, resource.Secrets[0], resource.ResourceType)
+		entry, err := getKeepassEntry(client, resource, resource.Secrets[0], resource.ResourceType)
 		if err != nil {
 			fmt.Printf("\nSkipping Export of Resource %v %v Because of: %v\n", resource.ID, resource.Name, err)
 			progressbar.Increment()
@@ -127,7 +129,7 @@ func KeepassExport(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func GetKeepassEntry(client *api.Client, resource api.Resource, secret api.Secret, rType api.ResourceType) (*gokeepasslib.Entry, error) {
+func getKeepassEntry(client *api.Client, resource api.Resource, secret api.Secret, rType api.ResourceType) (*gokeepasslib.Entry, error) {
 	_, _, _, _, pass, desc, err := helper.GetResourceFromData(client, resource, resource.Secrets[0], resource.ResourceType)
 	if err != nil {
 		return nil, fmt.Errorf("Get Resource %v: %w", resource.ID, err)
@@ -151,8 +153,6 @@ func GetKeepassEntry(client *api.Client, resource api.Resource, secret api.Secre
 			return nil, fmt.Errorf("Decrypting Secret Data: %w", err)
 		}
 
-		fmt.Printf("\nRaw Secret %v: %v\n", resource.ResourceType.Slug, rawSecretData)
-
 		if resource.ResourceType.Slug == "password-description-totp" {
 			var secretData api.SecretDataTypePasswordDescriptionTOTP
 			err = json.Unmarshal([]byte(rawSecretData), &secretData)
@@ -169,46 +169,61 @@ func GetKeepassEntry(client *api.Client, resource api.Resource, secret api.Secre
 			totpData = secretData.TOTP
 		}
 
-		var alg otp.Algorithm
+		v := url.Values{}
+		v.Set("secret", totpData.SecretKey)
+		v.Set("period", strconv.FormatUint(uint64(totpData.Period), 10))
+		v.Set("algorithm", totpData.Algorithm)
+		v.Set("digits", fmt.Sprint(totpData.Digits))
 
-		switch totpData.Algorithm {
-		case "SHA1":
-			alg = otp.AlgorithmSHA1
-		case "SHA256":
-			alg = otp.AlgorithmSHA256
-		case "SHA512":
-			alg = otp.AlgorithmSHA512
-		case "MD5":
-			alg = otp.AlgorithmMD5
-		default:
-			return nil, fmt.Errorf("Unsupported TOTP Algorithm: %v ", totpData.Algorithm)
-		}
-
-		opts := totp.GenerateOpts{
-			Issuer:      resource.URI,
-			AccountName: resource.Username,
-			Secret:      []byte(totpData.SecretKey),
-			Algorithm:   alg,
-			Period:      uint(totpData.Period),
-			Digits:      otp.Digits(totpData.Digits),
-		}
-
+		issuer := resource.URI
 		if resource.URI == "" {
-			opts.Issuer = resource.Name
+			issuer = resource.Name
+
 		}
+		v.Set("issuer", issuer)
+
+		accountName := resource.Username
 		if resource.Username == "" {
-			opts.AccountName = resource.Name
+			accountName = resource.Name
 		}
 
-		totpKey, err := totp.Generate(opts)
-		if err != nil {
-			return nil, fmt.Errorf("Generating TOTP Key: %w", err)
+		u := url.URL{
+			Scheme:   "otpauth",
+			Host:     "totp",
+			Path:     "/" + issuer + ":" + accountName,
+			RawQuery: encodeQuery(v),
 		}
 
-		totpKey.Secret()
-
-		entry.Values = append(entry.Values, gokeepasslib.ValueData{Key: "otp", Value: gokeepasslib.V{Content: totpKey.URL(), Protected: w.NewBoolWrapper(true)}})
+		entry.Values = append(entry.Values, gokeepasslib.ValueData{Key: "otp", Value: gokeepasslib.V{Content: u.String(), Protected: w.NewBoolWrapper(true)}})
 	}
 
 	return &entry, nil
+}
+
+// EncodeQuery is a copy-paste of url.Values.Encode, except it uses %20 instead
+// of + to encode spaces. This is necessary to correctly render spaces in some
+// authenticator apps, like Google Authenticator.
+func encodeQuery(v url.Values) string {
+	if v == nil {
+		return ""
+	}
+	var buf strings.Builder
+	keys := make([]string, 0, len(v))
+	for k := range v {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		vs := v[k]
+		keyEscaped := url.PathEscape(k) // changed from url.QueryEscape
+		for _, v := range vs {
+			if buf.Len() > 0 {
+				buf.WriteByte('&')
+			}
+			buf.WriteString(keyEscaped)
+			buf.WriteByte('=')
+			buf.WriteString(url.PathEscape(v)) // changed from url.QueryEscape
+		}
+	}
+	return buf.String()
 }
