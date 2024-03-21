@@ -91,73 +91,15 @@ func KeepassExport(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("Progress: %w", err)
 	}
 
-	for i, resource := range resources {
-		_, _, _, _, pass, desc, err := helper.GetResourceFromData(client, resource, resource.Secrets[0], resource.ResourceType)
+	for _, resource := range resources {
+		entry, err := GetKeepassEntry(client, resource, resource.Secrets[0], resource.ResourceType)
 		if err != nil {
-			return fmt.Errorf("Get Resource %v, %v %w", i, resource.ID, err)
+			fmt.Printf("Skipping Export of Resource %v %v Because of: %v\n", resource.ID, resource.Name, err)
+			progressbar.Increment()
+			continue
 		}
 
-		entry := gokeepasslib.NewEntry()
-		entry.Values = append(
-			entry.Values,
-			gokeepasslib.ValueData{Key: "Title", Value: gokeepasslib.V{Content: resource.Name}},
-			gokeepasslib.ValueData{Key: "UserName", Value: gokeepasslib.V{Content: resource.Username}},
-			gokeepasslib.ValueData{Key: "URL", Value: gokeepasslib.V{Content: resource.URI}},
-			gokeepasslib.ValueData{Key: "Password", Value: gokeepasslib.V{Content: pass, Protected: w.NewBoolWrapper(true)}},
-			gokeepasslib.ValueData{Key: "Notes", Value: gokeepasslib.V{Content: desc}},
-		)
-
-		if resource.ResourceType.Slug == "password-description-totp" || resource.ResourceType.Slug == "totp" {
-			var totpData api.SecretDataTOTP
-
-			rawSecretData, err := client.DecryptMessage(resource.Secrets[0].Data)
-			if err != nil {
-				return fmt.Errorf("Decrypting Secret Data: %w", err)
-			}
-
-			if resource.ResourceType.Slug == "password-description-totp" {
-				var secretData api.SecretDataTypePasswordDescriptionTOTP
-				err = json.Unmarshal([]byte(rawSecretData), &secretData)
-				if err != nil {
-					return fmt.Errorf("Parsing Decrypted Secret Data: %w", err)
-				}
-				totpData = secretData.TOTP
-			} else {
-				var secretData api.SecretDataTOTP
-				err = json.Unmarshal([]byte(rawSecretData), &secretData)
-				if err != nil {
-					return fmt.Errorf("Parsing Decrypted Secret Data: %w", err)
-				}
-				totpData = secretData
-			}
-
-			var alg otp.Algorithm
-
-			switch totpData.Algorithm {
-			case "SHA1":
-				alg = otp.AlgorithmSHA1
-			case "SHA256":
-				alg = otp.AlgorithmSHA256
-			default:
-				return fmt.Errorf("Unsuported TOTP Algorithm: %v ", totpData.Algorithm)
-			}
-
-			totpKey, err := totp.Generate(totp.GenerateOpts{
-				Issuer:      resource.URI,
-				AccountName: resource.Username,
-				Secret:      []byte(totpData.SecretKey),
-				Algorithm:   alg,
-				Period:      uint(totpData.Period),
-				Digits:      otp.Digits(totpData.Digits),
-			})
-			if err != nil {
-				return fmt.Errorf("Generating TOTP Key: %w", err)
-			}
-
-			entry.Values = append(entry.Values, gokeepasslib.ValueData{Key: "otp", Value: gokeepasslib.V{Content: totpKey.URL(), Protected: w.NewBoolWrapper(true)}})
-		}
-
-		rootGroup.Entries = append(rootGroup.Entries, entry)
+		rootGroup.Entries = append(rootGroup.Entries, *entry)
 		progressbar.Increment()
 	}
 
@@ -183,4 +125,73 @@ func KeepassExport(cmd *cobra.Command, args []string) error {
 	fmt.Println("Done")
 
 	return nil
+}
+
+func GetKeepassEntry(client *api.Client, resource api.Resource, secret api.Secret, rType api.ResourceType) (*gokeepasslib.Entry, error) {
+	_, _, _, _, pass, desc, err := helper.GetResourceFromData(client, resource, resource.Secrets[0], resource.ResourceType)
+	if err != nil {
+		return nil, fmt.Errorf("Get Resource %v: %w", resource.ID, err)
+	}
+
+	entry := gokeepasslib.NewEntry()
+	entry.Values = append(
+		entry.Values,
+		gokeepasslib.ValueData{Key: "Title", Value: gokeepasslib.V{Content: resource.Name}},
+		gokeepasslib.ValueData{Key: "UserName", Value: gokeepasslib.V{Content: resource.Username}},
+		gokeepasslib.ValueData{Key: "URL", Value: gokeepasslib.V{Content: resource.URI}},
+		gokeepasslib.ValueData{Key: "Password", Value: gokeepasslib.V{Content: pass, Protected: w.NewBoolWrapper(true)}},
+		gokeepasslib.ValueData{Key: "Notes", Value: gokeepasslib.V{Content: desc}},
+	)
+
+	if resource.ResourceType.Slug == "password-description-totp" || resource.ResourceType.Slug == "totp" {
+		var totpData api.SecretDataTOTP
+
+		rawSecretData, err := client.DecryptMessage(resource.Secrets[0].Data)
+		if err != nil {
+			return nil, fmt.Errorf("Decrypting Secret Data: %w", err)
+		}
+
+		if resource.ResourceType.Slug == "password-description-totp" {
+			var secretData api.SecretDataTypePasswordDescriptionTOTP
+			err = json.Unmarshal([]byte(rawSecretData), &secretData)
+			if err != nil {
+				return nil, fmt.Errorf("Parsing Decrypted Secret Data: %w", err)
+			}
+			totpData = secretData.TOTP
+		} else {
+			var secretData api.SecretDataTOTP
+			err = json.Unmarshal([]byte(rawSecretData), &secretData)
+			if err != nil {
+				return nil, fmt.Errorf("Parsing Decrypted Secret Data: %w", err)
+			}
+			totpData = secretData
+		}
+
+		var alg otp.Algorithm
+
+		switch totpData.Algorithm {
+		case "SHA1":
+			alg = otp.AlgorithmSHA1
+		case "SHA256":
+			alg = otp.AlgorithmSHA256
+		default:
+			return nil, fmt.Errorf("Unsuported TOTP Algorithm: %v ", totpData.Algorithm)
+		}
+
+		totpKey, err := totp.Generate(totp.GenerateOpts{
+			Issuer:      resource.URI,
+			AccountName: resource.Username,
+			Secret:      []byte(totpData.SecretKey),
+			Algorithm:   alg,
+			Period:      uint(totpData.Period),
+			Digits:      otp.Digits(totpData.Digits),
+		})
+		if err != nil {
+			return nil, fmt.Errorf("Generating TOTP Key: %w", err)
+		}
+
+		entry.Values = append(entry.Values, gokeepasslib.ValueData{Key: "otp", Value: gokeepasslib.V{Content: totpKey.URL(), Protected: w.NewBoolWrapper(true)}})
+	}
+
+	return &entry, nil
 }
