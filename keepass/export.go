@@ -94,7 +94,7 @@ func KeepassExport(cmd *cobra.Command, args []string) error {
 	for _, resource := range resources {
 		entry, err := GetKeepassEntry(client, resource, resource.Secrets[0], resource.ResourceType)
 		if err != nil {
-			fmt.Printf("Skipping Export of Resource %v %v Because of: %v\n", resource.ID, resource.Name, err)
+			fmt.Printf("\nSkipping Export of Resource %v %v Because of: %v\n", resource.ID, resource.Name, err)
 			progressbar.Increment()
 			continue
 		}
@@ -151,6 +151,8 @@ func GetKeepassEntry(client *api.Client, resource api.Resource, secret api.Secre
 			return nil, fmt.Errorf("Decrypting Secret Data: %w", err)
 		}
 
+		fmt.Printf("\nRaw Secret %v: %v\n", resource.ResourceType.Slug, rawSecretData)
+
 		if resource.ResourceType.Slug == "password-description-totp" {
 			var secretData api.SecretDataTypePasswordDescriptionTOTP
 			err = json.Unmarshal([]byte(rawSecretData), &secretData)
@@ -159,12 +161,12 @@ func GetKeepassEntry(client *api.Client, resource api.Resource, secret api.Secre
 			}
 			totpData = secretData.TOTP
 		} else {
-			var secretData api.SecretDataTOTP
+			var secretData api.SecretDataTypeTOTP
 			err = json.Unmarshal([]byte(rawSecretData), &secretData)
 			if err != nil {
 				return nil, fmt.Errorf("Parsing Decrypted Secret Data: %w", err)
 			}
-			totpData = secretData
+			totpData = secretData.TOTP
 		}
 
 		var alg otp.Algorithm
@@ -175,17 +177,26 @@ func GetKeepassEntry(client *api.Client, resource api.Resource, secret api.Secre
 		case "SHA256":
 			alg = otp.AlgorithmSHA256
 		default:
-			return nil, fmt.Errorf("Unsuported TOTP Algorithm: %v ", totpData.Algorithm)
+			return nil, fmt.Errorf("Unsupported TOTP Algorithm: %v ", totpData.Algorithm)
 		}
 
-		totpKey, err := totp.Generate(totp.GenerateOpts{
+		opts := totp.GenerateOpts{
 			Issuer:      resource.URI,
 			AccountName: resource.Username,
 			Secret:      []byte(totpData.SecretKey),
 			Algorithm:   alg,
 			Period:      uint(totpData.Period),
 			Digits:      otp.Digits(totpData.Digits),
-		})
+		}
+
+		if resource.URI == "" {
+			opts.Issuer = resource.Name
+		}
+		if resource.Username == "" {
+			opts.AccountName = resource.Name
+		}
+
+		totpKey, err := totp.Generate(opts)
 		if err != nil {
 			return nil, fmt.Errorf("Generating TOTP Key: %w", err)
 		}
