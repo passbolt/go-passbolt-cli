@@ -176,6 +176,10 @@ func GetKeepassEntry(client *api.Client, resource api.Resource, secret api.Secre
 			alg = otp.AlgorithmSHA1
 		case "SHA256":
 			alg = otp.AlgorithmSHA256
+		case "SHA512":
+			alg = otp.AlgorithmSHA512
+		case "MD5":
+			alg = otp.AlgorithmMD5
 		default:
 			return nil, fmt.Errorf("Unsupported TOTP Algorithm: %v ", totpData.Algorithm)
 		}
@@ -200,6 +204,8 @@ func GetKeepassEntry(client *api.Client, resource api.Resource, secret api.Secre
 		if err != nil {
 			return nil, fmt.Errorf("Generating TOTP Key: %w", err)
 		}
+
+		totpKey.Secret()
 
 		entry.Values = append(entry.Values, gokeepasslib.ValueData{Key: "otp", Value: gokeepasslib.V{Content: totpKey.URL(), Protected: w.NewBoolWrapper(true)}})
 	}
