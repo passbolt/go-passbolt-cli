@@ -89,7 +89,7 @@ You can setup MFA also using the configuration sub command, only TOTP is support
 | --- | --- |
 |`none`|just errors if challenged for MFA.
 |`interactive-totp` | prompts for interactive entry of TOTP Codes.
-|`noninteractive-totp` | automatically generates TOTP Codes when challenged, it requires the `totpToken` flag to be set to your totp Secret, you can configure the behavior using the `mfaDelay`, `mfaRetrys` and `totpOffset` flags
+|`noninteractive-totp` | automatically generates TOTP Codes when challenged, it requires the `mfaTotpToken` flag to be set to your totp Secret, you can configure the behavior using the `mfaDelay`, `mfaRetrys` and `mfaTotpOffset` flags
 
 
 # Server Verification
