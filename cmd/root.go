@@ -48,8 +48,15 @@ func init() {
 	rootCmd.PersistentFlags().String("userPrivateKeyFile", "", "Passbolt User Private Key File, if set then the userPrivateKey will be Overwritten with the File Content")
 	rootCmd.PersistentFlags().String("userPassword", "", "Passbolt User Password")
 	rootCmd.PersistentFlags().String("mfaMode", "interactive-totp", "How to Handle MFA, the following Modes exist: none, interactive-totp and noninteractive-totp")
+
 	rootCmd.PersistentFlags().String("totpToken", "", "Token to generate TOTP's, only used in nointeractive-totp mode")
+	rootCmd.PersistentFlags().MarkDeprecated("totpToken", "use --mfaTotpToken instead")
+	rootCmd.PersistentFlags().String("mfaTotpToken", "", "Token to generate TOTP's, only used in nointeractive-totp mode")
+
 	rootCmd.PersistentFlags().Duration("totpOffset", time.Duration(0), "TOTP Generation offset only used in noninteractive-totp mode")
+	rootCmd.PersistentFlags().MarkDeprecated("totpOffset", "use --mfaTotpOffset instead")
+	rootCmd.PersistentFlags().Duration("mfaTotpOffset", time.Duration(0), "TOTP Generation offset only used in noninteractive-totp mode")
+
 	rootCmd.PersistentFlags().Uint("mfaRetrys", 3, "How often to retry TOTP Auth, only used in nointeractive modes")
 	rootCmd.PersistentFlags().Duration("mfaDelay", time.Second*10, "Delay between MFA Attempts, only used in noninteractive modes")
 
@@ -60,7 +67,9 @@ func init() {
 	viper.BindPFlag("userPassword", rootCmd.PersistentFlags().Lookup("userPassword"))
 	viper.BindPFlag("mfaMode", rootCmd.PersistentFlags().Lookup("mfaMode"))
 	viper.BindPFlag("totpToken", rootCmd.PersistentFlags().Lookup("totpToken"))
+	viper.BindPFlag("mfaTotpToken", rootCmd.PersistentFlags().Lookup("mfaTotpToken"))
 	viper.BindPFlag("totpOffset", rootCmd.PersistentFlags().Lookup("totpOffset"))
+	viper.BindPFlag("mfaTotpOffset", rootCmd.PersistentFlags().Lookup("mfaTotpOffset"))
 	viper.BindPFlag("mfaRetrys", rootCmd.PersistentFlags().Lookup("mfaRetrys"))
 	viper.BindPFlag("mfaDelay", rootCmd.PersistentFlags().Lookup("mfaDelay"))
 }
