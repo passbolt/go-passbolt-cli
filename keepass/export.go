@@ -2,12 +2,15 @@ package keepass
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 
 	"github.com/passbolt/go-passbolt-cli/util"
 	"github.com/passbolt/go-passbolt/api"
 	"github.com/passbolt/go-passbolt/helper"
+	"github.com/pquerna/otp"
+	"github.com/pquerna/otp/totp"
 	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
 	"github.com/tobischo/gokeepasslib/v3"
@@ -103,6 +106,57 @@ func KeepassExport(cmd *cobra.Command, args []string) error {
 			gokeepasslib.ValueData{Key: "Password", Value: gokeepasslib.V{Content: pass, Protected: w.NewBoolWrapper(true)}},
 			gokeepasslib.ValueData{Key: "Notes", Value: gokeepasslib.V{Content: desc}},
 		)
+
+		if resource.ResourceType.Slug == "password-description-totp" || resource.ResourceType.Slug == "totp" {
+			var totpData api.SecretDataTOTP
+
+			rawSecretData, err := client.DecryptMessage(resource.Secrets[0].Data)
+			if err != nil {
+				return fmt.Errorf("Decrypting Secret Data: %w", err)
+			}
+
+			if resource.ResourceType.Slug == "password-description-totp" {
+				var secretData api.SecretDataTypePasswordDescriptionTOTP
+				err = json.Unmarshal([]byte(rawSecretData), &secretData)
+				if err != nil {
+					return fmt.Errorf("Parsing Decrypted Secret Data: %w", err)
+				}
+				totpData = secretData.TOTP
+			} else {
+				var secretData api.SecretDataTOTP
+				err = json.Unmarshal([]byte(rawSecretData), &secretData)
+				if err != nil {
+					return fmt.Errorf("Parsing Decrypted Secret Data: %w", err)
+				}
+				totpData = secretData
+			}
+
+			var alg otp.Algorithm
+
+			switch totpData.Algorithm {
+			case "SHA1":
+				alg = otp.AlgorithmSHA1
+			case "SHA256":
+				alg = otp.AlgorithmSHA256
+			default:
+				return fmt.Errorf("Unsuported TOTP Algorithm: %v ", totpData.Algorithm)
+			}
+
+			totpKey, err := totp.Generate(totp.GenerateOpts{
+				Issuer:      resource.URI,
+				AccountName: resource.Username,
+				Secret:      []byte(totpData.SecretKey),
+				Algorithm:   alg,
+				Period:      uint(totpData.Period),
+				Digits:      otp.Digits(totpData.Digits),
+			})
+			if err != nil {
+				return fmt.Errorf("Generating TOTP Key: %w", err)
+			}
+
+			entry.Values = append(entry.Values, gokeepasslib.ValueData{Key: "otp", Value: gokeepasslib.V{Content: totpKey.URL(), Protected: w.NewBoolWrapper(true)}})
+		}
+
 		rootGroup.Entries = append(rootGroup.Entries, entry)
 		progressbar.Increment()
 	}
