@@ -120,3 +120,7 @@ func initConfig() {
 		fmt.Fprintln(os.Stderr, "Getting Private Key File Flag:", err)
 	}
 }
+
+func SetVersionInfo(version, commit, date string) {
+	rootCmd.Version = fmt.Sprintf("%s (Built on %s from Git SHA %s)", version, date, commit)
+}
