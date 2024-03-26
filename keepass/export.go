@@ -2,8 +2,13 @@ package keepass
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"net/url"
 	"os"
+	"sort"
+	"strconv"
+	"strings"
 
 	"github.com/passbolt/go-passbolt-cli/util"
 	"github.com/passbolt/go-passbolt/api"
@@ -88,22 +93,15 @@ func KeepassExport(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("Progress: %w", err)
 	}
 
-	for i, resource := range resources {
-		_, _, _, _, pass, desc, err := helper.GetResourceFromData(client, resource, resource.Secrets[0], resource.ResourceType)
+	for _, resource := range resources {
+		entry, err := getKeepassEntry(client, resource, resource.Secrets[0], resource.ResourceType)
 		if err != nil {
-			return fmt.Errorf("Get Resource %v, %v %w", i, resource.ID, err)
+			fmt.Printf("\nSkipping Export of Resource %v %v Because of: %v\n", resource.ID, resource.Name, err)
+			progressbar.Increment()
+			continue
 		}
 
-		entry := gokeepasslib.NewEntry()
-		entry.Values = append(
-			entry.Values,
-			gokeepasslib.ValueData{Key: "Title", Value: gokeepasslib.V{Content: resource.Name}},
-			gokeepasslib.ValueData{Key: "UserName", Value: gokeepasslib.V{Content: resource.Username}},
-			gokeepasslib.ValueData{Key: "URL", Value: gokeepasslib.V{Content: resource.URI}},
-			gokeepasslib.ValueData{Key: "Password", Value: gokeepasslib.V{Content: pass, Protected: w.NewBoolWrapper(true)}},
-			gokeepasslib.ValueData{Key: "Notes", Value: gokeepasslib.V{Content: desc}},
-		)
-		rootGroup.Entries = append(rootGroup.Entries, entry)
+		rootGroup.Entries = append(rootGroup.Entries, *entry)
 		progressbar.Increment()
 	}
 
@@ -129,4 +127,103 @@ func KeepassExport(cmd *cobra.Command, args []string) error {
 	fmt.Println("Done")
 
 	return nil
+}
+
+func getKeepassEntry(client *api.Client, resource api.Resource, secret api.Secret, rType api.ResourceType) (*gokeepasslib.Entry, error) {
+	_, _, _, _, pass, desc, err := helper.GetResourceFromData(client, resource, resource.Secrets[0], resource.ResourceType)
+	if err != nil {
+		return nil, fmt.Errorf("Get Resource %v: %w", resource.ID, err)
+	}
+
+	entry := gokeepasslib.NewEntry()
+	entry.Values = append(
+		entry.Values,
+		gokeepasslib.ValueData{Key: "Title", Value: gokeepasslib.V{Content: resource.Name}},
+		gokeepasslib.ValueData{Key: "UserName", Value: gokeepasslib.V{Content: resource.Username}},
+		gokeepasslib.ValueData{Key: "URL", Value: gokeepasslib.V{Content: resource.URI}},
+		gokeepasslib.ValueData{Key: "Password", Value: gokeepasslib.V{Content: pass, Protected: w.NewBoolWrapper(true)}},
+		gokeepasslib.ValueData{Key: "Notes", Value: gokeepasslib.V{Content: desc}},
+	)
+
+	if resource.ResourceType.Slug == "password-description-totp" || resource.ResourceType.Slug == "totp" {
+		var totpData api.SecretDataTOTP
+
+		rawSecretData, err := client.DecryptMessage(resource.Secrets[0].Data)
+		if err != nil {
+			return nil, fmt.Errorf("Decrypting Secret Data: %w", err)
+		}
+
+		if resource.ResourceType.Slug == "password-description-totp" {
+			var secretData api.SecretDataTypePasswordDescriptionTOTP
+			err = json.Unmarshal([]byte(rawSecretData), &secretData)
+			if err != nil {
+				return nil, fmt.Errorf("Parsing Decrypted Secret Data: %w", err)
+			}
+			totpData = secretData.TOTP
+		} else {
+			var secretData api.SecretDataTypeTOTP
+			err = json.Unmarshal([]byte(rawSecretData), &secretData)
+			if err != nil {
+				return nil, fmt.Errorf("Parsing Decrypted Secret Data: %w", err)
+			}
+			totpData = secretData.TOTP
+		}
+
+		v := url.Values{}
+		v.Set("secret", totpData.SecretKey)
+		v.Set("period", strconv.FormatUint(uint64(totpData.Period), 10))
+		v.Set("algorithm", totpData.Algorithm)
+		v.Set("digits", fmt.Sprint(totpData.Digits))
+
+		issuer := resource.URI
+		if resource.URI == "" {
+			issuer = resource.Name
+
+		}
+		v.Set("issuer", issuer)
+
+		accountName := resource.Username
+		if resource.Username == "" {
+			accountName = resource.Name
+		}
+
+		u := url.URL{
+			Scheme:   "otpauth",
+			Host:     "totp",
+			Path:     "/" + issuer + ":" + accountName,
+			RawQuery: encodeQuery(v),
+		}
+
+		entry.Values = append(entry.Values, gokeepasslib.ValueData{Key: "otp", Value: gokeepasslib.V{Content: u.String(), Protected: w.NewBoolWrapper(true)}})
+	}
+
+	return &entry, nil
+}
+
+// EncodeQuery is a copy-paste of url.Values.Encode, except it uses %20 instead
+// of + to encode spaces. This is necessary to correctly render spaces in some
+// authenticator apps, like Google Authenticator.
+func encodeQuery(v url.Values) string {
+	if v == nil {
+		return ""
+	}
+	var buf strings.Builder
+	keys := make([]string, 0, len(v))
+	for k := range v {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		vs := v[k]
+		keyEscaped := url.PathEscape(k) // changed from url.QueryEscape
+		for _, v := range vs {
+			if buf.Len() > 0 {
+				buf.WriteByte('&')
+			}
+			buf.WriteString(keyEscaped)
+			buf.WriteByte('=')
+			buf.WriteString(url.PathEscape(v)) // changed from url.QueryEscape
+		}
+	}
+	return buf.String()
 }

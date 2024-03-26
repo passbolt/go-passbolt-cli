@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/passbolt/go-passbolt/api"
 	"github.com/passbolt/go-passbolt/helper"
@@ -123,7 +124,18 @@ func GetClient(ctx context.Context) (*api.Client, error) {
 			return http.Cookie{}, fmt.Errorf("Failed MFA Challenge 3 times: %w", err)
 		}
 	case "noninteractive-totp":
-		helper.AddMFACallbackTOTP(client, viper.GetUint("mfaRetrys"), viper.GetDuration("mfaDelay"), viper.GetDuration("totpOffset"), viper.GetString("totpToken"))
+		// if new flag is unset, use old flag instead
+		totpToken := viper.GetString("mfaTotpToken")
+		if totpToken == "" {
+			totpToken = viper.GetString("totpToken")
+		}
+
+		totpOffset := viper.GetDuration("mfaTotpOffset")
+		if totpOffset == time.Duration(0) {
+			totpOffset = viper.GetDuration("totpOffset")
+		}
+
+		helper.AddMFACallbackTOTP(client, viper.GetUint("mfaRetrys"), viper.GetDuration("mfaDelay"), totpOffset, totpToken)
 	case "none":
 	default:
 	}
