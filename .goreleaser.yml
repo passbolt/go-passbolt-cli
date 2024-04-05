@@ -48,7 +48,7 @@ brews:
     license: "MIT"
     skip_upload: false
     description: "A CLI tool to interact with Passbolt, a Open source Password Manager for Teams"
-    folder: Formula
+    directory: Formula
     install: |
       bin.install "passbolt"
       bash_completion.install "completion/bash" => "passbolt"
