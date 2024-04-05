@@ -121,6 +121,10 @@ func initConfig() {
 	}
 }
 
-func SetVersionInfo(version, commit, date string) {
-	rootCmd.Version = fmt.Sprintf("%s (Built on %s from Git SHA %s)", version, date, commit)
+func SetVersionInfo(version, commit, date string, dirty bool) {
+	v := fmt.Sprintf("%s (Built on %s from Git SHA %s)", version, date, commit)
+	if dirty {
+		v = v + " dirty"
+	}
+	rootCmd.Version = v
 }
