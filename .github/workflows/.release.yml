@@ -43,3 +43,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAP_GITHUB_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
+      - 
+        name: Run Version
+        run: |
+          dist/go-passbolt-cli_linux_amd64_v1/passbolt -v
