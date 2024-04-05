@@ -6,7 +6,6 @@ toolchain go1.21.7
 
 require (
 	github.com/alessio/shellescape v1.4.2
-	github.com/carlmjohnson/versioninfo v0.22.5
 	github.com/google/cel-go v0.20.1
 	github.com/passbolt/go-passbolt v0.7.0
 	github.com/pterm/pterm v0.12.79
@@ -23,10 +22,7 @@ require (
 	github.com/ProtonMail/go-crypto v1.0.0 // indirect
 	github.com/ProtonMail/go-mime v0.0.0-20230322103455-7d82a3887f2f // indirect
 	github.com/ProtonMail/gopenpgp/v2 v2.7.5 // indirect
-	github.com/aead/argon2 v0.0.0-20180111183520-a87724528b07 // indirect
-	github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.0 // indirect
-	github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc // indirect
 	github.com/cloudflare/circl v1.3.7 // indirect
 	github.com/containerd/console v1.0.4 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.4 // indirect
