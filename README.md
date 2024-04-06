@@ -46,7 +46,7 @@ Notes:
 
 Generally the Structure of Commands is like this:
 ```bash
-go-passbolt-cli action entity [arguments]
+passbolt action entity [arguments]
 ```
 
 Action is the Action you want to perform like Creating, Updating or Deleting an Entity.
@@ -56,12 +56,12 @@ In Passbolt a Password is usually revert to as a Resource.
 
 To Create a Resource you can do this, it will return the ID of the newly created Resource:
 ```bash
-go-passbolt-cli create resource --name "Test Resource" --password "Strong Password"
+passbolt create resource --name "Test Resource" --password "Strong Password"
 ```
 
 You can then list all users:
 ```bash
-go-passbolt-cli list user
+passbolt list user
 ```
 Note: you can adjust which columns should be listed using the flag `--column` or its short from `-c`, if you want multiple column then you need to specify this flag multiple times.
 
@@ -77,7 +77,7 @@ For sharing we will need to know how we want to share, for that there are these 
 
 Now that we have a Resource ID, know the ID's of other Users and about know about Permission Types, we can share the Resource with them:
 ```bash
-go-passbolt-cli share resource --id id_of_resource_to_share --type type_of_permission --user id_of_user_to_share_with
+passbolt share resource --id id_of_resource_to_share --type type_of_permission --user id_of_user_to_share_with
 ```
 Note: you can supply the the users argument multiple times to share with multiple users
 
