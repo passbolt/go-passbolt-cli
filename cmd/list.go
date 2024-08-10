@@ -3,6 +3,7 @@ package cmd
 import (
 	"github.com/passbolt/go-passbolt-cli/folder"
 	"github.com/passbolt/go-passbolt-cli/group"
+	"github.com/passbolt/go-passbolt-cli/permission"
 	"github.com/passbolt/go-passbolt-cli/resource"
 	"github.com/passbolt/go-passbolt-cli/user"
 	"github.com/spf13/cobra"
@@ -29,4 +30,5 @@ func init() {
 	listCmd.AddCommand(folder.FolderListCmd)
 	listCmd.AddCommand(group.GroupListCmd)
 	listCmd.AddCommand(user.UserListCmd)
+	listCmd.AddCommand(permission.PermissionListCmd)
 }
