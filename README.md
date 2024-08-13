@@ -7,8 +7,13 @@ If you want to do something more complicated: [this Go Module](https://github.co
 Disclaimer: This project is community driven and not associated with Passbolt SA
 # Install
 
-## Via Package (Prefered):
-    Download the Package for your OS and architecture from the Latest Release.
+## Via Repository (Prefered):
+[![Packaging status](https://repology.org/badge/vertical-allrepos/go:passbolt-cli.svg)](https://repology.org/project/go:passbolt-cli/versions)
+
+    Use the package from your Distros Official Repository
+
+## Via Package:
+    Download the deb/rpm Package for your Distro and architecture from the Latest Release.
     Install via your Distros Package manager like `dpkg -i`
 
 ## Via Homebrew
