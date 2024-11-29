@@ -65,7 +65,11 @@ func GetClient(ctx context.Context) (*api.Client, error) {
 		fmt.Println()
 	}
 
-	client, err := api.NewClient(nil, "", serverAddress, userPrivateKey, userPassword)
+	httpClient, err := GetHttpClient()
+	if err != nil {
+		return nil, err
+	}
+	client, err := api.NewClient(httpClient, "", serverAddress, userPrivateKey, userPassword)
 	if err != nil {
 		return nil, fmt.Errorf("Creating Client: %w", err)
 	}

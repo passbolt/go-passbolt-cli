@@ -60,6 +60,10 @@ func init() {
 	rootCmd.PersistentFlags().Uint("mfaRetrys", 3, "How often to retry TOTP Auth, only used in nointeractive modes")
 	rootCmd.PersistentFlags().Duration("mfaDelay", time.Second*10, "Delay between MFA Attempts, only used in noninteractive modes")
 
+	rootCmd.PersistentFlags().Bool("tlsSkipVerify", false, "Allow servers with self-signed certificates")
+	rootCmd.PersistentFlags().String("tlsClientPrivateKey", "", "Client private key for mtls")
+	rootCmd.PersistentFlags().String("tlsClientCert", "", "Client certificate for mtls")
+
 	viper.BindPFlag("debug", rootCmd.PersistentFlags().Lookup("debug"))
 	viper.BindPFlag("timeout", rootCmd.PersistentFlags().Lookup("timeout"))
 	viper.BindPFlag("serverAddress", rootCmd.PersistentFlags().Lookup("serverAddress"))
@@ -72,6 +76,10 @@ func init() {
 	viper.BindPFlag("mfaTotpOffset", rootCmd.PersistentFlags().Lookup("mfaTotpOffset"))
 	viper.BindPFlag("mfaRetrys", rootCmd.PersistentFlags().Lookup("mfaRetrys"))
 	viper.BindPFlag("mfaDelay", rootCmd.PersistentFlags().Lookup("mfaDelay"))
+
+	viper.BindPFlag("tlsSkipVerify", rootCmd.PersistentFlags().Lookup("tlsSkipVerify"))
+	viper.BindPFlag("tlsClientCert", rootCmd.PersistentFlags().Lookup("tlsClientCert"))
+	viper.BindPFlag("tlsClientPrivateKey", rootCmd.PersistentFlags().Lookup("tlsClientPrivateKey"))
 }
 
 // initConfig reads in config file and ENV variables if set.
