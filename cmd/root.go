@@ -61,8 +61,8 @@ func init() {
 	rootCmd.PersistentFlags().Duration("mfaDelay", time.Second*10, "Delay between MFA Attempts, only used in noninteractive modes")
 
 	rootCmd.PersistentFlags().Bool("tlsSkipVerify", false, "Allow servers with self-signed certificates")
-	rootCmd.PersistentFlags().String("tlsClientPrivateKey", "", "Client private key for mtls")
-	rootCmd.PersistentFlags().String("tlsClientCert", "", "Client certificate for mtls")
+	rootCmd.PersistentFlags().String("tlsClientPrivateKeyFile", "", "Client private key for mtls")
+	rootCmd.PersistentFlags().String("tlsClientCertFile", "", "Client certificate for mtls")
 
 	viper.BindPFlag("debug", rootCmd.PersistentFlags().Lookup("debug"))
 	viper.BindPFlag("timeout", rootCmd.PersistentFlags().Lookup("timeout"))
