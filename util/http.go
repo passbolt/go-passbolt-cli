@@ -22,7 +22,7 @@ func GetClientCertificate() (tls.Certificate, error) {
 	if !certExists && keyExists {
 		return tls.Certificate{}, fmt.Errorf("Client TLS cert is empty, but client TLS private key was set.")
 	}
-	return tls.LoadX509KeyPair(cert, key)
+	return tls.X509KeyPair([]byte(cert), []byte(key))
 }
 
 func GetHttpClient() (*http.Client, error) {
