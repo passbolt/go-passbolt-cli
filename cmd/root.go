@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
@@ -60,6 +59,12 @@ func init() {
 	rootCmd.PersistentFlags().Uint("mfaRetrys", 3, "How often to retry TOTP Auth, only used in nointeractive modes")
 	rootCmd.PersistentFlags().Duration("mfaDelay", time.Second*10, "Delay between MFA Attempts, only used in noninteractive modes")
 
+	rootCmd.PersistentFlags().Bool("tlsSkipVerify", false, "Allow servers with self-signed certificates")
+	rootCmd.PersistentFlags().String("tlsClientPrivateKeyFile", "", "Client private key path for mtls")
+	rootCmd.PersistentFlags().String("tlsClientCertFile", "", "Client certificate path for mtls")
+	rootCmd.PersistentFlags().String("tlsClientPrivateKey", "", "Client private key for mtls")
+	rootCmd.PersistentFlags().String("tlsClientCert", "", "Client certificate for mtls")
+
 	viper.BindPFlag("debug", rootCmd.PersistentFlags().Lookup("debug"))
 	viper.BindPFlag("timeout", rootCmd.PersistentFlags().Lookup("timeout"))
 	viper.BindPFlag("serverAddress", rootCmd.PersistentFlags().Lookup("serverAddress"))
@@ -72,6 +77,22 @@ func init() {
 	viper.BindPFlag("mfaTotpOffset", rootCmd.PersistentFlags().Lookup("mfaTotpOffset"))
 	viper.BindPFlag("mfaRetrys", rootCmd.PersistentFlags().Lookup("mfaRetrys"))
 	viper.BindPFlag("mfaDelay", rootCmd.PersistentFlags().Lookup("mfaDelay"))
+
+	viper.BindPFlag("tlsSkipVerify", rootCmd.PersistentFlags().Lookup("tlsSkipVerify"))
+	viper.BindPFlag("tlsClientCert", rootCmd.PersistentFlags().Lookup("tlsClientCert"))
+	viper.BindPFlag("tlsClientPrivateKey", rootCmd.PersistentFlags().Lookup("tlsClientPrivateKey"))
+}
+
+func fileToContent(file, contentFlag string) {
+	if viper.GetBool("debug") {
+		fmt.Fprintln(os.Stderr, "Loading file:", file)
+	}
+	content, err := os.ReadFile(file)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Error Loading File: ", err)
+		os.Exit(1)
+	}
+	viper.Set(contentFlag, string(content))
 }
 
 // initConfig reads in config file and ENV variables if set.
@@ -107,17 +128,25 @@ func initConfig() {
 	// Read in Private Key from File if userprivatekeyfile is set
 	userprivatekeyfile, err := rootCmd.PersistentFlags().GetString("userPrivateKeyFile")
 	if err == nil && userprivatekeyfile != "" {
-		if viper.GetBool("debug") {
-			fmt.Fprintln(os.Stderr, "Loading Private Key from File:", userprivatekeyfile)
-		}
-		content, err := ioutil.ReadFile(userprivatekeyfile)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "Error Loading Private Key from File: ", err)
-			os.Exit(1)
-		}
-		viper.Set("userprivatekey", string(content))
+		fileToContent(userprivatekeyfile, "userPrivateKey")
 	} else if err != nil && viper.GetBool("debug") {
 		fmt.Fprintln(os.Stderr, "Getting Private Key File Flag:", err)
+	}
+
+	// Read in Client Certificate Private Key from File if tlsClientPrivateKeyFile is set
+	tlsclientprivatekeyfile, err := rootCmd.PersistentFlags().GetString("tlsClientPrivateKeyFile")
+	if err == nil && tlsclientprivatekeyfile != "" {
+		fileToContent(tlsclientprivatekeyfile, "tlsClientPrivateKey")
+	} else if err != nil && viper.GetBool("debug") {
+		fmt.Fprintln(os.Stderr, "Getting Client Certificate Private key File Flag:", err)
+	}
+
+	// Read in Client Certificate from File if tlsClientCertFile is set
+	tlsclientcertfile, err := rootCmd.PersistentFlags().GetString("tlsClientCertFile")
+	if err == nil && tlsclientcertfile != "" {
+		fileToContent(tlsclientcertfile, "tlsClientCert")
+	} else if err != nil && viper.GetBool("debug") {
+		fmt.Fprintln(os.Stderr, "Getting Client Certificate File Flag:", err)
 	}
 }
 

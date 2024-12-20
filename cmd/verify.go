@@ -41,7 +41,11 @@ var verifyCMD = &cobra.Command{
 			fmt.Println()
 		}
 
-		client, err := api.NewClient(nil, "", serverAddress, userPrivateKey, userPassword)
+		httpClient, err := util.GetHttpClient()
+		if err != nil {
+			return err
+		}
+		client, err := api.NewClient(httpClient, "", serverAddress, userPrivateKey, userPassword)
 		if err != nil {
 			return fmt.Errorf("Creating Client: %w", err)
 		}
