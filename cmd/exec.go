@@ -3,14 +3,15 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"os"
+	"os/exec"
+	"strings"
+
 	"github.com/passbolt/go-passbolt-cli/util"
 	"github.com/passbolt/go-passbolt/api"
 	"github.com/passbolt/go-passbolt/helper"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"os"
-	"os/exec"
-	"strings"
 )
 
 const PassboltPrefix = "passbolt://"
@@ -92,6 +93,10 @@ func resolveEnvironmentSecrets(ctx context.Context, client *api.Client) ([]strin
 		}
 
 		envVars[i] = key + "=" + secret
+
+		if viper.GetBool("debug") {
+			fmt.Fprintf(os.Stdout, "%v env var populated with resource id %v\n", key, resourceId)
+		}
 	}
 
 	return envVars, nil
