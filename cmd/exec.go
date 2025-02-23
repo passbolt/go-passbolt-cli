@@ -45,16 +45,16 @@ func execAction(_ *cobra.Command, args []string) error {
 
 	client, err := util.GetClient(ctx)
 	if err != nil {
-		return fmt.Errorf("creating client: %w", err)
+		return fmt.Errorf("Creating client: %w", err)
 	}
 
 	envVars, err := resolveEnvironmentSecrets(ctx, client)
 	if err != nil {
-		return fmt.Errorf("resolving secrets: %w", err)
+		return fmt.Errorf("Resolving secrets: %w", err)
 	}
 
 	if err = client.Logout(ctx); err != nil {
-		return fmt.Errorf("logging out client: %w", err)
+		return fmt.Errorf("Logging out client: %w", err)
 	}
 
 	subCmd := exec.Command(args[0], args[1:]...)
@@ -64,7 +64,7 @@ func execAction(_ *cobra.Command, args []string) error {
 	subCmd.Env = envVars
 
 	if err = subCmd.Run(); err != nil {
-		return fmt.Errorf("running command: %w", err)
+		return fmt.Errorf("Running command: %w", err)
 	}
 
 	return nil
@@ -89,7 +89,7 @@ func resolveEnvironmentSecrets(ctx context.Context, client *api.Client) ([]strin
 		resourceId := strings.TrimPrefix(value, PassboltPrefix)
 		_, _, _, _, secret, _, err := helper.GetResource(ctx, client, resourceId)
 		if err != nil {
-			return nil, fmt.Errorf("getting resource: %w", err)
+			return nil, fmt.Errorf("Getting resource: %w", err)
 		}
 
 		envVars[i] = key + "=" + secret
