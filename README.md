@@ -105,6 +105,19 @@ For Scripting we have a -j or --json flag to convert the Output for the create, 
 
 Note: The JSON Output does not cover Error Messages, you can detect Errors by checking if the Exitcode is not 0
 
+# Exposing Secrets to Subprocesses
+The `exec` command allows you to execute another command with environment variables that reference secrets stored in Passbolt.
+Any environment variables containing `passbolt://` references are automatically resolved to their corresponding secret values
+before the specified command is executed. This ensures that secrets are securely injected into the child process's environment
+without exposing them to the parent shell.
+For example:
+```bash
+export GITHUB_TOKEN=passbolt://<PASSBOLT_RESOURCE_ID_HERE>
+passbolt exec -- gh auth login
+```
+
+This would resolve the passbolt:// reference in GITHUB_TOKEN to its actual secret value and pass it to the gh process.
+
 # Documentation
 Usage for all Subcommands is [here](https://github.com/passbolt/go-passbolt-cli/wiki/passbolt).
 And is also available via `man passbolt`
