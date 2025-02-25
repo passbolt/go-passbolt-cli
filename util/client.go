@@ -22,7 +22,7 @@ func ReadPassword(prompt string) (string, error) {
 	fd := int(os.Stdin.Fd())
 	var pass string
 	if term.IsTerminal(fd) {
-		fmt.Print(prompt)
+		fmt.Fprint(os.Stderr, prompt);
 
 		inputPass, err := term.ReadPassword(fd)
 		if err != nil {
