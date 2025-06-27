@@ -118,6 +118,26 @@ passbolt exec -- gh auth login
 
 This would resolve the passbolt:// reference in GITHUB_TOKEN to its actual secret value and pass it to the gh process.
 
+# Exporting Data
+## Keepass Export
+You can export your Passbolt passwords to a Keepass (.kdbx) file while preserving the folder structure.
+
+Save your passbolt configuration first.
+```bash
+passbolt configure --config passbolt_server_details.json --serverAddress https://example.com --userPassword 'secret_passbolt_passphrase' --userPrivateKeyFile '/path/to/private/key/ada_private.key' --tlsSkipVerify
+```
+
+Then export your data to a password encrypted keepass file.
+```bash
+passbolt export keepass --file exported-passwords.kdbx -p password_for_keepass_file
+```
+
+The export preserves the folder structure from Passbolt, including nested folders. Resources not in any folder will be placed in an "Unfiled Resources" group.
+
+The export supports both password and TOTP resources. TOTP secrets are exported in a format compatible with standard authenticator apps.
+
+Note: This feature supports Passbolt v4 up to v5.2.0 but does not support Passbolt instances with encrypted metadata enabled.
+
 # Documentation
 Usage for all Subcommands is [here](https://github.com/passbolt/go-passbolt-cli/wiki/passbolt).
 And is also available via `man passbolt`
