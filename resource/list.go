@@ -93,16 +93,16 @@ func ResourceList(cmd *cobra.Command, args []string) error {
 	if jsonOutput {
 		outputResources := []ResourceJsonOutput{}
 		for i := range resources {
-			_, _, _, _, pass, desc, err := helper.GetResource(ctx, client, resources[i].ID)
+			_, name, username, uri, pass, desc, err := helper.GetResource(ctx, client, resources[i].ID)
 			if err != nil {
 				return fmt.Errorf("Get Resource %w", err)
 			}
 			outputResources = append(outputResources, ResourceJsonOutput{
 				ID:                &resources[i].ID,
 				FolderParentID:    &resources[i].FolderParentID,
-				Name:              &resources[i].Name,
-				Username:          &resources[i].Username,
-				URI:               &resources[i].URI,
+				Name:              &name,
+				Username:          &username,
+				URI:               &uri,
 				Password:          &pass,
 				Description:       &desc,
 				CreatedTimestamp:  &resources[i].Created.Time,
