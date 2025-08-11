@@ -7,7 +7,7 @@ toolchain go1.23.6
 require (
 	al.essio.dev/pkg/shellescape v1.6.0
 	github.com/google/cel-go v0.26.0
-	github.com/passbolt/go-passbolt v0.7.3-0.20250805134827-8b00fcd4971e
+	github.com/passbolt/go-passbolt v0.7.3-0.20250811135314-1ffa5a23bd29
 	github.com/pterm/pterm v0.12.81
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.20.1
