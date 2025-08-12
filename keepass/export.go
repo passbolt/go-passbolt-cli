@@ -130,7 +130,7 @@ func KeepassExport(cmd *cobra.Command, args []string) error {
 }
 
 func getKeepassEntry(client *api.Client, resource api.Resource, secret api.Secret, rType api.ResourceType) (*gokeepasslib.Entry, error) {
-	_, _, _, _, pass, desc, err := helper.GetResourceFromData(client, resource, resource.Secrets[0], resource.ResourceType)
+	_, name, username, uri, pass, desc, err := helper.GetResourceFromData(client, resource, resource.Secrets[0], resource.ResourceType)
 	if err != nil {
 		return nil, fmt.Errorf("Get Resource %v: %w", resource.ID, err)
 	}
@@ -138,14 +138,14 @@ func getKeepassEntry(client *api.Client, resource api.Resource, secret api.Secre
 	entry := gokeepasslib.NewEntry()
 	entry.Values = append(
 		entry.Values,
-		gokeepasslib.ValueData{Key: "Title", Value: gokeepasslib.V{Content: resource.Name}},
-		gokeepasslib.ValueData{Key: "UserName", Value: gokeepasslib.V{Content: resource.Username}},
-		gokeepasslib.ValueData{Key: "URL", Value: gokeepasslib.V{Content: resource.URI}},
+		gokeepasslib.ValueData{Key: "Title", Value: gokeepasslib.V{Content: name}},
+		gokeepasslib.ValueData{Key: "UserName", Value: gokeepasslib.V{Content: username}},
+		gokeepasslib.ValueData{Key: "URL", Value: gokeepasslib.V{Content: uri}},
 		gokeepasslib.ValueData{Key: "Password", Value: gokeepasslib.V{Content: pass, Protected: w.NewBoolWrapper(true)}},
 		gokeepasslib.ValueData{Key: "Notes", Value: gokeepasslib.V{Content: desc}},
 	)
 
-	if resource.ResourceType.Slug == "password-description-totp" || resource.ResourceType.Slug == "totp" {
+	if resource.ResourceType.Slug == "password-description-totp" || resource.ResourceType.Slug == "totp" || resource.ResourceType.Slug == "v5-default-with-totp" || resource.ResourceType.Slug == "v5-totp-standalone" {
 		var totpData api.SecretDataTOTP
 
 		rawSecretData, err := client.DecryptMessage(resource.Secrets[0].Data)
@@ -153,20 +153,39 @@ func getKeepassEntry(client *api.Client, resource api.Resource, secret api.Secre
 			return nil, fmt.Errorf("Decrypting Secret Data: %w", err)
 		}
 
-		if resource.ResourceType.Slug == "password-description-totp" {
+		switch resource.ResourceType.Slug {
+		case "password-description-totp":
 			var secretData api.SecretDataTypePasswordDescriptionTOTP
 			err = json.Unmarshal([]byte(rawSecretData), &secretData)
 			if err != nil {
 				return nil, fmt.Errorf("Parsing Decrypted Secret Data: %w", err)
 			}
 			totpData = secretData.TOTP
-		} else {
+			break
+		case "totp":
 			var secretData api.SecretDataTypeTOTP
 			err = json.Unmarshal([]byte(rawSecretData), &secretData)
 			if err != nil {
 				return nil, fmt.Errorf("Parsing Decrypted Secret Data: %w", err)
 			}
 			totpData = secretData.TOTP
+			break
+		case "v5-default-with-totp":
+			var secretData api.SecretDataTypeV5DefaultWithTOTP
+			err = json.Unmarshal([]byte(rawSecretData), &secretData)
+			if err != nil {
+				return nil, fmt.Errorf("Parsing Decrypted Secret Data: %w", err)
+			}
+			totpData = secretData.TOTP
+			break
+		case "v5-totp-standalone":
+			var secretData api.SecretDataTypeV5TOTPStandalone
+			err = json.Unmarshal([]byte(rawSecretData), &secretData)
+			if err != nil {
+				return nil, fmt.Errorf("Parsing Decrypted Secret Data: %w", err)
+			}
+			totpData = secretData.TOTP
+			break
 		}
 
 		v := url.Values{}
@@ -175,16 +194,16 @@ func getKeepassEntry(client *api.Client, resource api.Resource, secret api.Secre
 		v.Set("algorithm", totpData.Algorithm)
 		v.Set("digits", fmt.Sprint(totpData.Digits))
 
-		issuer := resource.URI
-		if resource.URI == "" {
-			issuer = resource.Name
+		issuer := uri
+		if uri == "" {
+			issuer = name
 
 		}
 		v.Set("issuer", issuer)
 
-		accountName := resource.Username
-		if resource.Username == "" {
-			accountName = resource.Name
+		accountName := username
+		if username == "" {
+			accountName = name
 		}
 
 		u := url.URL{
