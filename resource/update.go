@@ -24,6 +24,8 @@ func init() {
 	ResourceUpdateCmd.Flags().String("uri", "", "Resource URI")
 	ResourceUpdateCmd.Flags().StringP("password", "p", "", "Resource Password")
 	ResourceUpdateCmd.Flags().StringP("description", "d", "", "Resource Description")
+	ResourceUpdateCmd.Flags().String("expired", "", "Expiry date/time (ISO8601), e.g. 2025-12-31T23:59:59Z; use empty to clear with --clear-expired")
+	ResourceUpdateCmd.Flags().Bool("clear-expired", false, "Clear expiry (sets expired to null)")
 
 	ResourceUpdateCmd.MarkFlagRequired("id")
 }
@@ -53,6 +55,14 @@ func ResourceUpdate(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	expired, err := cmd.Flags().GetString("expired")
+	if err != nil {
+		return err
+	}
+	clearExpired, err := cmd.Flags().GetBool("clear-expired")
+	if err != nil {
+		return err
+	}
 
 	ctx := util.GetContext()
 
@@ -75,6 +85,25 @@ func ResourceUpdate(cmd *cobra.Command, args []string) error {
 	)
 	if err != nil {
 		return fmt.Errorf("Updating Resource: %w", err)
+	}
+
+	if clearExpired {
+		// explicit clear to null
+		_, _, err := client.DoCustomRequestAndReturnRawResponse(
+			ctx,
+			"PUT",
+			fmt.Sprintf("resources/%s.json", id),
+			"v2",
+			map[string]*string{"expired": nil},
+			nil,
+		)
+		if err != nil {
+			return fmt.Errorf("Clearing expiry: %w", err)
+		}
+	} else if expired != "" {
+		if err := SetResourceExpiry(ctx, client, id, expired); err != nil {
+			return err
+		}
 	}
 	return nil
 }
