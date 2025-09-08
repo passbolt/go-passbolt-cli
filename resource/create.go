@@ -25,6 +25,7 @@ func init() {
 	ResourceCreateCmd.Flags().StringP("password", "p", "", "Resource Password")
 	ResourceCreateCmd.Flags().StringP("description", "d", "", "Resource Description")
 	ResourceCreateCmd.Flags().StringP("folderParentID", "f", "", "Folder in which to create the Resource")
+	ResourceCreateCmd.Flags().String("expired", "", "Expiry date/time (ISO8601), e.g. 2025-12-31T23:59:59Z")
 
 	ResourceCreateCmd.MarkFlagRequired("name")
 	ResourceCreateCmd.MarkFlagRequired("password")
@@ -55,6 +56,10 @@ func ResourceCreate(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	expired, err := cmd.Flags().GetString("expired")
+	if err != nil {
+		return err
+	}
 	jsonOutput, err := cmd.Flags().GetBool("json")
 	if err != nil {
 		return err
@@ -81,6 +86,12 @@ func ResourceCreate(cmd *cobra.Command, args []string) error {
 	)
 	if err != nil {
 		return fmt.Errorf("Creating Resource: %w", err)
+	}
+
+	if expired != "" {
+		if err := SetResourceExpiry(ctx, client, id, expired); err != nil {
+			return err
+		}
 	}
 
 	if jsonOutput {
