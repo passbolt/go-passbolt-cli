@@ -13,7 +13,6 @@ import (
 	"github.com/passbolt/go-passbolt-cli/util"
 	"github.com/passbolt/go-passbolt/api"
 	"github.com/passbolt/go-passbolt/helper"
-	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
 	"github.com/tobischo/gokeepasslib/v3"
 	w "github.com/tobischo/gokeepasslib/v3/wrappers"
@@ -68,13 +67,154 @@ func KeepassExport(cmd *cobra.Command, args []string) error {
 	}
 
 	fmt.Println("Getting Resources...")
-	resources, err := client.GetResources(ctx, &api.GetResourcesOptions{
+	// Retrieve folder information with resources
+	folders, err := client.GetFolders(ctx, &api.GetFoldersOptions{
+		ContainChildrenResources: true,
+		ContainChildrenFolders:   true,
+	})
+	if err != nil {
+		return fmt.Errorf("Getting Folders: %w", err)
+	}
+
+	// Also get all resources with secrets to ensure we have complete data
+	allResources, err := client.GetResources(ctx, &api.GetResourcesOptions{
 		ContainSecret:       true,
 		ContainResourceType: true,
-		ContainTags:         true,
 	})
 	if err != nil {
 		return fmt.Errorf("Getting Resources: %w", err)
+	}
+
+	// Create a map of resources by ID for easy lookup
+	resourceMap := make(map[string]api.Resource)
+	for _, resource := range allResources {
+		resourceMap[resource.ID] = resource
+	}
+
+	// Create root group
+	rootGroup := gokeepasslib.NewGroup()
+	rootGroup.Name = "Passbolt"
+
+	// Create maps to track folders and their relationships
+	folderMap := make(map[string]*api.Folder)
+
+	// First, store all folders in a map for easy lookup
+	for i := range folders {
+		folderMap[folders[i].ID] = &folders[i]
+	}
+
+	// Debug output
+	fmt.Printf("\nFound %d folders and %d resources\n", len(folders), len(allResources))
+
+	// Function to recursively build the folder structure
+	var buildFolderStructure func(parentGroupPtr *gokeepasslib.Group, folderID string)
+	buildFolderStructure = func(parentGroupPtr *gokeepasslib.Group, folderID string) {
+		folder, exists := folderMap[folderID]
+		if !exists {
+			return
+		}
+
+		// Create a new group for this folder
+		group := gokeepasslib.NewGroup()
+		group.Name = folder.Name
+
+		fmt.Printf("\nProcessing folder: %s (ID: %s) with %d child resources\n",
+			folder.Name, folder.ID, len(folder.ChildrenResources))
+
+		// Add resources to this folder's group
+		for _, folderResource := range folder.ChildrenResources {
+			// Look up the full resource with secrets
+			resource, exists := resourceMap[folderResource.ID]
+			if !exists {
+				fmt.Printf("\nResource %s (%s) exists in folder but not in resource list\n",
+					folderResource.ID, folderResource.Name)
+				continue
+			}
+
+			if len(resource.Secrets) == 0 {
+				fmt.Printf("\nSkipping Export of Resource %v %v Because of: no secrets available\n",
+					resource.ID, resource.Name)
+				continue
+			}
+
+			entry, err := getKeepassEntry(client, resource, resource.Secrets[0], resource.ResourceType)
+			if err != nil {
+				fmt.Printf("\nSkipping Export of Resource %v %v Because of: %v\n",
+					resource.ID, resource.Name, err)
+				continue
+			}
+
+			group.Entries = append(group.Entries, *entry)
+			fmt.Printf("Added resource: %s to folder: %s\n", resource.Name, folder.Name)
+		}
+
+		// Process child folders
+		for _, childFolder := range folders {
+			if childFolder.FolderParentID == folderID {
+				buildFolderStructure(&group, childFolder.ID)
+			}
+		}
+
+		// Add this group to its parent
+		parentGroupPtr.Groups = append(parentGroupPtr.Groups, group)
+	}
+
+	// Identify top-level folders (those without parents or with parents outside our folder list)
+	for _, folder := range folders {
+		if folder.FolderParentID == "" || folderMap[folder.FolderParentID] == nil {
+			buildFolderStructure(&rootGroup, folder.ID)
+		}
+	}
+
+	// Handle resources that are not in any folder (if any)
+	resourcesWithoutFolder, err := client.GetResources(ctx, &api.GetResourcesOptions{
+		ContainSecret:       true,
+		ContainResourceType: true,
+	})
+	if err != nil {
+		return fmt.Errorf("Getting Resources without folders: %w", err)
+	}
+
+	// Create a group for resources without folders
+	noFolderGroup := gokeepasslib.NewGroup()
+	noFolderGroup.Name = "Unfiled Resources"
+	hasUnfiledResources := false
+
+	for _, resource := range resourcesWithoutFolder {
+		// Skip resources that are already in folders
+		inFolder := false
+		for _, folder := range folders {
+			for _, folderResource := range folder.ChildrenResources {
+				if folderResource.ID == resource.ID {
+					inFolder = true
+					break
+				}
+			}
+			if inFolder {
+				break
+			}
+		}
+
+		if !inFolder {
+			if len(resource.Secrets) == 0 {
+				fmt.Printf("\nSkipping Export of Resource %v %v Because of: no secrets available\n", resource.ID, resource.Name)
+				continue
+			}
+
+			entry, err := getKeepassEntry(client, resource, resource.Secrets[0], resource.ResourceType)
+			if err != nil {
+				fmt.Printf("\nSkipping Export of Resource %v %v Because of: %v\n", resource.ID, resource.Name, err)
+				continue
+			}
+
+			noFolderGroup.Entries = append(noFolderGroup.Entries, *entry)
+			hasUnfiledResources = true
+		}
+	}
+
+	// Add the unfiled resources group if it has entries
+	if hasUnfiledResources {
+		rootGroup.Groups = append(rootGroup.Groups, noFolderGroup)
 	}
 
 	file, err := os.Create(filename)
@@ -82,28 +222,6 @@ func KeepassExport(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("Creating File: %w", err)
 	}
 	defer file.Close()
-
-	rootGroup := gokeepasslib.NewGroup()
-	rootGroup.Name = "root"
-
-	pterm.EnableStyling()
-	pterm.DisableColor()
-	progressbar, err := pterm.DefaultProgressbar.WithTitle("Decryping Resources").WithTotal(len(resources)).Start()
-	if err != nil {
-		return fmt.Errorf("Progress: %w", err)
-	}
-
-	for _, resource := range resources {
-		entry, err := getKeepassEntry(client, resource, resource.Secrets[0], resource.ResourceType)
-		if err != nil {
-			fmt.Printf("\nSkipping Export of Resource %v %v Because of: %v\n", resource.ID, resource.Name, err)
-			progressbar.Increment()
-			continue
-		}
-
-		rootGroup.Entries = append(rootGroup.Entries, *entry)
-		progressbar.Increment()
-	}
 
 	db := gokeepasslib.NewDatabase(
 		gokeepasslib.WithDatabaseKDBXVersion4(),
@@ -130,6 +248,15 @@ func KeepassExport(cmd *cobra.Command, args []string) error {
 }
 
 func getKeepassEntry(client *api.Client, resource api.Resource, secret api.Secret, rType api.ResourceType) (*gokeepasslib.Entry, error) {
+	if len(resource.Secrets) == 0 {
+		return nil, fmt.Errorf("no secrets available")
+	}
+
+	// Debug output for resource type
+	fmt.Printf("Processing resource: %s, Type Slug: %s\n",
+		resource.Name,
+		resource.ResourceType.Slug)
+
 	_, _, _, _, pass, desc, err := helper.GetResourceFromData(client, resource, resource.Secrets[0], resource.ResourceType)
 	if err != nil {
 		return nil, fmt.Errorf("Get Resource %v: %w", resource.ID, err)
@@ -145,7 +272,12 @@ func getKeepassEntry(client *api.Client, resource api.Resource, secret api.Secre
 		gokeepasslib.ValueData{Key: "Notes", Value: gokeepasslib.V{Content: desc}},
 	)
 
-	if resource.ResourceType.Slug == "password-description-totp" || resource.ResourceType.Slug == "totp" {
+	// Check if this is a TOTP resource
+	hasTOTP := resource.ResourceType.Slug == "password-description-totp" ||
+		resource.ResourceType.Slug == "totp"
+
+	if hasTOTP {
+		fmt.Printf("Found TOTP resource: %s\n", resource.Name)
 		var totpData api.SecretDataTOTP
 
 		rawSecretData, err := client.DecryptMessage(resource.Secrets[0].Data)
@@ -160,6 +292,7 @@ func getKeepassEntry(client *api.Client, resource api.Resource, secret api.Secre
 				return nil, fmt.Errorf("Parsing Decrypted Secret Data: %w", err)
 			}
 			totpData = secretData.TOTP
+			fmt.Printf("Parsed password-description-totp data for %s\n", resource.Name)
 		} else {
 			var secretData api.SecretDataTypeTOTP
 			err = json.Unmarshal([]byte(rawSecretData), &secretData)
@@ -167,6 +300,12 @@ func getKeepassEntry(client *api.Client, resource api.Resource, secret api.Secre
 				return nil, fmt.Errorf("Parsing Decrypted Secret Data: %w", err)
 			}
 			totpData = secretData.TOTP
+			fmt.Printf("Parsed totp data for %s\n", resource.Name)
+		}
+
+		// Verify TOTP data
+		if totpData.SecretKey == "" {
+			fmt.Printf("Warning: TOTP secret key is empty for %s\n", resource.Name)
 		}
 
 		v := url.Values{}
@@ -176,14 +315,13 @@ func getKeepassEntry(client *api.Client, resource api.Resource, secret api.Secre
 		v.Set("digits", fmt.Sprint(totpData.Digits))
 
 		issuer := resource.URI
-		if resource.URI == "" {
+		if issuer == "" {
 			issuer = resource.Name
-
 		}
 		v.Set("issuer", issuer)
 
 		accountName := resource.Username
-		if resource.Username == "" {
+		if accountName == "" {
 			accountName = resource.Name
 		}
 
@@ -194,7 +332,18 @@ func getKeepassEntry(client *api.Client, resource api.Resource, secret api.Secre
 			RawQuery: encodeQuery(v),
 		}
 
-		entry.Values = append(entry.Values, gokeepasslib.ValueData{Key: "otp", Value: gokeepasslib.V{Content: u.String(), Protected: w.NewBoolWrapper(true)}})
+		otpURL := u.String()
+		fmt.Printf("Generated OTP URL for %s: %s\n", resource.Name, otpURL)
+
+		entry.Values = append(entry.Values,
+			gokeepasslib.ValueData{
+				Key: "otp",
+				Value: gokeepasslib.V{
+					Content:   otpURL,
+					Protected: w.NewBoolWrapper(true),
+				},
+			},
+		)
 	}
 
 	return &entry, nil
