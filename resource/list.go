@@ -93,16 +93,16 @@ func ResourceList(cmd *cobra.Command, args []string) error {
 	if jsonOutput {
 		outputResources := []ResourceJsonOutput{}
 		for i := range resources {
-			_, _, _, _, pass, desc, err := helper.GetResource(ctx, client, resources[i].ID)
+			_, name, username, uri, pass, desc, err := helper.GetResource(ctx, client, resources[i].ID)
 			if err != nil {
 				return fmt.Errorf("Get Resource %w", err)
 			}
 			outputResources = append(outputResources, ResourceJsonOutput{
 				ID:                &resources[i].ID,
 				FolderParentID:    &resources[i].FolderParentID,
-				Name:              &resources[i].Name,
-				Username:          &resources[i].Username,
-				URI:               &resources[i].URI,
+				Name:              &name,
+				Username:          &username,
+				URI:               &uri,
 				Password:          &pass,
 				Description:       &desc,
 				CreatedTimestamp:  &resources[i].Created.Time,
@@ -118,6 +118,12 @@ func ResourceList(cmd *cobra.Command, args []string) error {
 		data := pterm.TableData{columns}
 
 		for _, resource := range resources {
+			// TODO We should decrypt the secret only when required for performance reasonse
+			_, name, username, uri, pass, desc, err := helper.GetResource(ctx, client, resource.ID)
+			if err != nil {
+				return fmt.Errorf("Get Resource %w", err)
+			}
+
 			entry := make([]string, len(columns))
 			for i := range columns {
 				switch strings.ToLower(columns[i]) {
@@ -126,22 +132,14 @@ func ResourceList(cmd *cobra.Command, args []string) error {
 				case "folderparentid":
 					entry[i] = resource.FolderParentID
 				case "name":
-					entry[i] = shellescape.StripUnsafe(resource.Name)
+					entry[i] = shellescape.StripUnsafe(name)
 				case "username":
-					entry[i] = shellescape.StripUnsafe(resource.Username)
+					entry[i] = shellescape.StripUnsafe(username)
 				case "uri":
-					entry[i] = shellescape.StripUnsafe(resource.URI)
+					entry[i] = shellescape.StripUnsafe(uri)
 				case "password":
-					_, _, _, _, pass, _, err := helper.GetResource(ctx, client, resource.ID)
-					if err != nil {
-						return fmt.Errorf("Get Resource %w", err)
-					}
 					entry[i] = shellescape.StripUnsafe(pass)
 				case "description":
-					_, _, _, _, _, desc, err := helper.GetResource(ctx, client, resource.ID)
-					if err != nil {
-						return fmt.Errorf("Get Resource %w", err)
-					}
 					entry[i] = shellescape.StripUnsafe(desc)
 				case "createdtimestamp":
 					entry[i] = resource.Created.Format(time.RFC3339)

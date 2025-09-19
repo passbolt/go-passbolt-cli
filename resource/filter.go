@@ -5,8 +5,6 @@ import (
 	"fmt"
 
 	"github.com/google/cel-go/cel"
-	"github.com/google/cel-go/common/types"
-	"github.com/google/cel-go/common/types/ref"
 	"github.com/passbolt/go-passbolt-cli/util"
 	"github.com/passbolt/go-passbolt/api"
 	"github.com/passbolt/go-passbolt/helper"
@@ -38,28 +36,20 @@ func filterResources(resources *[]api.Resource, celCmd string, ctx context.Conte
 
 	filteredResources := []api.Resource{}
 	for _, resource := range *resources {
+		// TODO We should decrypt the secret only when required for performance reasonse
+		_, name, username, uri, pass, desc, err := helper.GetResource(ctx, client, resource.ID)
+		if err != nil {
+			return nil, fmt.Errorf("Get Resource %w", err)
+		}
+
 		val, _, err := (*program).ContextEval(ctx, map[string]any{
-			"Id":             resource.ID,
-			"FolderParentID": resource.FolderParentID,
-			"Name":           resource.Name,
-			"Username":       resource.Username,
-			"URI":            resource.URI,
-			"Password": func() ref.Val {
-				_, _, _, _, pass, _, err := helper.GetResource(ctx, client, resource.ID)
-				if err != nil {
-					fmt.Printf("Get Resource %v", err)
-					return types.String("")
-				}
-				return types.String(pass)
-			},
-			"Description": func() ref.Val {
-				_, _, _, _, _, descr, err := helper.GetResource(ctx, client, resource.ID)
-				if err != nil {
-					fmt.Printf("Get Resource %v", err)
-					return types.String("")
-				}
-				return types.String(descr)
-			},
+			"Id":                resource.ID,
+			"FolderParentID":    resource.FolderParentID,
+			"Name":              name,
+			"Username":          username,
+			"URI":               uri,
+			"Password":          pass,
+			"Description":       desc,
 			"CreatedTimestamp":  resource.Created.Time,
 			"ModifiedTimestamp": resource.Modified.Time,
 		})

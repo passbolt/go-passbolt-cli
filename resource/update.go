@@ -24,7 +24,7 @@ func init() {
 	ResourceUpdateCmd.Flags().String("uri", "", "Resource URI")
 	ResourceUpdateCmd.Flags().StringP("password", "p", "", "Resource Password")
 	ResourceUpdateCmd.Flags().StringP("description", "d", "", "Resource Description")
-
+	ResourceUpdateCmd.Flags().String("expiry", "", "Expiry as RFC3339 (e.g. 2025-12-31T23:59:59Z), duration (e.g. 7d, 12h), or 'none' to clear")
 	ResourceUpdateCmd.MarkFlagRequired("id")
 }
 
@@ -54,6 +54,11 @@ func ResourceUpdate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	expiry, err := cmd.Flags().GetString("expiry")
+	if err != nil {
+		return err
+	}
+
 	ctx := util.GetContext()
 
 	client, err := util.GetClient(ctx)
@@ -75,6 +80,12 @@ func ResourceUpdate(cmd *cobra.Command, args []string) error {
 	)
 	if err != nil {
 		return fmt.Errorf("Updating Resource: %w", err)
+	}
+
+	if expiry != "" {
+		if err := SetResourceExpiry(ctx, client, id, expiry); err != nil {
+			return err
+		}
 	}
 	return nil
 }
