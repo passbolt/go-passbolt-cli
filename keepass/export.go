@@ -19,18 +19,18 @@ import (
 	w "github.com/tobischo/gokeepasslib/v3/wrappers"
 )
 
-// KeepassExportCmd Exports a Passbolt Keepass
+// KeepassExportCmd Exports a Passbolt KeePass
 var KeepassExportCmd = &cobra.Command{
 	Use:     "keepass",
-	Short:   "Exports Passbolt to a Keepass File",
-	Long:    `Exports Passbolt to a Keepass File`,
+	Short:   "Exports Passbolt to a KeePass File",
+	Long:    `Exports Passbolt to a KeePass File`,
 	Aliases: []string{},
 	RunE:    KeepassExport,
 }
 
 func init() {
-	KeepassExportCmd.Flags().StringP("file", "f", "passbolt-export.kdbx", "File name of the Keepass File")
-	KeepassExportCmd.Flags().StringP("password", "p", "", "Password for the Keypass File, if empty prompts interactively")
+	KeepassExportCmd.Flags().StringP("file", "f", "passbolt-export.kdbx", "File name of the KeePass File")
+	KeepassExportCmd.Flags().StringP("password", "p", "", "Password for the KeePass File, if empty prompts interactively")
 }
 
 func KeepassExport(cmd *cobra.Command, args []string) error {
@@ -58,10 +58,10 @@ func KeepassExport(cmd *cobra.Command, args []string) error {
 	cmd.SilenceUsage = true
 
 	if keepassPassword == "" {
-		pw, err := util.ReadPassword("Enter Keepass Password:")
+		pw, err := util.ReadPassword("Enter KeePass Password:")
 		if err != nil {
 			fmt.Println()
-			return fmt.Errorf("Reading Keepass Password: %w", err)
+			return fmt.Errorf("Reading KeePass Password: %w", err)
 		}
 		keepassPassword = pw
 		fmt.Println()
