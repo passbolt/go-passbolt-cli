@@ -25,7 +25,7 @@ func init() {
 	ResourceCreateCmd.Flags().StringP("password", "p", "", "Resource Password")
 	ResourceCreateCmd.Flags().StringP("description", "d", "", "Resource Description")
 	ResourceCreateCmd.Flags().StringP("folderParentID", "f", "", "Folder in which to create the Resource")
-
+	ResourceCreateCmd.Flags().String("expiry", "", "Expiry as RFC3339 (e.g. 2025-12-31T23:59:59Z) or Go duration (e.g. 48h, 30m)")
 	ResourceCreateCmd.MarkFlagRequired("name")
 	ResourceCreateCmd.MarkFlagRequired("password")
 }
@@ -55,6 +55,12 @@ func ResourceCreate(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+
+	expiry, err := cmd.Flags().GetString("expiry")
+	if err != nil {
+		return err
+	}
+
 	jsonOutput, err := cmd.Flags().GetBool("json")
 	if err != nil {
 		return err
@@ -81,6 +87,13 @@ func ResourceCreate(cmd *cobra.Command, args []string) error {
 	)
 	if err != nil {
 		return fmt.Errorf("Creating Resource: %w", err)
+	}
+
+	// TODO, Should be done by go-passbolt when the "new" Resource API is done
+	if expiry != "" {
+		if err := SetResourceExpiry(ctx, client, id, expiry); err != nil {
+			return err
+		}
 	}
 
 	if jsonOutput {
