@@ -33,6 +33,7 @@ func GetHttpClient() (*http.Client, error) {
 	}
 	httpClient := http.Client{
 		Transport: &http.Transport{
+			Proxy: http.ProxyFromEnvironment,
 			TLSClientConfig: &tls.Config{
 				Certificates:       []tls.Certificate{cert},
 				InsecureSkipVerify: tlsSkipVerify,
