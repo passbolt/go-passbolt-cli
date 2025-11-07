@@ -75,11 +75,35 @@ func ResourceList(cmd *cobra.Command, args []string) error {
 	defer client.Logout(context.TODO())
 	cmd.SilenceUsage = true
 
+	// Check if we need to fetch secrets (password column or any encrypted field when not available)
+	// For Passbolt v5+, we should fetch secrets to get all encrypted fields in one request
+	needsSecrets := false
+	for _, col := range columns {
+		colLower := strings.ToLower(col)
+		if colLower == "password" || colLower == "name" || colLower == "username" ||
+		   colLower == "uri" || colLower == "description" {
+			needsSecrets = true
+			break
+		}
+	}
+
+	// Also check if filter uses encrypted fields
+	if !needsSecrets && celFilter != "" {
+		encryptedFields := []string{"Name", "Username", "URI", "Password", "Description"}
+		for _, field := range encryptedFields {
+			if strings.Contains(celFilter, field) {
+				needsSecrets = true
+				break
+			}
+		}
+	}
+
 	resources, err := client.GetResources(ctx, &api.GetResourcesOptions{
 		FilterIsFavorite:        favorite,
 		FilterIsOwnedByMe:       own,
 		FilterIsSharedWithGroup: group,
 		FilterHasParent:         folderParents,
+		ContainSecret:           needsSecrets,
 	})
 	if err != nil {
 		return fmt.Errorf("Listing Resource: %w", err)
@@ -91,23 +115,42 @@ func ResourceList(cmd *cobra.Command, args []string) error {
 	}
 
 	if jsonOutput {
-		outputResources := []ResourceJsonOutput{}
+		// Cache resource types to avoid fetching the same type repeatedly
+		resourceTypeCache := make(map[string]*api.ResourceType)
+
+		outputResources := []map[string]interface{}{}
 		for i := range resources {
-			_, name, username, uri, pass, desc, err := helper.GetResource(ctx, client, resources[i].ID)
+			decrypted, err := decryptResource(ctx, client, resources[i], needsSecrets, resourceTypeCache)
 			if err != nil {
-				return fmt.Errorf("Get Resource %w", err)
+				return err
 			}
-			outputResources = append(outputResources, ResourceJsonOutput{
-				ID:                &resources[i].ID,
-				FolderParentID:    &resources[i].FolderParentID,
-				Name:              &name,
-				Username:          &username,
-				URI:               &uri,
-				Password:          &pass,
-				Description:       &desc,
-				CreatedTimestamp:  &resources[i].Created.Time,
-				ModifiedTimestamp: &resources[i].Modified.Time,
-			})
+
+			// Build output with only requested columns
+			output := make(map[string]interface{})
+			for _, col := range columns {
+				switch strings.ToLower(col) {
+				case "id":
+					output["ID"] = resources[i].ID
+				case "folderparentid":
+					output["FolderParentID"] = resources[i].FolderParentID
+				case "name":
+					output["Name"] = decrypted.name
+				case "username":
+					output["Username"] = decrypted.username
+				case "uri":
+					output["URI"] = decrypted.uri
+				case "password":
+					output["Password"] = decrypted.password
+				case "description":
+					output["Description"] = decrypted.description
+				case "createdtimestamp":
+					output["CreatedTimestamp"] = resources[i].Created.Time
+				case "modifiedtimestamp":
+					output["ModifiedTimestamp"] = resources[i].Modified.Time
+				}
+			}
+
+			outputResources = append(outputResources, output)
 		}
 		jsonResources, err := json.MarshalIndent(outputResources, "", "  ")
 		if err != nil {
@@ -117,11 +160,33 @@ func ResourceList(cmd *cobra.Command, args []string) error {
 	} else {
 		data := pterm.TableData{columns}
 
+		// Check if we need to fetch encrypted secrets (Password always requires decryption)
+		needsPassword := false
+		for _, col := range columns {
+			if strings.ToLower(col) == "password" {
+				needsPassword = true
+				break
+			}
+		}
+
+		// Cache resource types to avoid fetching the same type repeatedly
+		resourceTypeCache := make(map[string]*api.ResourceType)
+
 		for _, resource := range resources {
-			// TODO We should decrypt the secret only when required for performance reasonse
-			_, name, username, uri, pass, desc, err := helper.GetResource(ctx, client, resource.ID)
+			var err error
+
+			// Decrypt resource if needed
+			decrypted, err := decryptResource(ctx, client, resource, needsSecrets, resourceTypeCache)
 			if err != nil {
-				return fmt.Errorf("Get Resource %w", err)
+				return err
+			}
+
+			// Fallback: If we need password but secrets weren't included, fetch individually
+			if needsPassword && len(resource.Secrets) == 0 {
+				_, decrypted.name, decrypted.username, decrypted.uri, decrypted.password, decrypted.description, err = helper.GetResource(ctx, client, resource.ID)
+				if err != nil {
+					return fmt.Errorf("Get Resource %w", err)
+				}
 			}
 
 			entry := make([]string, len(columns))
@@ -132,15 +197,15 @@ func ResourceList(cmd *cobra.Command, args []string) error {
 				case "folderparentid":
 					entry[i] = resource.FolderParentID
 				case "name":
-					entry[i] = shellescape.StripUnsafe(name)
+					entry[i] = shellescape.StripUnsafe(decrypted.name)
 				case "username":
-					entry[i] = shellescape.StripUnsafe(username)
+					entry[i] = shellescape.StripUnsafe(decrypted.username)
 				case "uri":
-					entry[i] = shellescape.StripUnsafe(uri)
+					entry[i] = shellescape.StripUnsafe(decrypted.uri)
 				case "password":
-					entry[i] = shellescape.StripUnsafe(pass)
+					entry[i] = shellescape.StripUnsafe(decrypted.password)
 				case "description":
-					entry[i] = shellescape.StripUnsafe(desc)
+					entry[i] = shellescape.StripUnsafe(decrypted.description)
 				case "createdtimestamp":
 					entry[i] = resource.Created.Format(time.RFC3339)
 				case "modifiedtimestamp":
