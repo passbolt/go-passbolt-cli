@@ -9,8 +9,7 @@ Disclaimer: This project is community driven and not associated with [Passbolt S
 # Install
 
 ## Via Repository (Preferred):
-
-[![Packaging status](https://repology.org/badge/vertical-allrepos/go:passbolt-cli.svg)](https://repology.org/project/go:passbolt-cli/versions)
+[![Packaging status](https://repology.org/badge/vertical-allrepos/passbolt-cli.svg)](https://repology.org/project/passbolt-cli/versions)
 
 Use the package from your distros official repository.
 
