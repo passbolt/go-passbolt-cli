@@ -35,7 +35,7 @@ func ResourceDelete(cmd *cobra.Command, args []string) error {
 	defer client.Logout(context.TODO())
 	cmd.SilenceUsage = true
 
-	client.DeleteResource(ctx, resourceID)
+	err = client.DeleteResource(ctx, resourceID)
 	if err != nil {
 		return fmt.Errorf("Deleting Resource: %w", err)
 	}
