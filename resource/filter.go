@@ -3,6 +3,7 @@ package resource
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/google/cel-go/cel"
 	"github.com/passbolt/go-passbolt-cli/util"
@@ -34,26 +35,49 @@ func filterResources(resources *[]api.Resource, celCmd string, ctx context.Conte
 		return nil, err
 	}
 
+	// Check if filter uses encrypted fields (Name, Username, URI, Password, Description)
+	// We do a simple string check - if any of these fields appear in the filter, we need to decrypt
+	needsDecryption := false
+	encryptedFields := []string{"Name", "Username", "URI", "Password", "Description"}
+	for _, field := range encryptedFields {
+		if strings.Contains(celCmd, field) {
+			needsDecryption = true
+			break
+		}
+	}
+
+	// Cache resource types to avoid fetching the same type repeatedly
+	resourceTypeCache := make(map[string]*api.ResourceType)
+
 	filteredResources := []api.Resource{}
 	for _, resource := range *resources {
-		// TODO We should decrypt the secret only when required for performance reasonse
-		_, name, username, uri, pass, desc, err := helper.GetResource(ctx, client, resource.ID)
+		// Decrypt resource if filter needs encrypted fields
+		decrypted, err := decryptResource(ctx, client, resource, needsDecryption, resourceTypeCache)
 		if err != nil {
-			return nil, fmt.Errorf("Get Resource %w", err)
+			return nil, err
+		}
+
+		// Fallback: fetch individually if fields are empty and no secrets included
+		if needsDecryption && len(resource.Secrets) == 0 {
+			if decrypted.name == "" || decrypted.username == "" || decrypted.uri == "" || decrypted.description == "" {
+				_, decrypted.name, decrypted.username, decrypted.uri, decrypted.password, decrypted.description, err = helper.GetResource(ctx, client, resource.ID)
+				if err != nil {
+					return nil, fmt.Errorf("Get Resource: %w", err)
+				}
+			}
 		}
 
 		val, _, err := (*program).ContextEval(ctx, map[string]any{
-			"Id":                resource.ID,
+			"ID":                resource.ID,
 			"FolderParentID":    resource.FolderParentID,
-			"Name":              name,
-			"Username":          username,
-			"URI":               uri,
-			"Password":          pass,
-			"Description":       desc,
+			"Name":              decrypted.name,
+			"Username":          decrypted.username,
+			"URI":               decrypted.uri,
+			"Password":          decrypted.password,
+			"Description":       decrypted.description,
 			"CreatedTimestamp":  resource.Created.Time,
 			"ModifiedTimestamp": resource.Modified.Time,
 		})
-
 		if err != nil {
 			return nil, err
 		}
