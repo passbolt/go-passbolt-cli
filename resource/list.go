@@ -91,13 +91,14 @@ func ResourceList(cmd *cobra.Command, args []string) error {
 	}
 
 	if jsonOutput {
-		outputResources := []ResourceJsonOutput{}
+		outputResources := make([]ResourceJsonOutput, len(resources))
 		for i := range resources {
 			_, name, username, uri, pass, desc, err := helper.GetResource(ctx, client, resources[i].ID)
 			if err != nil {
 				return fmt.Errorf("Get Resource %w", err)
 			}
-			outputResources = append(outputResources, ResourceJsonOutput{
+
+			fullResource := ResourceJsonOutput{
 				ID:                &resources[i].ID,
 				FolderParentID:    &resources[i].FolderParentID,
 				Name:              &name,
@@ -107,8 +108,35 @@ func ResourceList(cmd *cobra.Command, args []string) error {
 				Description:       &desc,
 				CreatedTimestamp:  &resources[i].Created.Time,
 				ModifiedTimestamp: &resources[i].Modified.Time,
-			})
+			}
+			outputResources[i] = fullResource
 		}
+
+		if cmd.Flags().Changed("column") && len(columns) > 0 {
+			filteredMap := make([]map[string]interface{}, len(outputResources))
+			for i := range outputResources {
+				filteredMap[i] = make(map[string]interface{})
+				data, _ := json.Marshal(outputResources[i])
+				var resourceMap map[string]interface{}
+				json.Unmarshal(data, &resourceMap)
+
+				for _, col := range columns {
+					col = strings.ToLower(col)
+
+					if val, ok := resourceMap[col]; ok {
+						filteredMap[i][col] = val
+					}
+				}
+			}
+
+			jsonResources, err := json.MarshalIndent(filteredMap, "", "  ")
+			if err != nil {
+				return err
+			}
+			fmt.Println(string(jsonResources))
+			return nil
+		}
+
 		jsonResources, err := json.MarshalIndent(outputResources, "", "  ")
 		if err != nil {
 			return err
