@@ -15,6 +15,8 @@ import (
 	"github.com/pterm/pterm"
 )
 
+var defaultTableColumns = []string{"ID", "Username", "FirstName", "LastName", "Role"}
+
 // UserListCmd Lists a Passbolt User
 var UserListCmd = &cobra.Command{
 	Use:     "user",
@@ -25,44 +27,27 @@ var UserListCmd = &cobra.Command{
 }
 
 func init() {
-	UserListCmd.Flags().StringArrayP("group", "g", []string{}, "Users that are members of groups")
-	UserListCmd.Flags().StringArrayP("resource", "r", []string{}, "Users that have access to resources")
+	flags := UserListCmd.Flags()
+	flags.StringArrayP("group", "g", []string{}, "Users that are members of groups")
+	flags.StringArrayP("resource", "r", []string{}, "Users that have access to resources")
+	flags.StringP("search", "s", "", "Search for Users")
+	flags.BoolP("admin", "a", false, "Only show Admins")
+	flags.StringArrayP("column", "c", defaultTableColumns, "Columns to return, possible Columns:\nID, Username, FirstName, LastName, Role, CreatedTimestamp, ModifiedTimestamp")
+}
 
-	UserListCmd.Flags().StringP("search", "s", "", "Search for Users")
-	UserListCmd.Flags().BoolP("admin", "a", false, "Only show Admins")
-
-	UserListCmd.Flags().StringArrayP("column", "c", []string{"ID", "Username", "FirstName", "LastName", "Role"}, "Columns to return, possible Columns:\nID, Username, FirstName, LastName, Role, CreatedTimestamp, ModifiedTimestamp")
+type userListConfig struct {
+	groups         []string
+	resources      []string
+	search         string
+	admin          bool
+	columns        []string
+	columnsChanged bool
+	jsonOutput     bool
+	celFilter      string
 }
 
 func UserList(cmd *cobra.Command, args []string) error {
-	groups, err := cmd.Flags().GetStringArray("group")
-	if err != nil {
-		return err
-	}
-	resources, err := cmd.Flags().GetStringArray("resource")
-	if err != nil {
-		return err
-	}
-	search, err := cmd.Flags().GetString("search")
-	if err != nil {
-		return err
-	}
-	admin, err := cmd.Flags().GetBool("admin")
-	if err != nil {
-		return err
-	}
-	columns, err := cmd.Flags().GetStringArray("column")
-	if err != nil {
-		return err
-	}
-	if len(columns) == 0 {
-		return fmt.Errorf("You need to specify atleast one column to return")
-	}
-	jsonOutput, err := cmd.Flags().GetBool("json")
-	if err != nil {
-		return err
-	}
-	celFilter, err := cmd.Flags().GetString("filter")
+	config, err := parseResourceListFlags(cmd)
 	if err != nil {
 		return err
 	}
@@ -77,68 +62,148 @@ func UserList(cmd *cobra.Command, args []string) error {
 	cmd.SilenceUsage = true
 
 	users, err := client.GetUsers(ctx, &api.GetUsersOptions{
-		FilterHasGroup:  groups,
-		FilterHasAccess: resources,
-		FilterSearch:    search,
-		FilterIsAdmin:   admin,
+		FilterHasGroup:  config.groups,
+		FilterHasAccess: config.resources,
+		FilterSearch:    config.search,
+		FilterIsAdmin:   config.admin,
 	})
 	if err != nil {
-		return fmt.Errorf("Listing User: %w", err)
+		return fmt.Errorf("listing User: %w", err)
 	}
 
-	users, err = filterUsers(&users, celFilter, ctx)
+	users, err = filterUsers(&users, config.celFilter, ctx)
 	if err != nil {
 		return err
 	}
 
-	if jsonOutput {
-		outputUsers := []UserJsonOutput{}
-		for i := range users {
-			outputUsers = append(outputUsers, UserJsonOutput{
-				ID:                &users[i].ID,
-				Username:          &users[i].Username,
-				FirstName:         &users[i].Profile.FirstName,
-				LastName:          &users[i].Profile.LastName,
-				Role:              &users[i].Role.Name,
-				CreatedTimestamp:  &users[i].Created.Time,
-				ModifiedTimestamp: &users[i].Modified.Time,
-			})
+	if config.jsonOutput {
+		return printJsonResources(users, config.columnsChanged, config.columns)
+	}
+
+	return printTableResources(config.columns, users)
+}
+
+func printJsonResources(users []api.User, isColumnsChanged bool, columns []string) error {
+	outputUsers := make([]UserJsonOutput, len(users))
+	for i := range users {
+		outputUsers[i] = UserJsonOutput{
+			ID:                &users[i].ID,
+			Username:          &users[i].Username,
+			FirstName:         &users[i].Profile.FirstName,
+			LastName:          &users[i].Profile.LastName,
+			Role:              &users[i].Role.Name,
+			CreatedTimestamp:  &users[i].Created.Time,
+			ModifiedTimestamp: &users[i].Modified.Time,
 		}
-		jsonUsers, err := json.MarshalIndent(outputUsers, "", "  ")
+	}
+
+	if isColumnsChanged {
+		filteredMap := make([]map[string]interface{}, len(outputUsers))
+		for i := range outputUsers {
+			filteredMap[i] = make(map[string]interface{})
+			data, _ := json.Marshal(outputUsers[i])
+			var resourceMap map[string]interface{}
+			json.Unmarshal(data, &resourceMap)
+
+			for _, col := range columns {
+				col = strings.ToLower(col)
+
+				if val, ok := resourceMap[col]; ok {
+					filteredMap[i][col] = val
+				}
+			}
+		}
+
+		jsonResources, err := json.MarshalIndent(filteredMap, "", "  ")
 		if err != nil {
 			return err
 		}
-		fmt.Println(string(jsonUsers))
-	} else {
-		data := pterm.TableData{columns}
-
-		for _, user := range users {
-			entry := make([]string, len(columns))
-			for i := range columns {
-				switch strings.ToLower(columns[i]) {
-				case "id":
-					entry[i] = user.ID
-				case "username":
-					entry[i] = shellescape.StripUnsafe(user.Username)
-				case "firstname":
-					entry[i] = shellescape.StripUnsafe(user.Profile.FirstName)
-				case "lastname":
-					entry[i] = shellescape.StripUnsafe(user.Profile.LastName)
-				case "role":
-					entry[i] = shellescape.StripUnsafe(user.Role.Name)
-				case "createdtimestamp":
-					entry[i] = user.Created.Format(time.RFC3339)
-				case "modifiedtimestamp":
-					entry[i] = user.Modified.Format(time.RFC3339)
-				default:
-					cmd.SilenceUsage = false
-					return fmt.Errorf("Unknown Column: %v", columns[i])
-				}
-			}
-			data = append(data, entry)
-		}
-
-		pterm.DefaultTable.WithHasHeader().WithData(data).Render()
+		fmt.Println(string(jsonResources))
+		return nil
 	}
+
+	jsonUsers, err := json.MarshalIndent(outputUsers, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(string(jsonUsers))
 	return nil
+}
+
+func printTableResources(columns []string, users []api.User) error {
+	data := pterm.TableData{columns}
+
+	for _, user := range users {
+		entry := make([]string, len(columns))
+		for i := range columns {
+			switch strings.ToLower(columns[i]) {
+			case "id":
+				entry[i] = user.ID
+			case "username":
+				entry[i] = shellescape.StripUnsafe(user.Username)
+			case "firstname":
+				entry[i] = shellescape.StripUnsafe(user.Profile.FirstName)
+			case "lastname":
+				entry[i] = shellescape.StripUnsafe(user.Profile.LastName)
+			case "role":
+				entry[i] = shellescape.StripUnsafe(user.Role.Name)
+			case "createdtimestamp":
+				entry[i] = user.Created.Format(time.RFC3339)
+			case "modifiedtimestamp":
+				entry[i] = user.Modified.Format(time.RFC3339)
+			default:
+				return fmt.Errorf("unknown column: %v", columns[i])
+			}
+		}
+		data = append(data, entry)
+	}
+
+	pterm.DefaultTable.WithHasHeader().WithData(data).Render()
+	return nil
+}
+
+func parseResourceListFlags(cmd *cobra.Command) (*userListConfig, error) {
+	groups, err := cmd.Flags().GetStringArray("group")
+	if err != nil {
+		return nil, err
+	}
+	resources, err := cmd.Flags().GetStringArray("resource")
+	if err != nil {
+		return nil, err
+	}
+	search, err := cmd.Flags().GetString("search")
+	if err != nil {
+		return nil, err
+	}
+	admin, err := cmd.Flags().GetBool("admin")
+	if err != nil {
+		return nil, err
+	}
+	columns, err := cmd.Flags().GetStringArray("column")
+	if err != nil {
+		return nil, err
+	}
+	if len(columns) == 0 {
+		return nil, fmt.Errorf("you need to specify atleast one column to return")
+	}
+	jsonOutput, err := cmd.Flags().GetBool("json")
+	if err != nil {
+		return nil, err
+	}
+	celFilter, err := cmd.Flags().GetString("filter")
+	if err != nil {
+		return nil, err
+	}
+
+	return &userListConfig{
+		groups:         groups,
+		resources:      resources,
+		search:         search,
+		admin:          admin,
+		columns:        columns,
+		columnsChanged: cmd.Flags().Changed("column"),
+		jsonOutput:     jsonOutput,
+		celFilter:      celFilter,
+	}, nil
 }

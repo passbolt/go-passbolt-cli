@@ -28,11 +28,12 @@ var ResourceListCmd = &cobra.Command{
 }
 
 func init() {
-	ResourceListCmd.Flags().Bool("favorite", false, "Resources that are marked as favorite")
-	ResourceListCmd.Flags().Bool("own", false, "Resources that are owned by me")
-	ResourceListCmd.Flags().StringP("group", "g", "", "Resources that are shared with group")
-	ResourceListCmd.Flags().StringArrayP("folder", "f", []string{}, "Resources that are in folder")
-	ResourceListCmd.Flags().StringArrayP("column", "c", defaultTableColumns, "Columns to return, possible Columns:\nID, FolderParentID, Name, Username, URI, Password, Description, CreatedTimestamp, ModifiedTimestamp")
+	flags := ResourceListCmd.Flags()
+	flags.Bool("favorite", false, "Resources that are marked as favorite")
+	flags.Bool("own", false, "Resources that are owned by me")
+	flags.StringP("group", "g", "", "Resources that are shared with group")
+	flags.StringArrayP("folder", "f", []string{}, "Resources that are in folder")
+	flags.StringArrayP("column", "c", defaultTableColumns, "Columns to return, possible Columns:\nID, FolderParentID, Name, Username, URI, Password, Description, CreatedTimestamp, ModifiedTimestamp")
 }
 
 type resourceListConfig struct {
@@ -97,7 +98,7 @@ func printJsonResources(
 			return fmt.Errorf("get resource %w", err)
 		}
 
-		fullResource := ResourceJsonOutput{
+		outputResources[i] = ResourceJsonOutput{
 			ID:                &resources[i].ID,
 			FolderParentID:    &resources[i].FolderParentID,
 			Name:              &name,
@@ -108,7 +109,6 @@ func printJsonResources(
 			CreatedTimestamp:  &resources[i].Created.Time,
 			ModifiedTimestamp: &resources[i].Modified.Time,
 		}
-		outputResources[i] = fullResource
 	}
 
 	if isColumnsChanged {
