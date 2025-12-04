@@ -32,7 +32,7 @@ func init() {
 	flags.StringArrayP("resource", "r", []string{}, "Users that have access to resources")
 	flags.StringP("search", "s", "", "Search for Users")
 	flags.BoolP("admin", "a", false, "Only show Admins")
-	flags.StringArrayP("column", "c", defaultTableColumns, "Columns to return, possible Columns:\nID, Username, FirstName, LastName, Role, CreatedTimestamp, ModifiedTimestamp")
+	flags.StringArrayP("column", "c", defaultTableColumns, "Columns to return (default list only for table format; JSON format includes all fields by default).\nPossible Columns: ID, Username, FirstName, LastName, Role, CreatedTimestamp, ModifiedTimestamp")
 }
 
 type userListConfig struct {

@@ -33,7 +33,7 @@ func init() {
 	flags.Bool("own", false, "Resources that are owned by me")
 	flags.StringP("group", "g", "", "Resources that are shared with group")
 	flags.StringArrayP("folder", "f", []string{}, "Resources that are in folder")
-	flags.StringArrayP("column", "c", defaultTableColumns, "Columns to return, possible Columns:\nID, FolderParentID, Name, Username, URI, Password, Description, CreatedTimestamp, ModifiedTimestamp")
+	flags.StringArrayP("column", "c", defaultTableColumns, "Columns to return (default list only for table format; JSON format includes all fields by default).\nPossible Columns: ID, FolderParentID, Name, Username, URI, Password, Description, CreatedTimestamp, ModifiedTimestamp")
 }
 
 type resourceListConfig struct {

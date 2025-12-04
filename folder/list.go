@@ -31,7 +31,7 @@ func init() {
 	flags.StringP("search", "s", "", "Folders that have this in the Name")
 	flags.StringArrayP("folder", "f", []string{}, "Folders that are in this Folder")
 	flags.StringArrayP("group", "g", []string{}, "Folders that are shared with group")
-	flags.StringArrayP("column", "c", defaultTableColumns, "Columns to return, possible Columns:\nID, FolderParentID, Name, CreatedTimestamp, ModifiedTimestamp")
+	flags.StringArrayP("column", "c", defaultTableColumns, "Columns to return (default list only for table format; JSON format includes all fields by default).\nPossible Columns: ID, FolderParentID, Name, CreatedTimestamp, ModifiedTimestamp")
 }
 
 type folderListConfig struct {

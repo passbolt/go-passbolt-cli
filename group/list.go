@@ -30,7 +30,7 @@ func init() {
 	flags := GroupListCmd.Flags()
 	flags.StringArrayP("user", "u", []string{}, "Groups that are shared with group")
 	flags.StringArrayP("manager", "m", []string{}, "Groups that are in folder")
-	flags.StringArrayP("column", "c", defaultTableColumns, "Columns to return, possible Columns:\nID, Name, CreatedTimestamp, ModifiedTimestamp")
+	flags.StringArrayP("column", "c", defaultTableColumns, "Columns to return (default list only for table format; JSON format includes all fields by default).\nPossible Columns: ID, Name, CreatedTimestamp, ModifiedTimestamp")
 }
 
 type groupListConfig struct {
