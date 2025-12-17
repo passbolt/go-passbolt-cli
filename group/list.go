@@ -62,7 +62,7 @@ func GroupList(cmd *cobra.Command, args []string) error {
 		FilterHasManagers: config.managers,
 	})
 	if err != nil {
-		return fmt.Errorf("listing group: %w", err)
+		return fmt.Errorf("Listing Group: %w", err)
 	}
 
 	groups, err = filterGroups(&groups, config.celFilter, ctx)
@@ -138,7 +138,7 @@ func printTableGroups(columns []string, groups []api.Group) error {
 			case "modifiedtimestamp":
 				entry[i] = group.Modified.Format(time.RFC3339)
 			default:
-				return fmt.Errorf("unknown column: %v", columns[i])
+				return fmt.Errorf("Unknown Column: %v", columns[i])
 			}
 		}
 		data = append(data, entry)
@@ -162,7 +162,7 @@ func parseGroupListFlags(cmd *cobra.Command) (*groupListConfig, error) {
 		return nil, err
 	}
 	if len(columns) == 0 {
-		return nil, fmt.Errorf("you need to specify at least one column to return")
+		return nil, fmt.Errorf("You need to specify at least one column to return")
 	}
 	jsonOutput, err := cmd.Flags().GetBool("json")
 	if err != nil {

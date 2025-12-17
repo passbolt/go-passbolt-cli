@@ -68,7 +68,7 @@ func UserList(cmd *cobra.Command, args []string) error {
 		FilterIsAdmin:   config.admin,
 	})
 	if err != nil {
-		return fmt.Errorf("listing User: %w", err)
+		return fmt.Errorf("Listing User: %w", err)
 	}
 
 	users, err = filterUsers(&users, config.celFilter, ctx)
@@ -153,7 +153,7 @@ func printTableResources(columns []string, users []api.User) error {
 			case "modifiedtimestamp":
 				entry[i] = user.Modified.Format(time.RFC3339)
 			default:
-				return fmt.Errorf("unknown column: %v", columns[i])
+				return fmt.Errorf("Unknown Column: %v", columns[i])
 			}
 		}
 		data = append(data, entry)
@@ -185,7 +185,7 @@ func parseResourceListFlags(cmd *cobra.Command) (*userListConfig, error) {
 		return nil, err
 	}
 	if len(columns) == 0 {
-		return nil, fmt.Errorf("you need to specify atleast one column to return")
+		return nil, fmt.Errorf("You need to specify atleast one column to return")
 	}
 	jsonOutput, err := cmd.Flags().GetBool("json")
 	if err != nil {

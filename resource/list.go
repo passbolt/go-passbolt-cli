@@ -69,7 +69,7 @@ func ResourceList(cmd *cobra.Command, args []string) error {
 		FilterHasParent:         config.folderParents,
 	})
 	if err != nil {
-		return fmt.Errorf("listing resource: %w", err)
+		return fmt.Errorf("Listing Resource: %w", err)
 	}
 
 	resources, err = filterResources(&resources, config.celFilter, ctx, client)
@@ -95,7 +95,7 @@ func printJsonResources(
 	for i := range resources {
 		_, name, username, uri, pass, desc, err := helper.GetResource(ctx, client, resources[i].ID)
 		if err != nil {
-			return fmt.Errorf("get resource %w", err)
+			return fmt.Errorf("Get Resource %w", err)
 		}
 
 		outputResources[i] = ResourceJsonOutput{
@@ -156,7 +156,7 @@ func printTableResources(
 		// TODO We should decrypt the secret only when required for performance reasons
 		_, name, username, uri, pass, desc, err := helper.GetResource(ctx, client, resource.ID)
 		if err != nil {
-			return fmt.Errorf("get resource %w", err)
+			return fmt.Errorf("Get Resource %w", err)
 		}
 
 		entry := make([]string, len(columns))
@@ -181,7 +181,7 @@ func printTableResources(
 			case "modifiedtimestamp":
 				entry[i] = resource.Modified.Format(time.RFC3339)
 			default:
-				return fmt.Errorf("unknown column: %v", columns[i])
+				return fmt.Errorf("Unknown Column: %v", columns[i])
 			}
 		}
 		data = append(data, entry)
@@ -213,7 +213,7 @@ func parseResourceListFlags(cmd *cobra.Command) (*resourceListConfig, error) {
 		return nil, err
 	}
 	if len(columns) == 0 {
-		return nil, fmt.Errorf("you need to specify at least one column to return")
+		return nil, fmt.Errorf("You need to specify at least one column to return")
 	}
 	jsonOutput, err := cmd.Flags().GetBool("json")
 	if err != nil {

@@ -63,7 +63,7 @@ func FolderList(cmd *cobra.Command, args []string) error {
 		FilterSearch:    config.search,
 	})
 	if err != nil {
-		return fmt.Errorf("listing folder: %w", err)
+		return fmt.Errorf("Listing Folder: %w", err)
 	}
 
 	folders, err = filterFolders(&folders, config.celFilter, ctx)
@@ -142,7 +142,7 @@ func printTableFolders(columns []string, folders []api.Folder) error {
 			case "modifiedtimestamp":
 				entry[i] = folder.Modified.Format(time.RFC3339)
 			default:
-				return fmt.Errorf("unknown column: %v", columns[i])
+				return fmt.Errorf("Unknown Column: %v", columns[i])
 			}
 		}
 		data = append(data, entry)
@@ -166,7 +166,7 @@ func parseFolderListFlags(cmd *cobra.Command) (*folderListConfig, error) {
 		return nil, err
 	}
 	if len(columns) == 0 {
-		return nil, fmt.Errorf("you need to specify at least one column to return")
+		return nil, fmt.Errorf("You need to specify at least one column to return")
 	}
 	jsonOutput, err := cmd.Flags().GetBool("json")
 	if err != nil {
