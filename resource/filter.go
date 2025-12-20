@@ -24,6 +24,7 @@ var celEnvOptions = []cel.EnvOption{
 }
 
 // Filters the slice resources by invoke CEL program for each resource
+// Note: Resources must have been fetched with ContainSecret and ContainResourceType options
 func filterResources(resources *[]api.Resource, celCmd string, ctx context.Context, client *api.Client) ([]api.Resource, error) {
 	if celCmd == "" {
 		return *resources, nil
@@ -36,8 +37,15 @@ func filterResources(resources *[]api.Resource, celCmd string, ctx context.Conte
 
 	filteredResources := []api.Resource{}
 	for _, resource := range *resources {
-		// TODO We should decrypt the secret only when required for performance reasonse
-		_, name, username, uri, pass, desc, err := helper.GetResource(ctx, client, resource.ID)
+		if len(resource.Secrets) == 0 {
+			continue
+		}
+		_, name, username, uri, pass, desc, err := helper.GetResourceFromData(
+			client,
+			resource,
+			resource.Secrets[0],
+			resource.ResourceType,
+		)
 		if err != nil {
 			return nil, fmt.Errorf("Get Resource %w", err)
 		}
