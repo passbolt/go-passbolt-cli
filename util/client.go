@@ -41,6 +41,22 @@ func ReadPassword(prompt string) (string, error) {
 	return strings.Replace(pass, "\n", "", 1), nil
 }
 
+// SaveSessionKeysAndLogout saves any pending session keys to the server and then logs out.
+// This should be used instead of client.Logout() to ensure session keys are persisted.
+func SaveSessionKeysAndLogout(ctx context.Context, client *api.Client) {
+	// Save any pending session keys that were discovered during decryption
+	if count := client.GetPendingSessionKeysCount(); count > 0 {
+		saved, err := client.SavePendingSessionKeys(ctx)
+		if err != nil {
+			// Log but don't fail - session keys can be re-discovered on next access
+			fmt.Fprintf(os.Stderr, "Warning: failed to save session keys: %v\n", err)
+		} else if saved > 0 {
+			fmt.Fprintf(os.Stderr, "Saved %d session keys to server\n", saved)
+		}
+	}
+	client.Logout(ctx)
+}
+
 // GetClient gets a Logged in Passbolt Client
 func GetClient(ctx context.Context) (*api.Client, error) {
 	serverAddress := viper.GetString("serverAddress")

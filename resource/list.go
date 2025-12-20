@@ -1,7 +1,6 @@
 package resource
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"runtime"
@@ -82,7 +81,7 @@ func ResourceList(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	defer client.Logout(context.TODO())
+	defer util.SaveSessionKeysAndLogout(ctx, client)
 	cmd.SilenceUsage = true
 
 	resources, err := client.GetResources(ctx, &api.GetResourcesOptions{
