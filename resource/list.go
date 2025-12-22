@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"runtime"
@@ -65,14 +66,23 @@ func ResourceList(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// Check if we need to decrypt secrets (expensive RSA operation)
+	// Check if we need to fetch secrets (expensive server join + RSA decryption)
 	// For v5 resources, metadata (name, username, uri) can be decrypted without secrets
-	needSecretDecryption := false
+	needSecrets := false
 	for _, col := range config.columns {
 		switch strings.ToLower(col) {
 		case "password", "description":
-			needSecretDecryption = true
+			needSecrets = true
 		}
+	}
+
+	// Check if CEL filter references Password or Description
+	if !needSecrets && config.celFilter != "" {
+		refsSecrets, err := util.CELExpressionReferencesFields(config.celFilter, []string{"Password", "Description"}, CelEnvOptions...)
+		if err != nil {
+			return fmt.Errorf("Parsing filter: %w", err)
+		}
+		needSecrets = refsSecrets
 	}
 
 	ctx := util.GetContext()
@@ -89,22 +99,24 @@ func ResourceList(cmd *cobra.Command, args []string) error {
 		FilterIsOwnedByMe:       config.own,
 		FilterIsSharedWithGroup: config.group,
 		FilterHasParent:         config.folderParents,
-		ContainSecret:           true,
-		ContainResourceType:     true,
+		ContainSecret:           needSecrets,
 	})
 	if err != nil {
 		return fmt.Errorf("Listing Resource: %w", err)
 	}
 
-	resources, err = filterResources(&resources, config.celFilter, ctx, client)
+	// Decrypt all resources in parallel
+	decrypted, err := decryptResourcesParallel(ctx, client, resources, needSecrets)
 	if err != nil {
 		return err
 	}
 
-	// Decrypt all resources in parallel
-	decrypted, err := decryptResourcesParallel(client, resources, needSecretDecryption)
-	if err != nil {
-		return err
+	// Apply CEL filter on already-decrypted data
+	if config.celFilter != "" {
+		decrypted, err = filterDecryptedResources(decrypted, config.celFilter, ctx)
+		if err != nil {
+			return err
+		}
 	}
 
 	if config.jsonOutput {
@@ -114,26 +126,27 @@ func ResourceList(cmd *cobra.Command, args []string) error {
 	return printTableResources(decrypted, config.columns)
 }
 
-func decryptResourcesParallel(client *api.Client, resources []api.Resource, needSecretDecryption bool) ([]decryptedResource, error) {
-	// Filter resources with secrets
-	var validResources []api.Resource
-	for i := range resources {
-		if len(resources[i].Secrets) > 0 {
-			validResources = append(validResources, resources[i])
-		}
-	}
-
-	if len(validResources) == 0 {
-		return []decryptedResource{}, nil
-	}
-
+func decryptResourcesParallel(ctx context.Context, client *api.Client, resources []api.Resource, needSecrets bool) ([]decryptedResource, error) {
 	// Use parallel decryption with worker pool
 	numWorkers := runtime.NumCPU()
 	if numWorkers > 16 {
 		numWorkers = 16 // Cap at 16 workers
 	}
-	if len(validResources) < numWorkers {
-		numWorkers = len(validResources)
+	if len(resources) < numWorkers {
+		numWorkers = len(resources)
+	}
+
+	// Filter resources - only require secrets if we're fetching them
+	var validResources []api.Resource
+	for i := range resources {
+		if needSecrets && len(resources[i].Secrets) == 0 {
+			continue
+		}
+		validResources = append(validResources, resources[i])
+	}
+
+	if len(validResources) == 0 {
+		return []decryptedResource{}, nil
 	}
 
 	// Channel for work items and results
@@ -150,12 +163,43 @@ func decryptResourcesParallel(client *api.Client, resources []api.Resource, need
 			defer wg.Done()
 			for idx := range jobs {
 				resource := validResources[idx]
+
+				// Lookup resource type from cache (single API call for all types)
+				rType, err := client.GetResourceTypeCached(ctx, resource.ResourceTypeID)
+				if err != nil {
+					results <- decryptedResource{index: idx, err: fmt.Errorf("Get ResourceType: %w", err)}
+					continue
+				}
+
+				// For v4 resources without secret decryption, use plaintext fields directly
+				// This avoids unnecessary function calls for 10k+ resources
+				isV5 := strings.HasPrefix(rType.Slug, "v5-")
+				if !needSecrets && !isV5 {
+					// V4 resource - metadata is plaintext, no decryption needed
+					results <- decryptedResource{
+						index:       idx,
+						resource:    resource,
+						name:        resource.Name,
+						username:    resource.Username,
+						uri:         resource.URI,
+						password:    "",
+						description: resource.Description,
+					}
+					continue
+				}
+
+				// Handle case where secrets weren't fetched
+				var secret api.Secret
+				if len(resource.Secrets) > 0 {
+					secret = resource.Secrets[0]
+				}
+
 				_, name, username, uri, pass, desc, err := helper.GetResourceFromDataWithOptions(
 					client,
 					resource,
-					resource.Secrets[0],
-					resource.ResourceType,
-					needSecretDecryption,
+					secret,
+					*rType,
+					needSecrets,
 				)
 				results <- decryptedResource{
 					index:       idx,

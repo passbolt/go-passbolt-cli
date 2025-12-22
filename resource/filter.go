@@ -6,12 +6,10 @@ import (
 
 	"github.com/google/cel-go/cel"
 	"github.com/passbolt/go-passbolt-cli/util"
-	"github.com/passbolt/go-passbolt/api"
-	"github.com/passbolt/go-passbolt/helper"
 )
 
-// Environments for CEl
-var celEnvOptions = []cel.EnvOption{
+// CelEnvOptions defines the CEL environment for resource filtering
+var CelEnvOptions = []cel.EnvOption{
 	cel.Variable("ID", cel.StringType),
 	cel.Variable("FolderParentID", cel.StringType),
 	cel.Variable("Name", cel.StringType),
@@ -23,43 +21,29 @@ var celEnvOptions = []cel.EnvOption{
 	cel.Variable("ModifiedTimestamp", cel.TimestampType),
 }
 
-// Filters the slice resources by invoke CEL program for each resource
-// Note: Resources must have been fetched with ContainSecret and ContainResourceType options
-func filterResources(resources *[]api.Resource, celCmd string, ctx context.Context, client *api.Client) ([]api.Resource, error) {
+// filterDecryptedResources filters already-decrypted resources by evaluating a CEL expression.
+func filterDecryptedResources(resources []decryptedResource, celCmd string, ctx context.Context) ([]decryptedResource, error) {
 	if celCmd == "" {
-		return *resources, nil
+		return resources, nil
 	}
 
-	program, err := util.InitCELProgram(celCmd, celEnvOptions...)
+	program, err := util.InitCELProgram(celCmd, CelEnvOptions...)
 	if err != nil {
 		return nil, err
 	}
 
-	filteredResources := []api.Resource{}
-	for _, resource := range *resources {
-		if len(resource.Secrets) == 0 {
-			continue
-		}
-		_, name, username, uri, pass, desc, err := helper.GetResourceFromData(
-			client,
-			resource,
-			resource.Secrets[0],
-			resource.ResourceType,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("Get Resource %w", err)
-		}
-
+	filtered := []decryptedResource{}
+	for _, d := range resources {
 		val, _, err := (*program).ContextEval(ctx, map[string]any{
-			"Id":                resource.ID,
-			"FolderParentID":    resource.FolderParentID,
-			"Name":              name,
-			"Username":          username,
-			"URI":               uri,
-			"Password":          pass,
-			"Description":       desc,
-			"CreatedTimestamp":  resource.Created.Time,
-			"ModifiedTimestamp": resource.Modified.Time,
+			"ID":                d.resource.ID,
+			"FolderParentID":    d.resource.FolderParentID,
+			"Name":              d.name,
+			"Username":          d.username,
+			"URI":               d.uri,
+			"Password":          d.password,
+			"Description":       d.description,
+			"CreatedTimestamp":  d.resource.Created.Time,
+			"ModifiedTimestamp": d.resource.Modified.Time,
 		})
 
 		if err != nil {
@@ -67,12 +51,12 @@ func filterResources(resources *[]api.Resource, celCmd string, ctx context.Conte
 		}
 
 		if val.Value() == true {
-			filteredResources = append(filteredResources, resource)
+			filtered = append(filtered, d)
 		}
 	}
 
-	if len(filteredResources) == 0 {
+	if len(filtered) == 0 {
 		return nil, fmt.Errorf("No such Resources found with filter %v!", celCmd)
 	}
-	return filteredResources, nil
+	return filtered, nil
 }
