@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"time"
 
 	"github.com/pterm/pterm"
@@ -65,6 +66,8 @@ func init() {
 	rootCmd.PersistentFlags().String("tlsClientPrivateKey", "", "Client private key for mtls")
 	rootCmd.PersistentFlags().String("tlsClientCert", "", "Client certificate for mtls")
 
+	rootCmd.PersistentFlags().Uint("workers", 0, "Number of Concurrent Workers for Expensive Operations. 0 (default) uses the number of CPU cores")
+
 	viper.BindPFlag("debug", rootCmd.PersistentFlags().Lookup("debug"))
 	viper.BindPFlag("timeout", rootCmd.PersistentFlags().Lookup("timeout"))
 	viper.BindPFlag("serverAddress", rootCmd.PersistentFlags().Lookup("serverAddress"))
@@ -81,6 +84,8 @@ func init() {
 	viper.BindPFlag("tlsSkipVerify", rootCmd.PersistentFlags().Lookup("tlsSkipVerify"))
 	viper.BindPFlag("tlsClientCert", rootCmd.PersistentFlags().Lookup("tlsClientCert"))
 	viper.BindPFlag("tlsClientPrivateKey", rootCmd.PersistentFlags().Lookup("tlsClientPrivateKey"))
+
+	viper.BindPFlag("workers", rootCmd.PersistentFlags().Lookup("workers"))
 }
 
 func fileToContent(file, contentFlag string) {
@@ -147,6 +152,15 @@ func initConfig() {
 		fileToContent(tlsclientcertfile, "tlsClientCert")
 	} else if err != nil && viper.GetBool("debug") {
 		fmt.Fprintln(os.Stderr, "Getting Client Certificate File Flag:", err)
+	}
+
+	// If Workers is set to 0, autodetect Number of Cores
+	workers := viper.GetUint("workers")
+	if workers == 0 {
+		viper.Set("workers", runtime.NumCPU())
+		if viper.GetBool("debug") {
+			fmt.Fprintln(os.Stderr, "Autodetected Worker Count:", viper.GetUint("workers"))
+		}
 	}
 }
 
