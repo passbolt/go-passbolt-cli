@@ -47,7 +47,7 @@ type userListConfig struct {
 }
 
 func UserList(cmd *cobra.Command, args []string) error {
-	config, err := parseResourceListFlags(cmd)
+	config, err := parseUserListFlags(cmd)
 	if err != nil {
 		return err
 	}
@@ -77,13 +77,13 @@ func UserList(cmd *cobra.Command, args []string) error {
 	}
 
 	if config.jsonOutput {
-		return printJsonResources(users, config.columnsChanged, config.columns)
+		return printJsonUsers(users, config.columnsChanged, config.columns)
 	}
 
-	return printTableResources(config.columns, users)
+	return printTableUsers(config.columns, users)
 }
 
-func printJsonResources(users []api.User, isColumnsChanged bool, columns []string) error {
+func printJsonUsers(users []api.User, isColumnsChanged bool, columns []string) error {
 	outputUsers := make([]UserJsonOutput, len(users))
 	for i := range users {
 		outputUsers[i] = UserJsonOutput{
@@ -131,7 +131,7 @@ func printJsonResources(users []api.User, isColumnsChanged bool, columns []strin
 	return nil
 }
 
-func printTableResources(columns []string, users []api.User) error {
+func printTableUsers(columns []string, users []api.User) error {
 	data := pterm.TableData{columns}
 
 	for _, user := range users {
@@ -163,7 +163,7 @@ func printTableResources(columns []string, users []api.User) error {
 	return nil
 }
 
-func parseResourceListFlags(cmd *cobra.Command) (*userListConfig, error) {
+func parseUserListFlags(cmd *cobra.Command) (*userListConfig, error) {
 	groups, err := cmd.Flags().GetStringArray("group")
 	if err != nil {
 		return nil, err
