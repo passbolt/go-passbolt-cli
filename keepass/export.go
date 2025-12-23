@@ -1,7 +1,6 @@
 package keepass
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/url"
@@ -54,7 +53,7 @@ func KeepassExport(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	defer client.Logout(context.TODO())
+	defer util.SaveSessionKeysAndLogout(ctx, client)
 	cmd.SilenceUsage = true
 
 	if keepassPassword == "" {

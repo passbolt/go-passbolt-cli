@@ -4,17 +4,30 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"runtime"
 	"strings"
+	"sync"
 	"time"
 
 	"al.essio.dev/pkg/shellescape"
 	"github.com/passbolt/go-passbolt-cli/util"
 	"github.com/passbolt/go-passbolt/api"
 	"github.com/passbolt/go-passbolt/helper"
-	"github.com/spf13/cobra"
-
 	"github.com/pterm/pterm"
+	"github.com/spf13/cobra"
 )
+
+// decryptedResource holds the result of decrypting a single resource
+type decryptedResource struct {
+	index       int
+	resource    api.Resource
+	name        string
+	username    string
+	uri         string
+	password    string
+	description string
+	err         error
+}
 
 var defaultTableColumns = []string{"ID", "FolderParentID", "Name", "Username", "URI"}
 
@@ -53,13 +66,32 @@ func ResourceList(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	// Check if we need to fetch secrets (expensive server join + RSA decryption)
+	// For v5 resources, metadata (name, username, uri) can be decrypted without secrets
+	needSecrets := false
+	for _, col := range config.columns {
+		switch strings.ToLower(col) {
+		case "password", "description":
+			needSecrets = true
+		}
+	}
+
+	// Check if CEL filter references Password or Description
+	if !needSecrets && config.celFilter != "" {
+		refsSecrets, err := util.CELExpressionReferencesFields(config.celFilter, []string{"Password", "Description"}, CelEnvOptions...)
+		if err != nil {
+			return fmt.Errorf("Parsing filter: %w", err)
+		}
+		needSecrets = refsSecrets
+	}
+
 	ctx := util.GetContext()
 
 	client, err := util.GetClient(ctx)
 	if err != nil {
 		return err
 	}
-	defer client.Logout(context.TODO())
+	defer util.SaveSessionKeysAndLogout(ctx, client)
 	cmd.SilenceUsage = true
 
 	resources, err := client.GetResources(ctx, &api.GetResourcesOptions{
@@ -67,47 +99,168 @@ func ResourceList(cmd *cobra.Command, args []string) error {
 		FilterIsOwnedByMe:       config.own,
 		FilterIsSharedWithGroup: config.group,
 		FilterHasParent:         config.folderParents,
+		ContainSecret:           needSecrets,
 	})
 	if err != nil {
 		return fmt.Errorf("Listing Resource: %w", err)
 	}
 
-	resources, err = filterResources(&resources, config.celFilter, ctx, client)
+	// Decrypt all resources in parallel
+	decrypted, err := decryptResourcesParallel(ctx, client, resources, needSecrets)
 	if err != nil {
 		return err
 	}
 
-	if config.jsonOutput {
-		return printJsonResources(ctx, client, resources, config.columnsChanged, config.columns)
+	// Apply CEL filter on already-decrypted data
+	if config.celFilter != "" {
+		decrypted, err = filterDecryptedResources(decrypted, config.celFilter, ctx)
+		if err != nil {
+			return err
+		}
 	}
 
-	return printTableResources(ctx, client, resources, config.columns)
+	if config.jsonOutput {
+		return printJsonResources(decrypted, config.columnsChanged, config.columns)
+	}
+
+	return printTableResources(decrypted, config.columns)
+}
+
+func decryptResourcesParallel(ctx context.Context, client *api.Client, resources []api.Resource, needSecrets bool) ([]decryptedResource, error) {
+	// Use parallel decryption with worker pool
+	numWorkers := runtime.NumCPU()
+	if numWorkers > 16 {
+		numWorkers = 16 // Cap at 16 workers
+	}
+	if len(resources) < numWorkers {
+		numWorkers = len(resources)
+	}
+
+	// Filter resources - only require secrets if we're fetching them
+	var validResources []api.Resource
+	for i := range resources {
+		if needSecrets && len(resources[i].Secrets) == 0 {
+			continue
+		}
+		validResources = append(validResources, resources[i])
+	}
+
+	if len(validResources) == 0 {
+		return []decryptedResource{}, nil
+	}
+
+	// Channel for work items and results
+	// Note: Session keys are pre-fetched during Login() when the server supports v5 metadata,
+	// so no additional prefetching is needed here.
+	jobs := make(chan int, len(validResources))
+	results := make(chan decryptedResource, len(validResources))
+
+	// Start workers
+	var wg sync.WaitGroup
+	for w := 0; w < numWorkers; w++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for idx := range jobs {
+				resource := validResources[idx]
+
+				// Lookup resource type from cache (single API call for all types)
+				rType, err := client.GetResourceTypeCached(ctx, resource.ResourceTypeID)
+				if err != nil {
+					results <- decryptedResource{index: idx, err: fmt.Errorf("Get ResourceType: %w", err)}
+					continue
+				}
+
+				// For v4 resources without secret decryption, use plaintext fields directly
+				// This avoids unnecessary function calls for 10k+ resources
+				isV5 := strings.HasPrefix(rType.Slug, "v5-")
+				if !needSecrets && !isV5 {
+					// V4 resource - metadata is plaintext, no decryption needed
+					results <- decryptedResource{
+						index:       idx,
+						resource:    resource,
+						name:        resource.Name,
+						username:    resource.Username,
+						uri:         resource.URI,
+						password:    "",
+						description: resource.Description,
+					}
+					continue
+				}
+
+				// Handle case where secrets weren't fetched
+				var secret api.Secret
+				if len(resource.Secrets) > 0 {
+					secret = resource.Secrets[0]
+				}
+
+				_, name, username, uri, pass, desc, err := helper.GetResourceFromDataWithOptions(
+					client,
+					resource,
+					secret,
+					*rType,
+					needSecrets,
+				)
+				results <- decryptedResource{
+					index:       idx,
+					resource:    resource,
+					name:        name,
+					username:    username,
+					uri:         uri,
+					password:    pass,
+					description: desc,
+					err:         err,
+				}
+			}
+		}()
+	}
+
+	// Send jobs
+	for i := range validResources {
+		jobs <- i
+	}
+	close(jobs)
+
+	// Wait for workers and close results
+	go func() {
+		wg.Wait()
+		close(results)
+	}()
+
+	// Collect results
+	decrypted := make([]decryptedResource, len(validResources))
+	for result := range results {
+		if result.err != nil {
+			return nil, fmt.Errorf("Get Resource %w", result.err)
+		}
+		decrypted[result.index] = result
+	}
+
+	return decrypted, nil
 }
 
 func printJsonResources(
-	ctx context.Context,
-	client *api.Client,
-	resources []api.Resource,
+	decrypted []decryptedResource,
 	isColumnsChanged bool,
 	columns []string,
 ) error {
-	outputResources := make([]ResourceJsonOutput, len(resources))
-	for i := range resources {
-		_, name, username, uri, pass, desc, err := helper.GetResource(ctx, client, resources[i].ID)
-		if err != nil {
-			return fmt.Errorf("Get Resource %w", err)
-		}
-
+	outputResources := make([]ResourceJsonOutput, len(decrypted))
+	for i, d := range decrypted {
+		name := d.name
+		username := d.username
+		uri := d.uri
+		pass := d.password
+		desc := d.description
 		outputResources[i] = ResourceJsonOutput{
-			ID:                &resources[i].ID,
-			FolderParentID:    &resources[i].FolderParentID,
+			ID:                &d.resource.ID,
+			FolderParentID:    &d.resource.FolderParentID,
 			Name:              &name,
 			Username:          &username,
 			URI:               &uri,
 			Password:          &pass,
 			Description:       &desc,
-			CreatedTimestamp:  &resources[i].Created.Time,
-			ModifiedTimestamp: &resources[i].Modified.Time,
+			CreatedTimestamp:  &d.resource.Created.Time,
+			ModifiedTimestamp: &d.resource.Modified.Time,
 		}
 	}
 
@@ -145,41 +298,33 @@ func printJsonResources(
 }
 
 func printTableResources(
-	ctx context.Context,
-	client *api.Client,
-	resources []api.Resource,
+	decrypted []decryptedResource,
 	columns []string,
 ) error {
 	data := pterm.TableData{columns}
 
-	for _, resource := range resources {
-		// TODO We should decrypt the secret only when required for performance reasons
-		_, name, username, uri, pass, desc, err := helper.GetResource(ctx, client, resource.ID)
-		if err != nil {
-			return fmt.Errorf("Get Resource %w", err)
-		}
-
+	for _, d := range decrypted {
 		entry := make([]string, len(columns))
 		for i := range columns {
 			switch strings.ToLower(columns[i]) {
 			case "id":
-				entry[i] = resource.ID
+				entry[i] = d.resource.ID
 			case "folderparentid":
-				entry[i] = resource.FolderParentID
+				entry[i] = d.resource.FolderParentID
 			case "name":
-				entry[i] = shellescape.StripUnsafe(name)
+				entry[i] = shellescape.StripUnsafe(d.name)
 			case "username":
-				entry[i] = shellescape.StripUnsafe(username)
+				entry[i] = shellescape.StripUnsafe(d.username)
 			case "uri":
-				entry[i] = shellescape.StripUnsafe(uri)
+				entry[i] = shellescape.StripUnsafe(d.uri)
 			case "password":
-				entry[i] = shellescape.StripUnsafe(pass)
+				entry[i] = shellescape.StripUnsafe(d.password)
 			case "description":
-				entry[i] = shellescape.StripUnsafe(desc)
+				entry[i] = shellescape.StripUnsafe(d.description)
 			case "createdtimestamp":
-				entry[i] = resource.Created.Format(time.RFC3339)
+				entry[i] = d.resource.Created.Format(time.RFC3339)
 			case "modifiedtimestamp":
-				entry[i] = resource.Modified.Format(time.RFC3339)
+				entry[i] = d.resource.Modified.Format(time.RFC3339)
 			default:
 				return fmt.Errorf("Unknown Column: %v", columns[i])
 			}

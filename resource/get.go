@@ -1,7 +1,6 @@
 package resource
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"strconv"
@@ -59,7 +58,7 @@ func ResourceGet(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	defer client.Logout(context.TODO())
+	defer util.SaveSessionKeysAndLogout(ctx, client)
 	cmd.SilenceUsage = true
 
 	folderParentID, name, username, uri, password, description, err := helper.GetResource(
@@ -118,7 +117,7 @@ func ResourcePermission(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	defer client.Logout(context.TODO())
+	defer util.SaveSessionKeysAndLogout(ctx, client)
 	cmd.SilenceUsage = true
 
 	permissions, err := client.GetResourcePermissions(ctx, resource)
