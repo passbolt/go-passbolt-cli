@@ -40,6 +40,7 @@ func init() {
 	ResourcePermissionCmd.Flags().String("id", "", "id of Resource to Get")
 	ResourcePermissionCmd.Flags().StringArrayP("column", "c", []string{"ID", "Aco", "AcoForeignKey", "Aro", "AroForeignKey", "Type"}, "Columns to return, possible Columns:\nID, Aco, AcoForeignKey, Aro, AroForeignKey, Type, CreatedTimestamp, ModifiedTimestamp")
 
+	ResourcePermissionCmd.MarkFlagRequired("id")
 }
 
 func ResourceGet(cmd *cobra.Command, args []string) error {
@@ -104,7 +105,7 @@ func ResourcePermission(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	if len(columns) == 0 {
-		return fmt.Errorf("You need to specify atleast one column to return")
+		return fmt.Errorf("You need to specify at least one column to return")
 	}
 	jsonOutput, err := cmd.Flags().GetBool("json")
 	if err != nil {
@@ -126,9 +127,9 @@ func ResourcePermission(cmd *cobra.Command, args []string) error {
 	}
 
 	if jsonOutput {
-		outputPermissions := []PermissionJsonOutput{}
+		outputPermissions := []util.PermissionJsonOutput{}
 		for i := range permissions {
-			outputPermissions = append(outputPermissions, PermissionJsonOutput{
+			outputPermissions = append(outputPermissions, util.PermissionJsonOutput{
 				ID:                &permissions[i].ID,
 				Aco:               &permissions[i].ACO,
 				AcoForeignKey:     &permissions[i].ACOForeignKey,
