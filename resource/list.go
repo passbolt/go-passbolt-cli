@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -15,6 +14,7 @@ import (
 	"github.com/passbolt/go-passbolt/helper"
 	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // decryptedResource holds the result of decrypting a single resource
@@ -128,10 +128,9 @@ func ResourceList(cmd *cobra.Command, args []string) error {
 
 func decryptResourcesParallel(ctx context.Context, client *api.Client, resources []api.Resource, needSecrets bool) ([]decryptedResource, error) {
 	// Use parallel decryption with worker pool
-	numWorkers := runtime.NumCPU()
-	if numWorkers > 16 {
-		numWorkers = 16 // Cap at 16 workers
-	}
+	numWorkers := int(viper.GetUint("workers"))
+
+	// Limit Worker count to Resource count
 	if len(resources) < numWorkers {
 		numWorkers = len(resources)
 	}
