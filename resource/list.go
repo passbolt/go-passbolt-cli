@@ -3,7 +3,9 @@ package resource
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -226,13 +228,44 @@ func decryptResourcesParallel(ctx context.Context, client *api.Client, resources
 		close(results)
 	}()
 
-	// Collect results
-	decrypted := make([]decryptedResource, len(validResources))
+	// Collect all results first
+	allResults := make([]decryptedResource, len(validResources))
 	for result := range results {
+		allResults[result.index] = result
+	}
+
+	// Process results, skipping unsupported types
+	decrypted := make([]decryptedResource, 0, len(validResources))
+	skippedTypes := make(map[string]int)
+
+	for _, result := range allResults {
 		if result.err != nil {
+			if errors.Is(result.err, helper.ErrUnsupportedResourceType) {
+				// Get type slug for warning message
+				rType, _ := client.GetResourceTypeCached(ctx, result.resource.ResourceTypeID)
+				typeSlug := "unknown"
+				if rType != nil {
+					typeSlug = rType.Slug
+				}
+				skippedTypes[typeSlug]++
+				continue
+			}
+			// Other errors are still fatal
 			return nil, fmt.Errorf("Get Resource %w", result.err)
 		}
-		decrypted[result.index] = result
+		decrypted = append(decrypted, result)
+	}
+
+	// Print warning summary to stderr
+	if len(skippedTypes) > 0 {
+		total := 0
+		for _, count := range skippedTypes {
+			total += count
+		}
+		fmt.Fprintf(os.Stderr, "Warning: %d resource(s) skipped due to unsupported types:\n", total)
+		for typeSlug, count := range skippedTypes {
+			fmt.Fprintf(os.Stderr, "  - %s: %d\n", typeSlug, count)
+		}
 	}
 
 	return decrypted, nil
