@@ -35,7 +35,7 @@ func GroupDelete(cmd *cobra.Command, args []string) error {
 	defer client.Logout(context.TODO())
 	cmd.SilenceUsage = true
 
-	client.DeleteGroup(ctx, resourceID)
+	err = client.DeleteGroup(ctx, resourceID)
 	if err != nil {
 		return fmt.Errorf("Deleting Group: %w", err)
 	}
