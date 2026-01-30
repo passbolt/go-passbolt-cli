@@ -36,7 +36,7 @@ func UserDelete(cmd *cobra.Command, args []string) error {
 	defer client.Logout(context.TODO())
 	cmd.SilenceUsage = true
 
-	helper.DeleteUser(ctx, client, resourceID)
+	err = helper.DeleteUser(ctx, client, resourceID)
 	if err != nil {
 		return fmt.Errorf("Deleting User: %w", err)
 	}
