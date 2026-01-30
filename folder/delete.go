@@ -35,7 +35,7 @@ func FolderDelete(cmd *cobra.Command, args []string) error {
 	defer client.Logout(context.TODO())
 	cmd.SilenceUsage = true
 
-	client.DeleteFolder(ctx, folderID)
+	err = client.DeleteFolder(ctx, folderID)
 	if err != nil {
 		return fmt.Errorf("Deleting Folder: %w", err)
 	}
