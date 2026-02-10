@@ -1,7 +1,6 @@
 package user
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -58,7 +57,7 @@ func UserList(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	defer client.Logout(context.TODO())
+	defer util.SaveSessionKeysAndLogout(ctx, client)
 	cmd.SilenceUsage = true
 
 	users, err := client.GetUsers(ctx, &api.GetUsersOptions{

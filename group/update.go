@@ -1,7 +1,6 @@
 package group
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/passbolt/go-passbolt-cli/util"
@@ -73,7 +72,7 @@ func GroupUpdate(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	defer client.Logout(context.TODO())
+	defer util.SaveSessionKeysAndLogout(ctx, client)
 	cmd.SilenceUsage = true
 
 	err = helper.UpdateGroup(
