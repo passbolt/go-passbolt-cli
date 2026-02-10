@@ -66,7 +66,8 @@ func ResourceCreate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	ctx := util.GetContext()
+	ctx, cancel := util.GetContext()
+	defer cancel()
 
 	client, err := util.GetClient(ctx)
 	if err != nil {

@@ -15,7 +15,8 @@ var verifyCMD = &cobra.Command{
 	Short: "Verify Setup the Server Verification",
 	Long:  `Verify Setup the Server Verification. You need to run this once after that the Server will always be verified if the same config is used`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		ctx := util.GetContext()
+		ctx, cancel := util.GetContext()
+		defer cancel()
 
 		viper.Set("serverVerifyToken", "")
 		viper.Set("serverVerifyEncToken", "")

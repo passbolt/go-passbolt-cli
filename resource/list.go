@@ -87,7 +87,8 @@ func ResourceList(cmd *cobra.Command, args []string) error {
 		needSecrets = refsSecrets
 	}
 
-	ctx := util.GetContext()
+	ctx, cancel := util.GetContext()
+	defer cancel()
 
 	client, err := util.GetClient(ctx)
 	if err != nil {
