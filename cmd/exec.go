@@ -53,9 +53,7 @@ func execAction(_ *cobra.Command, args []string) error {
 		return fmt.Errorf("Resolving secrets: %w", err)
 	}
 
-	if err = client.Logout(ctx); err != nil {
-		return fmt.Errorf("Logging out client: %w", err)
-	}
+	util.SaveSessionKeysAndLogout(ctx, client)
 
 	subCmd := exec.Command(args[0], args[1:]...)
 	subCmd.Stdin = os.Stdin
