@@ -10,7 +10,7 @@ import (
 
 // FolderUpdateCmd Updates a Passbolt Folder
 var FolderUpdateCmd = &cobra.Command{
-	Use:   "resource",
+	Use:   "folder",
 	Short: "Updates a Passbolt Folder",
 	Long:  `Updates a Passbolt Folder`,
 	RunE:  FolderUpdate,
