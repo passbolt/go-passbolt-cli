@@ -2,27 +2,47 @@ name: goreleaser
 
 on:
   push:
-    tag: '*'
+    tags:
+      - 'v*'
 
 permissions:
   contents: write
 
 jobs:
-  goreleaser:
+  test:
     runs-on: ubuntu-latest
     steps:
-      -
-        name: Checkout
+      - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      -
-        name: Set up Go
+
+      - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.21
-      - 
-        name: Generate Man and Completions
+          go-version: '1.21'
+
+      - name: Run Tests
+        run: go test -v ./...
+
+      - name: Run go vet
+        run: go vet ./...
+
+  goreleaser:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Generate Man and Completions
         run: |
           mkdir completion
           go run *.go completion bash > completion/bash
@@ -31,27 +51,20 @@ jobs:
           go run *.go completion powershell > completion/powershell
           mkdir man
           go run *.go gendoc --type man
-          pwd
-          ls
-      -
-        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
-        run: echo "flags=--snapshot" >> $GITHUB_ENV
-      -
-        name: Run GoReleaser
+
+      - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v5
         with:
           distribution: goreleaser
           version: latest
-          args: release --clean ${{ env.flags }}
+          args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAP_GITHUB_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
-      - 
-        name: Run Version
-        run: |
-          dist/go-passbolt-cli_linux_amd64_v1/passbolt -v
-      - 
-        uses: actions/upload-artifact@v4
+
+      - name: Verify Build
+        run: dist/go-passbolt-cli_linux_amd64_v1/passbolt -v
+
+      - uses: actions/upload-artifact@v4
         with:
           name: go-passbolt-cli-artifacts
           path: dist/
