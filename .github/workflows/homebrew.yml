@@ -1,0 +1,45 @@
+name: Update Homebrew Tap
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  homebrew:
+    runs-on: ubuntu-latest
+    if: "!github.event.release.prerelease"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Run GoReleaser for Homebrew Only
+        uses: goreleaser/goreleaser-action@v5
+        with:
+          distribution: goreleaser
+          version: latest
+          args: release --skip=publish --skip=announce --skip=validate
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update Homebrew Tap
+        env:
+          TAP_GITHUB_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
+        run: |
+          git clone https://x-access-token:${TAP_GITHUB_TOKEN}@github.com/passbolt/homebrew-tap.git tap
+          cp dist/homebrew/Formula/go-passbolt-cli.rb tap/Formula/
+          cd tap
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/go-passbolt-cli.rb
+          git commit -m "Update go-passbolt-cli to ${{ github.event.release.tag_name }}"
+          git push
