@@ -22,7 +22,7 @@ func ResourceDelete(cmd *cobra.Command, args []string) error {
 	}
 
 	if resourceID == "" {
-		return fmt.Errorf("No ID to Delete Provided")
+		return fmt.Errorf("no ID to Delete Provided")
 	}
 
 	ctx, cancel := util.GetContext()
@@ -37,7 +37,7 @@ func ResourceDelete(cmd *cobra.Command, args []string) error {
 
 	err = client.DeleteResource(ctx, resourceID)
 	if err != nil {
-		return fmt.Errorf("Deleting Resource: %w", err)
+		return fmt.Errorf("deleting Resource: %w", err)
 	}
 	return nil
 }

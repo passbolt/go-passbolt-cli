@@ -86,7 +86,7 @@ func ResourceCreate(cmd *cobra.Command, args []string) error {
 		description,
 	)
 	if err != nil {
-		return fmt.Errorf("Creating Resource: %w", err)
+		return fmt.Errorf("creating Resource: %w", err)
 	}
 
 	// TODO, Should be done by go-passbolt when the "new" Resource API is done
@@ -97,15 +97,15 @@ func ResourceCreate(cmd *cobra.Command, args []string) error {
 	}
 
 	if jsonOutput {
-		jsonId, err := json.MarshalIndent(
+		jsonID, err := json.MarshalIndent(
 			map[string]string{"id": id},
 			"",
 			"  ",
 		)
 		if err != nil {
-			return fmt.Errorf("Marshalling Json: %w", err)
+			return fmt.Errorf("marshalling Json: %w", err)
 		}
-		fmt.Println(string(jsonId))
+		fmt.Println(string(jsonID))
 	} else {
 		fmt.Printf("ResourceID: %v\n", id)
 	}

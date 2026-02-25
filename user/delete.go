@@ -23,7 +23,7 @@ func UserDelete(cmd *cobra.Command, args []string) error {
 	}
 
 	if resourceID == "" {
-		return fmt.Errorf("No ID to Delete Provided")
+		return fmt.Errorf("no ID to Delete Provided")
 	}
 
 	ctx, cancel := util.GetContext()
@@ -38,7 +38,7 @@ func UserDelete(cmd *cobra.Command, args []string) error {
 
 	err = helper.DeleteUser(ctx, client, resourceID)
 	if err != nil {
-		return fmt.Errorf("Deleting User: %w", err)
+		return fmt.Errorf("deleting User: %w", err)
 	}
 	return nil
 }

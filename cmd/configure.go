@@ -18,12 +18,12 @@ this makes using the cli easier as they don't have to be specified all the time.
 		if viper.ConfigFileUsed() == "" {
 			err := viper.SafeWriteConfig()
 			if err != nil {
-				return fmt.Errorf("Writing Config: %w", err)
+				return fmt.Errorf("writing Config: %w", err)
 			}
 		} else {
 			err := viper.WriteConfig()
 			if err != nil {
-				return fmt.Errorf("Writing Config: %w", err)
+				return fmt.Errorf("writing Config: %w", err)
 			}
 		}
 		if viper.GetBool("debug") {

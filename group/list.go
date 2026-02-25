@@ -62,7 +62,7 @@ func GroupList(cmd *cobra.Command, args []string) error {
 		FilterHasManagers: config.managers,
 	})
 	if err != nil {
-		return fmt.Errorf("Listing Group: %w", err)
+		return fmt.Errorf("listing Group: %w", err)
 	}
 
 	groups, err = filterGroups(&groups, config.celFilter, ctx)
@@ -71,16 +71,16 @@ func GroupList(cmd *cobra.Command, args []string) error {
 	}
 
 	if config.jsonOutput {
-		return printJsonGroups(groups, config.columnsChanged, config.columns)
+		return printJSONGroups(groups, config.columnsChanged, config.columns)
 	}
 
 	return printTableGroups(config.columns, groups)
 }
 
-func printJsonGroups(groups []api.Group, isColumnsChanged bool, columns []string) error {
-	outputGroups := make([]GroupJsonOutput, len(groups))
+func printJSONGroups(groups []api.Group, isColumnsChanged bool, columns []string) error {
+	outputGroups := make([]GroupJSONOutput, len(groups))
 	for i := range groups {
-		outputGroups[i] = GroupJsonOutput{
+		outputGroups[i] = GroupJSONOutput{
 			ID:                &groups[i].ID,
 			Name:              &groups[i].Name,
 			CreatedTimestamp:  &groups[i].Created.Time,
@@ -138,7 +138,7 @@ func printTableGroups(columns []string, groups []api.Group) error {
 			case "modifiedtimestamp":
 				entry[i] = group.Modified.Format(time.RFC3339)
 			default:
-				return fmt.Errorf("Unknown Column: %v", columns[i])
+				return fmt.Errorf("unknown Column: %v", columns[i])
 			}
 		}
 		data = append(data, entry)
@@ -162,7 +162,7 @@ func parseGroupListFlags(cmd *cobra.Command) (*groupListConfig, error) {
 		return nil, err
 	}
 	if len(columns) == 0 {
-		return nil, fmt.Errorf("You need to specify at least one column to return")
+		return nil, fmt.Errorf("you need to specify at least one column to return")
 	}
 	jsonOutput, err := cmd.Flags().GetBool("json")
 	if err != nil {

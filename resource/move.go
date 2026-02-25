@@ -51,7 +51,7 @@ func ResourceMove(cmd *cobra.Command, args []string) error {
 		folderParentID,
 	)
 	if err != nil {
-		return fmt.Errorf("Moving Resource: %w", err)
+		return fmt.Errorf("moving Resource: %w", err)
 	}
 	return nil
 }

@@ -62,7 +62,7 @@ func UserUpdate(cmd *cobra.Command, args []string) error {
 		lastname,
 	)
 	if err != nil {
-		return fmt.Errorf("Updating User: %w", err)
+		return fmt.Errorf("updating User: %w", err)
 	}
 	return nil
 }

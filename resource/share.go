@@ -63,7 +63,7 @@ func ResourceShare(cmd *cobra.Command, args []string) error {
 		pType,
 	)
 	if err != nil {
-		return fmt.Errorf("Sharing Resource: %w", err)
+		return fmt.Errorf("sharing Resource: %w", err)
 	}
 	return nil
 }

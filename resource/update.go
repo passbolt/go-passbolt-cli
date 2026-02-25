@@ -79,7 +79,7 @@ func ResourceUpdate(cmd *cobra.Command, args []string) error {
 		description,
 	)
 	if err != nil {
-		return fmt.Errorf("Updating Resource: %w", err)
+		return fmt.Errorf("updating Resource: %w", err)
 	}
 
 	if expiry != "" {

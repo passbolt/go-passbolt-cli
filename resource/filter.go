@@ -56,7 +56,7 @@ func filterDecryptedResources(resources []decryptedResource, celCmd string, ctx 
 	}
 
 	if len(filtered) == 0 {
-		return nil, fmt.Errorf("No such Resources found with filter %v!", celCmd)
+		return nil, fmt.Errorf("no such resources found with filter %v", celCmd)
 	}
 	return filtered, nil
 }

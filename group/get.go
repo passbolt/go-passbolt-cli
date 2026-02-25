@@ -58,13 +58,13 @@ func GroupGet(cmd *cobra.Command, args []string) error {
 		id,
 	)
 	if err != nil {
-		return fmt.Errorf("Getting Group: %w", err)
+		return fmt.Errorf("getting Group: %w", err)
 	}
 
 	if jsonOutput {
-		groupUserMemberships := []GroupUserMembershipJsonOutput{}
+		groupUserMemberships := []GroupUserMembershipJSONOutput{}
 		for i := range memberships {
-			groupUserMemberships = append(groupUserMemberships, GroupUserMembershipJsonOutput{
+			groupUserMemberships = append(groupUserMemberships, GroupUserMembershipJSONOutput{
 				ID:             &memberships[i].UserID,
 				Username:       &memberships[i].Username,
 				FirstName:      &memberships[i].UserFirstName,
@@ -73,7 +73,7 @@ func GroupGet(cmd *cobra.Command, args []string) error {
 			})
 		}
 
-		jsonGroup, err := json.MarshalIndent(GroupJsonOutput{
+		jsonGroup, err := json.MarshalIndent(GroupJSONOutput{
 			Name:  &name,
 			Users: groupUserMemberships,
 		}, "", "  ")
@@ -104,7 +104,7 @@ func GroupGet(cmd *cobra.Command, args []string) error {
 						entry[i] = shellescape.StripUnsafe(membership.UserLastName)
 					default:
 						cmd.SilenceUsage = false
-						return fmt.Errorf("Unknown Column: %v", columns[i])
+						return fmt.Errorf("unknown Column: %v", columns[i])
 					}
 				}
 				data = append(data, entry)

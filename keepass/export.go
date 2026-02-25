@@ -61,7 +61,7 @@ func KeepassExport(cmd *cobra.Command, args []string) error {
 		pw, err := util.ReadPassword("Enter KeePass Password:")
 		if err != nil {
 			fmt.Println()
-			return fmt.Errorf("Reading KeePass Password: %w", err)
+			return fmt.Errorf("reading KeePass Password: %w", err)
 		}
 		keepassPassword = pw
 		fmt.Println()
@@ -74,12 +74,12 @@ func KeepassExport(cmd *cobra.Command, args []string) error {
 		ContainTags:         true,
 	})
 	if err != nil {
-		return fmt.Errorf("Getting Resources: %w", err)
+		return fmt.Errorf("getting Resources: %w", err)
 	}
 
 	file, err := os.Create(filename)
 	if err != nil {
-		return fmt.Errorf("Creating File: %w", err)
+		return fmt.Errorf("creating File: %w", err)
 	}
 	defer file.Close()
 
@@ -90,7 +90,7 @@ func KeepassExport(cmd *cobra.Command, args []string) error {
 	pterm.DisableColor()
 	progressbar, err := pterm.DefaultProgressbar.WithTitle("Decryping Resources").WithTotal(len(resources)).Start()
 	if err != nil {
-		return fmt.Errorf("Progress: %w", err)
+		return fmt.Errorf("progress: %w", err)
 	}
 
 	for _, resource := range resources {
@@ -122,7 +122,7 @@ func KeepassExport(cmd *cobra.Command, args []string) error {
 
 	keepassEncoder := gokeepasslib.NewEncoder(file)
 	if err := keepassEncoder.Encode(db); err != nil {
-		return fmt.Errorf("Encodeing kdbx: %w", err)
+		return fmt.Errorf("encodeing kdbx: %w", err)
 	}
 	fmt.Println("Done")
 
@@ -132,7 +132,7 @@ func KeepassExport(cmd *cobra.Command, args []string) error {
 func getKeepassEntry(client *api.Client, resource api.Resource, secret api.Secret, rType api.ResourceType) (*gokeepasslib.Entry, error) {
 	_, name, username, uri, pass, desc, err := helper.GetResourceFromData(client, resource, resource.Secrets[0], resource.ResourceType)
 	if err != nil {
-		return nil, fmt.Errorf("Get Resource %v: %w", resource.ID, err)
+		return nil, fmt.Errorf("get Resource %v: %w", resource.ID, err)
 	}
 
 	entry := gokeepasslib.NewEntry()
@@ -150,7 +150,7 @@ func getKeepassEntry(client *api.Client, resource api.Resource, secret api.Secre
 
 		rawSecretData, err := client.DecryptMessage(resource.Secrets[0].Data)
 		if err != nil {
-			return nil, fmt.Errorf("Decrypting Secret Data: %w", err)
+			return nil, fmt.Errorf("decrypting Secret Data: %w", err)
 		}
 
 		switch resource.ResourceType.Slug {
@@ -158,34 +158,30 @@ func getKeepassEntry(client *api.Client, resource api.Resource, secret api.Secre
 			var secretData api.SecretDataTypePasswordDescriptionTOTP
 			err = json.Unmarshal([]byte(rawSecretData), &secretData)
 			if err != nil {
-				return nil, fmt.Errorf("Parsing Decrypted Secret Data: %w", err)
+				return nil, fmt.Errorf("parsing Decrypted Secret Data: %w", err)
 			}
 			totpData = secretData.TOTP
-			break
 		case "totp":
 			var secretData api.SecretDataTypeTOTP
 			err = json.Unmarshal([]byte(rawSecretData), &secretData)
 			if err != nil {
-				return nil, fmt.Errorf("Parsing Decrypted Secret Data: %w", err)
+				return nil, fmt.Errorf("parsing Decrypted Secret Data: %w", err)
 			}
 			totpData = secretData.TOTP
-			break
 		case "v5-default-with-totp":
 			var secretData api.SecretDataTypeV5DefaultWithTOTP
 			err = json.Unmarshal([]byte(rawSecretData), &secretData)
 			if err != nil {
-				return nil, fmt.Errorf("Parsing Decrypted Secret Data: %w", err)
+				return nil, fmt.Errorf("parsing Decrypted Secret Data: %w", err)
 			}
 			totpData = secretData.TOTP
-			break
 		case "v5-totp-standalone":
 			var secretData api.SecretDataTypeV5TOTPStandalone
 			err = json.Unmarshal([]byte(rawSecretData), &secretData)
 			if err != nil {
-				return nil, fmt.Errorf("Parsing Decrypted Secret Data: %w", err)
+				return nil, fmt.Errorf("parsing Decrypted Secret Data: %w", err)
 			}
 			totpData = secretData.TOTP
-			break
 		}
 
 		v := url.Values{}

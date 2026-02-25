@@ -69,11 +69,11 @@ func ResourceGet(cmd *cobra.Command, args []string) error {
 		id,
 	)
 	if err != nil {
-		return fmt.Errorf("Getting Resource: %w", err)
+		return fmt.Errorf("getting Resource: %w", err)
 	}
 
 	if jsonOutput {
-		jsonResource, err := json.MarshalIndent(ResourceJsonOutput{
+		jsonResource, err := json.MarshalIndent(ResourceJSONOutput{
 			FolderParentID: &folderParentID,
 			Name:           &name,
 			Username:       &username,
@@ -106,7 +106,7 @@ func ResourcePermission(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	if len(columns) == 0 {
-		return fmt.Errorf("You need to specify at least one column to return")
+		return fmt.Errorf("you need to specify at least one column to return")
 	}
 	jsonOutput, err := cmd.Flags().GetBool("json")
 	if err != nil {
@@ -125,13 +125,13 @@ func ResourcePermission(cmd *cobra.Command, args []string) error {
 
 	permissions, err := client.GetResourcePermissions(ctx, resource)
 	if err != nil {
-		return fmt.Errorf("Listing Permission: %w", err)
+		return fmt.Errorf("listing Permission: %w", err)
 	}
 
 	if jsonOutput {
-		outputPermissions := []util.PermissionJsonOutput{}
+		outputPermissions := []util.PermissionJSONOutput{}
 		for i := range permissions {
-			outputPermissions = append(outputPermissions, util.PermissionJsonOutput{
+			outputPermissions = append(outputPermissions, util.PermissionJSONOutput{
 				ID:                &permissions[i].ID,
 				Aco:               &permissions[i].ACO,
 				AcoForeignKey:     &permissions[i].ACOForeignKey,
@@ -172,7 +172,7 @@ func ResourcePermission(cmd *cobra.Command, args []string) error {
 					entry[i] = permission.Modified.Format(time.RFC3339)
 				default:
 					cmd.SilenceUsage = false
-					return fmt.Errorf("Unknown Column: %v", columns[i])
+					return fmt.Errorf("unknown Column: %v", columns[i])
 				}
 			}
 			data = append(data, entry)

@@ -63,7 +63,7 @@ func FolderShare(cmd *cobra.Command, args []string) error {
 		pType,
 	)
 	if err != nil {
-		return fmt.Errorf("Sharing Folder: %w", err)
+		return fmt.Errorf("sharing Folder: %w", err)
 	}
 	return nil
 }

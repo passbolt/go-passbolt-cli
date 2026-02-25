@@ -1,3 +1,4 @@
+// Package cmd implements the top-level CLI commands for go-passbolt-cli.
 package cmd
 
 import (
@@ -25,7 +26,7 @@ var genDocCmd = &cobra.Command{
 		case "man":
 			return doc.GenManTree(rootCmd, nil, "man")
 		default:
-			return fmt.Errorf("Unknown type: %v", docType)
+			return fmt.Errorf("unknown type: %v", docType)
 		}
 	},
 }

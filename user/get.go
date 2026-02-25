@@ -50,10 +50,10 @@ func UserGet(cmd *cobra.Command, args []string) error {
 		id,
 	)
 	if err != nil {
-		return fmt.Errorf("Getting User: %w", err)
+		return fmt.Errorf("getting User: %w", err)
 	}
 	if jsonOutput {
-		jsonUser, err := json.MarshalIndent(UserJsonOutput{
+		jsonUser, err := json.MarshalIndent(UserJSONOutput{
 			Username:  &username,
 			FirstName: &firstname,
 			LastName:  &lastname,

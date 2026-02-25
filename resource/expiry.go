@@ -25,16 +25,15 @@ func SetResourceExpiry(ctx context.Context, client *api.Client, id string, expir
 	switch strings.ToLower(expiryInput) {
 	case "none":
 		// TODO: Should be handled in go-passbolt when the planned new Resource API is available
-		_, _, err := client.DoCustomRequestAndReturnRawResponse(
+		_, _, err := client.DoCustomRequestAndReturnRawResponseV5(
 			ctx,
 			"PUT",
 			fmt.Sprintf("resources/%s.json", id),
-			"v2",
 			map[string]*string{"expired": nil},
 			nil,
 		)
 		if err != nil {
-			return fmt.Errorf("Clearing expiry: %w", err)
+			return fmt.Errorf("clearing expiry: %w", err)
 		}
 		return nil
 	}
@@ -44,16 +43,15 @@ func SetResourceExpiry(ctx context.Context, client *api.Client, id string, expir
 		return err
 	}
 	// TODO: Should be handled in go-passbolt when the planned new Resource API is available
-	_, _, err = client.DoCustomRequestAndReturnRawResponse(
+	_, _, err = client.DoCustomRequestAndReturnRawResponseV5(
 		ctx,
 		"PUT",
 		fmt.Sprintf("resources/%s.json", id),
-		"v2",
 		map[string]string{"expired": isoExpiry},
 		nil,
 	)
 	if err != nil {
-		return fmt.Errorf("Setting expiry: %w", err)
+		return fmt.Errorf("setting expiry: %w", err)
 	}
 	return nil
 }

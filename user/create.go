@@ -69,19 +69,19 @@ func UserCreate(cmd *cobra.Command, args []string) error {
 		lastname,
 	)
 	if err != nil {
-		return fmt.Errorf("Creating User: %w", err)
+		return fmt.Errorf("creating User: %w", err)
 	}
 
 	if jsonOutput {
-		jsonId, err := json.MarshalIndent(
+		jsonID, err := json.MarshalIndent(
 			map[string]string{"id": id},
 			"",
 			"  ",
 		)
 		if err != nil {
-			return fmt.Errorf("Marshalling Json: %w", err)
+			return fmt.Errorf("marshalling Json: %w", err)
 		}
-		fmt.Println(string(jsonId))
+		fmt.Println(string(jsonID))
 	} else {
 		fmt.Printf("UserID: %v\n", id)
 	}
