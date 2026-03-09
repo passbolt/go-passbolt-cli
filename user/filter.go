@@ -53,7 +53,7 @@ func filterUsers(users *[]api.User, celCmd string, ctx context.Context) ([]api.U
 	}
 
 	if len(filteredUsers) == 0 {
-		return nil, fmt.Errorf("No such users found with filter %v!", celCmd)
+		return nil, fmt.Errorf("no such users found with filter %v", celCmd)
 	}
 
 	return filteredUsers, nil

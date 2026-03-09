@@ -47,7 +47,7 @@ func filterGroups(groups *[]api.Group, celCmd string, ctx context.Context) ([]ap
 	}
 
 	if len(filteredGroups) == 0 {
-		return nil, fmt.Errorf("No such groups found with filter %v!", celCmd)
+		return nil, fmt.Errorf("no such groups found with filter %v", celCmd)
 	}
 
 	return filteredGroups, nil

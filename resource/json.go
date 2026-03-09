@@ -2,7 +2,7 @@ package resource
 
 import "time"
 
-type ResourceJsonOutput struct {
+type ResourceJSONOutput struct {
 	ID                *string    `json:"id,omitempty"`
 	FolderParentID    *string    `json:"folder_parent_id,omitempty"`
 	Name              *string    `json:"name,omitempty"`

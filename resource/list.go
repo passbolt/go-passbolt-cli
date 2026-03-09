@@ -82,7 +82,7 @@ func ResourceList(cmd *cobra.Command, args []string) error {
 	if !needSecrets && config.celFilter != "" {
 		refsSecrets, err := util.CELExpressionReferencesFields(config.celFilter, []string{"Password", "Description"}, CelEnvOptions...)
 		if err != nil {
-			return fmt.Errorf("Parsing filter: %w", err)
+			return fmt.Errorf("parsing filter: %w", err)
 		}
 		needSecrets = refsSecrets
 	}
@@ -105,7 +105,7 @@ func ResourceList(cmd *cobra.Command, args []string) error {
 		ContainSecret:           needSecrets,
 	})
 	if err != nil {
-		return fmt.Errorf("Listing Resource: %w", err)
+		return fmt.Errorf("listing Resource: %w", err)
 	}
 
 	// Decrypt all resources in parallel
@@ -123,7 +123,7 @@ func ResourceList(cmd *cobra.Command, args []string) error {
 	}
 
 	if config.jsonOutput {
-		return printJsonResources(decrypted, config.columnsChanged, config.columns)
+		return printJSONResources(decrypted, config.columnsChanged, config.columns)
 	}
 
 	return printTableResources(decrypted, config.columns)
@@ -169,7 +169,7 @@ func decryptResourcesParallel(ctx context.Context, client *api.Client, resources
 				// Lookup resource type from cache (single API call for all types)
 				rType, err := client.GetResourceTypeCached(ctx, resource.ResourceTypeID)
 				if err != nil {
-					results <- decryptedResource{index: idx, err: fmt.Errorf("Get ResourceType: %w", err)}
+					results <- decryptedResource{index: idx, err: fmt.Errorf("get ResourceType: %w", err)}
 					continue
 				}
 
@@ -252,7 +252,7 @@ func decryptResourcesParallel(ctx context.Context, client *api.Client, resources
 				continue
 			}
 			// Other errors are still fatal
-			return nil, fmt.Errorf("Get Resource %w", result.err)
+			return nil, fmt.Errorf("get Resource %w", result.err)
 		}
 		decrypted = append(decrypted, result)
 	}
@@ -272,19 +272,19 @@ func decryptResourcesParallel(ctx context.Context, client *api.Client, resources
 	return decrypted, nil
 }
 
-func printJsonResources(
+func printJSONResources(
 	decrypted []decryptedResource,
 	isColumnsChanged bool,
 	columns []string,
 ) error {
-	outputResources := make([]ResourceJsonOutput, len(decrypted))
+	outputResources := make([]ResourceJSONOutput, len(decrypted))
 	for i, d := range decrypted {
 		name := d.name
 		username := d.username
 		uri := d.uri
 		pass := d.password
 		desc := d.description
-		outputResources[i] = ResourceJsonOutput{
+		outputResources[i] = ResourceJSONOutput{
 			ID:                &d.resource.ID,
 			FolderParentID:    &d.resource.FolderParentID,
 			Name:              &name,
@@ -359,7 +359,7 @@ func printTableResources(
 			case "modifiedtimestamp":
 				entry[i] = d.resource.Modified.Format(time.RFC3339)
 			default:
-				return fmt.Errorf("Unknown Column: %v", columns[i])
+				return fmt.Errorf("unknown Column: %v", columns[i])
 			}
 		}
 		data = append(data, entry)
@@ -391,7 +391,7 @@ func parseResourceListFlags(cmd *cobra.Command) (*resourceListConfig, error) {
 		return nil, err
 	}
 	if len(columns) == 0 {
-		return nil, fmt.Errorf("You need to specify at least one column to return")
+		return nil, fmt.Errorf("you need to specify at least one column to return")
 	}
 	jsonOutput, err := cmd.Flags().GetBool("json")
 	if err != nil {

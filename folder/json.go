@@ -2,7 +2,7 @@ package folder
 
 import "time"
 
-type FolderJsonOutput struct {
+type FolderJSONOutput struct {
 	ID                *string    `json:"id,omitempty"`
 	FolderParentID    *string    `json:"folder_parent_id,omitempty"`
 	Name              *string    `json:"name,omitempty"`

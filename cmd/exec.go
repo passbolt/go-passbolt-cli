@@ -45,12 +45,12 @@ func execAction(_ *cobra.Command, args []string) error {
 
 	client, err := util.GetClient(ctx)
 	if err != nil {
-		return fmt.Errorf("Creating client: %w", err)
+		return fmt.Errorf("creating client: %w", err)
 	}
 
 	envVars, err := resolveEnvironmentSecrets(ctx, client)
 	if err != nil {
-		return fmt.Errorf("Resolving secrets: %w", err)
+		return fmt.Errorf("resolving secrets: %w", err)
 	}
 
 	util.SaveSessionKeysAndLogout(ctx, client)
@@ -62,7 +62,7 @@ func execAction(_ *cobra.Command, args []string) error {
 	subCmd.Env = envVars
 
 	if err = subCmd.Run(); err != nil {
-		return fmt.Errorf("Running command: %w", err)
+		return fmt.Errorf("running command: %w", err)
 	}
 
 	return nil
@@ -84,16 +84,16 @@ func resolveEnvironmentSecrets(ctx context.Context, client *api.Client) ([]strin
 			continue
 		}
 
-		resourceId := strings.TrimPrefix(value, PassboltPrefix)
-		_, _, _, _, secret, _, err := helper.GetResource(ctx, client, resourceId)
+		resourceID := strings.TrimPrefix(value, PassboltPrefix)
+		_, _, _, _, secret, _, err := helper.GetResource(ctx, client, resourceID)
 		if err != nil {
-			return nil, fmt.Errorf("Getting resource: %w", err)
+			return nil, fmt.Errorf("getting resource: %w", err)
 		}
 
 		envVars[i] = key + "=" + secret
 
 		if viper.GetBool("debug") {
-			fmt.Fprintf(os.Stdout, "%v env var populated with resource id %v\n", key, resourceId)
+			fmt.Fprintf(os.Stdout, "%v env var populated with resource id %v\n", key, resourceID)
 		}
 	}
 

@@ -49,7 +49,7 @@ func filterFolders(folders *[]api.Folder, celCmd string, ctx context.Context) ([
 	}
 
 	if len(filteredFolders) == 0 {
-		return nil, fmt.Errorf("No such folders found with filter %v!", celCmd)
+		return nil, fmt.Errorf("no such folders found with filter %v", celCmd)
 	}
 
 	return filteredFolders, nil

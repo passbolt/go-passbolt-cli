@@ -17,15 +17,15 @@ func GetClientCertificate() (tls.Certificate, error) {
 		return tls.Certificate{}, nil
 	}
 	if certExists && !keyExists {
-		return tls.Certificate{}, fmt.Errorf("Client TLS private key is empty, but client TLS cert was set.")
+		return tls.Certificate{}, fmt.Errorf("client TLS private key is empty, but client TLS cert was set")
 	}
 	if !certExists && keyExists {
-		return tls.Certificate{}, fmt.Errorf("Client TLS cert is empty, but client TLS private key was set.")
+		return tls.Certificate{}, fmt.Errorf("client TLS cert is empty, but client TLS private key was set")
 	}
 	return tls.X509KeyPair([]byte(cert), []byte(key))
 }
 
-func GetHttpClient() (*http.Client, error) {
+func GetHTTPClient() (*http.Client, error) {
 	tlsSkipVerify := viper.GetBool("tlsSkipVerify")
 	cert, err := GetClientCertificate()
 	if err != nil {

@@ -2,7 +2,7 @@ package util
 
 import "time"
 
-type PermissionJsonOutput struct {
+type PermissionJSONOutput struct {
 	ID                *string    `json:"id,omitempty"`
 	Aco               *string    `json:"aco,omitempty"`
 	AcoForeignKey     *string    `json:"aco_foreign_key,omitempty"`

@@ -74,20 +74,20 @@ func GetClient(ctx context.Context) (*api.Client, error) {
 		cliPassword, err := ReadPassword("Enter Password:")
 		if err != nil {
 			fmt.Println()
-			return nil, fmt.Errorf("Reading Password: %w", err)
+			return nil, fmt.Errorf("reading Password: %w", err)
 		}
 
 		userPassword = cliPassword
 		fmt.Println()
 	}
 
-	httpClient, err := GetHttpClient()
+	httpClient, err := GetHTTPClient()
 	if err != nil {
 		return nil, err
 	}
 	client, err := api.NewClient(httpClient, "", serverAddress, userPrivateKey, userPassword)
 	if err != nil {
-		return nil, fmt.Errorf("Creating Client: %w", err)
+		return nil, fmt.Errorf("creating Client: %w", err)
 	}
 
 	client.Debug = viper.GetBool("debug")
@@ -98,7 +98,7 @@ func GetClient(ctx context.Context) (*api.Client, error) {
 	if token != "" {
 		err = client.VerifyServer(ctx, token, encToken)
 		if err != nil {
-			return nil, fmt.Errorf("Verifing Server: %w", err)
+			return nil, fmt.Errorf("verifing Server: %w", err)
 		}
 	}
 
@@ -108,27 +108,27 @@ func GetClient(ctx context.Context) (*api.Client, error) {
 			challenge := api.MFAChallenge{}
 			err := json.Unmarshal(res.Body, &challenge)
 			if err != nil {
-				return http.Cookie{}, fmt.Errorf("Parsing MFA Challenge")
+				return http.Cookie{}, fmt.Errorf("parsing MFA Challenge")
 			}
 			if challenge.Provider.TOTP == "" {
-				return http.Cookie{}, fmt.Errorf("Server Provided no TOTP Provider")
+				return http.Cookie{}, fmt.Errorf("server Provided no TOTP Provider")
 			}
 			for i := 0; i < 3; i++ {
 				var code string
 				code, err := ReadPassword("Enter TOTP:")
 				if err != nil {
 					fmt.Printf("\n")
-					return http.Cookie{}, fmt.Errorf("Reading TOTP: %w", err)
+					return http.Cookie{}, fmt.Errorf("reading TOTP: %w", err)
 				}
 				fmt.Printf("\n")
 				req := api.MFAChallengeResponse{
 					TOTP: code,
 				}
 				var raw *http.Response
-				raw, _, err = c.DoCustomRequestAndReturnRawResponse(ctx, "POST", "mfa/verify/totp.json", "v2", req, nil)
+				raw, _, err = c.DoCustomRequestAndReturnRawResponseV5(ctx, "POST", "mfa/verify/totp.json", req, nil)
 				if err != nil {
 					if errors.Unwrap(err) != api.ErrAPIResponseErrorStatusCode {
-						return http.Cookie{}, fmt.Errorf("Doing MFA Challenge Response: %w", err)
+						return http.Cookie{}, fmt.Errorf("doing MFA Challenge Response: %w", err)
 					}
 					fmt.Println("TOTP Verification Failed")
 				} else {
@@ -138,10 +138,10 @@ func GetClient(ctx context.Context) (*api.Client, error) {
 							return *cookie, nil
 						}
 					}
-					return http.Cookie{}, fmt.Errorf("Unable to find Passbolt MFA Cookie")
+					return http.Cookie{}, fmt.Errorf("unable to find Passbolt MFA Cookie")
 				}
 			}
-			return http.Cookie{}, fmt.Errorf("Failed MFA Challenge 3 times: %w", err)
+			return http.Cookie{}, fmt.Errorf("failed MFA Challenge 3 times: %w", err)
 		}
 	case "noninteractive-totp":
 		// if new flag is unset, use old flag instead
@@ -162,7 +162,7 @@ func GetClient(ctx context.Context) (*api.Client, error) {
 
 	err = client.Login(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("Logging in: %w", err)
+		return nil, fmt.Errorf("logging in: %w", err)
 	}
 	return client, nil
 }

@@ -2,7 +2,7 @@ package user
 
 import "time"
 
-type UserJsonOutput struct {
+type UserJSONOutput struct {
 	ID                *string    `json:"id,omitempty"`
 	Username          *string    `json:"username,omitempty"`
 	FirstName         *string    `json:"first_name,omitempty"`

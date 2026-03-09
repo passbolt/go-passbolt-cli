@@ -51,7 +51,7 @@ func FolderUpdate(cmd *cobra.Command, args []string) error {
 		name,
 	)
 	if err != nil {
-		return fmt.Errorf("Updating Folder: %w", err)
+		return fmt.Errorf("updating Folder: %w", err)
 	}
 	return nil
 }

@@ -84,7 +84,7 @@ func GroupUpdate(cmd *cobra.Command, args []string) error {
 		ops,
 	)
 	if err != nil {
-		return fmt.Errorf("Updating Group: %w", err)
+		return fmt.Errorf("updating Group: %w", err)
 	}
 	return nil
 }

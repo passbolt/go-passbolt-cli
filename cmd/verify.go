@@ -36,26 +36,26 @@ var verifyCMD = &cobra.Command{
 			pw, err := util.ReadPassword("Enter Password:")
 			if err != nil {
 				fmt.Println()
-				return fmt.Errorf("Reading Password: %w", err)
+				return fmt.Errorf("reading Password: %w", err)
 			}
 			userPassword = pw
 			fmt.Println()
 		}
 
-		httpClient, err := util.GetHttpClient()
+		httpClient, err := util.GetHTTPClient()
 		if err != nil {
 			return err
 		}
 		client, err := api.NewClient(httpClient, "", serverAddress, userPrivateKey, userPassword)
 		if err != nil {
-			return fmt.Errorf("Creating Client: %w", err)
+			return fmt.Errorf("creating Client: %w", err)
 		}
 
 		client.Debug = viper.GetBool("debug")
 
 		token, enctoken, err := client.SetupServerVerification(ctx)
 		if err != nil {
-			return fmt.Errorf("Setup Verification: %w", err)
+			return fmt.Errorf("setup Verification: %w", err)
 		}
 		viper.Set("serverVerifyToken", token)
 		viper.Set("serverVerifyEncToken", enctoken)
@@ -63,12 +63,12 @@ var verifyCMD = &cobra.Command{
 		if viper.ConfigFileUsed() == "" {
 			err := viper.SafeWriteConfig()
 			if err != nil {
-				return fmt.Errorf("Writing Config: %w", err)
+				return fmt.Errorf("writing Config: %w", err)
 			}
 		} else {
 			err := viper.WriteConfig()
 			if err != nil {
-				return fmt.Errorf("Writing Config: %w", err)
+				return fmt.Errorf("writing Config: %w", err)
 			}
 		}
 		fmt.Println("Verification Enabled")

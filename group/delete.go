@@ -22,7 +22,7 @@ func GroupDelete(cmd *cobra.Command, args []string) error {
 	}
 
 	if resourceID == "" {
-		return fmt.Errorf("No ID to Delete Provided")
+		return fmt.Errorf("no ID to Delete Provided")
 	}
 
 	ctx, cancel := util.GetContext()
@@ -37,7 +37,7 @@ func GroupDelete(cmd *cobra.Command, args []string) error {
 
 	err = client.DeleteGroup(ctx, resourceID)
 	if err != nil {
-		return fmt.Errorf("Deleting Group: %w", err)
+		return fmt.Errorf("deleting Group: %w", err)
 	}
 	return nil
 }

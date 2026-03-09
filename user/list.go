@@ -68,7 +68,7 @@ func UserList(cmd *cobra.Command, args []string) error {
 		FilterIsAdmin:   config.admin,
 	})
 	if err != nil {
-		return fmt.Errorf("Listing User: %w", err)
+		return fmt.Errorf("listing User: %w", err)
 	}
 
 	users, err = filterUsers(&users, config.celFilter, ctx)
@@ -77,16 +77,16 @@ func UserList(cmd *cobra.Command, args []string) error {
 	}
 
 	if config.jsonOutput {
-		return printJsonUsers(users, config.columnsChanged, config.columns)
+		return printJSONUsers(users, config.columnsChanged, config.columns)
 	}
 
 	return printTableUsers(config.columns, users)
 }
 
-func printJsonUsers(users []api.User, isColumnsChanged bool, columns []string) error {
-	outputUsers := make([]UserJsonOutput, len(users))
+func printJSONUsers(users []api.User, isColumnsChanged bool, columns []string) error {
+	outputUsers := make([]UserJSONOutput, len(users))
 	for i := range users {
-		outputUsers[i] = UserJsonOutput{
+		outputUsers[i] = UserJSONOutput{
 			ID:                &users[i].ID,
 			Username:          &users[i].Username,
 			FirstName:         &users[i].Profile.FirstName,
@@ -153,7 +153,7 @@ func printTableUsers(columns []string, users []api.User) error {
 			case "modifiedtimestamp":
 				entry[i] = user.Modified.Format(time.RFC3339)
 			default:
-				return fmt.Errorf("Unknown Column: %v", columns[i])
+				return fmt.Errorf("unknown Column: %v", columns[i])
 			}
 		}
 		data = append(data, entry)
@@ -185,7 +185,7 @@ func parseUserListFlags(cmd *cobra.Command) (*userListConfig, error) {
 		return nil, err
 	}
 	if len(columns) == 0 {
-		return nil, fmt.Errorf("You need to specify atleast one column to return")
+		return nil, fmt.Errorf("you need to specify atleast one column to return")
 	}
 	jsonOutput, err := cmd.Flags().GetBool("json")
 	if err != nil {

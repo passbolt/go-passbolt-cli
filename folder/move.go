@@ -51,7 +51,7 @@ func FolderMove(cmd *cobra.Command, args []string) error {
 		folderParentID,
 	)
 	if err != nil {
-		return fmt.Errorf("Moving Folder: %w", err)
+		return fmt.Errorf("moving Folder: %w", err)
 	}
 	return nil
 }

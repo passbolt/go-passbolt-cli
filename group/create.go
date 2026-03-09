@@ -76,19 +76,19 @@ func GroupCreate(cmd *cobra.Command, args []string) error {
 		ops,
 	)
 	if err != nil {
-		return fmt.Errorf("Creating Group: %w", err)
+		return fmt.Errorf("creating Group: %w", err)
 	}
 
 	if jsonOutput {
-		jsonId, err := json.MarshalIndent(
+		jsonID, err := json.MarshalIndent(
 			map[string]string{"id": id},
 			"",
 			"  ",
 		)
 		if err != nil {
-			return fmt.Errorf("Marshalling Json: %w", err)
+			return fmt.Errorf("marshalling Json: %w", err)
 		}
-		fmt.Println(string(jsonId))
+		fmt.Println(string(jsonID))
 	} else {
 		fmt.Printf("GroupID: %v\n", id)
 	}
