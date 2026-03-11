@@ -1,0 +1,84 @@
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  default: none
+  enable:
+    - errcheck
+    - gocritic
+    - gosec
+    - govet
+    - ineffassign
+    - misspell
+    - staticcheck
+    - unconvert
+    - unused
+  settings:
+    errcheck:
+      exclude-functions:
+        # Cobra flag registration — never fails with valid flag names during init
+        - (*github.com/spf13/cobra.Command).MarkFlagRequired
+        - (*github.com/spf13/pflag.FlagSet).MarkDeprecated
+        # Viper flag binding — never fails with valid flag names during init
+        - github.com/spf13/viper.BindPFlag
+        # Shell completion generation — writing to stdout, non-critical
+        - (*github.com/spf13/cobra.Command).GenBashCompletion
+        - (*github.com/spf13/cobra.Command).GenZshCompletion
+        - (*github.com/spf13/cobra.Command).GenFishCompletion
+        - (*github.com/spf13/cobra.Command).GenPowerShellCompletionWithDesc
+    gocritic:
+      disabled-checks:
+        - captLocal
+        - commentFormatting
+    misspell:
+      locale: US
+  exclusions:
+    rules:
+      # Exclude errcheck and gosec from test files
+      - path: _test\.go
+        linters:
+          - errcheck
+          - gosec
+      # pterm Render() — table output to stdout, non-critical
+      - text: "Render"
+        linters:
+          - errcheck
+      # client.Logout — cleanup call, error is non-actionable
+      - text: "Logout"
+        linters:
+          - errcheck
+      # file.Close() in defer — standard Go pattern, error is non-actionable
+      - text: "file.Close"
+        linters:
+          - errcheck
+      # G402: intentional InsecureSkipVerify for user-configured TLS skip
+      - text: "G402:"
+        linters:
+          - gosec
+      # G104: gosec flags same "unhandled errors" as errcheck for Cobra/Viper/pterm patterns
+      # These are init-time registrations that never fail with valid flag names
+      - text: "G104:"
+        linters:
+          - gosec
+      # G304: CLI reads files from user-provided paths — intentional behavior
+      - text: "G304:"
+        linters:
+          - gosec
+      # G204: CLI launches user-specified subcommands — intentional behavior
+      - text: "G204:"
+        linters:
+          - gosec
+      # G117: marshaling password fields to send to Passbolt API — legitimate
+      - text: "G117:"
+        linters:
+          - gosec
+      # G115: integer conversions for worker count, fd, and period — safe for expected values
+      - text: "G115:"
+        linters:
+          - gosec
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0

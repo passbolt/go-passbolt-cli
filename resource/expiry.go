@@ -22,8 +22,7 @@ func SetResourceExpiry(ctx context.Context, client *api.Client, id string, expir
 	}
 
 	// allow a single keyword to clear expiry (no TrimSpace: flags shouldn't need quoting spaces)
-	switch strings.ToLower(expiryInput) {
-	case "none":
+	if strings.ToLower(expiryInput) == "none" {
 		// TODO: Should be handled in go-passbolt when the planned new Resource API is available
 		_, _, err := client.DoCustomRequestAndReturnRawResponseV5(
 			ctx,

@@ -303,7 +303,9 @@ func printJSONResources(
 			filteredMap[i] = make(map[string]interface{})
 			data, _ := json.Marshal(outputResources[i])
 			var resourceMap map[string]interface{}
-			json.Unmarshal(data, &resourceMap)
+			if err := json.Unmarshal(data, &resourceMap); err != nil {
+				return fmt.Errorf("unmarshaling resource: %w", err)
+			}
 
 			for _, col := range columns {
 				col = strings.ToLower(col)
