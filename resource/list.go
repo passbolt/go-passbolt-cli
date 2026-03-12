@@ -95,7 +95,8 @@ func ResourceList(cmd *cobra.Command, args []string) error {
 		for i := range resources {
 			_, name, username, uri, pass, desc, err := helper.GetResource(ctx, client, resources[i].ID)
 			if err != nil {
-				return fmt.Errorf("Get Resource %w", err)
+				fmt.Fprintf(cmd.ErrOrStderr(), "Warning: Skipping resource %v: %v\n", resources[i].ID, err)
+				continue
 			}
 			outputResources = append(outputResources, ResourceJsonOutput{
 				ID:                &resources[i].ID,
@@ -121,7 +122,8 @@ func ResourceList(cmd *cobra.Command, args []string) error {
 			// TODO We should decrypt the secret only when required for performance reasonse
 			_, name, username, uri, pass, desc, err := helper.GetResource(ctx, client, resource.ID)
 			if err != nil {
-				return fmt.Errorf("Get Resource %w", err)
+				fmt.Fprintf(cmd.ErrOrStderr(), "Warning: Skipping resource %v: %v\n", resource.ID, err)
+				continue
 			}
 
 			entry := make([]string, len(columns))
