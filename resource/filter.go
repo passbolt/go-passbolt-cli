@@ -3,6 +3,7 @@ package resource
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"github.com/google/cel-go/cel"
 	"github.com/passbolt/go-passbolt-cli/util"
@@ -39,7 +40,8 @@ func filterResources(resources *[]api.Resource, celCmd string, ctx context.Conte
 		// TODO We should decrypt the secret only when required for performance reasonse
 		_, name, username, uri, pass, desc, err := helper.GetResource(ctx, client, resource.ID)
 		if err != nil {
-			return nil, fmt.Errorf("Get Resource %w", err)
+			fmt.Fprintf(os.Stderr, "Warning: Skipping resource %v: %v\n", resource.ID, err)
+			continue
 		}
 
 		val, _, err := (*program).ContextEval(ctx, map[string]any{
