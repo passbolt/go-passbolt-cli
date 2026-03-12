@@ -103,7 +103,9 @@ func printJSONUsers(users []api.User, isColumnsChanged bool, columns []string) e
 			filteredMap[i] = make(map[string]interface{})
 			data, _ := json.Marshal(outputUsers[i])
 			var resourceMap map[string]interface{}
-			json.Unmarshal(data, &resourceMap)
+			if err := json.Unmarshal(data, &resourceMap); err != nil {
+				return fmt.Errorf("unmarshaling user: %w", err)
+			}
 
 			for _, col := range columns {
 				col = strings.ToLower(col)

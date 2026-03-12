@@ -94,7 +94,9 @@ func printJSONGroups(groups []api.Group, isColumnsChanged bool, columns []string
 			filteredMap[i] = make(map[string]interface{})
 			data, _ := json.Marshal(outputGroups[i])
 			var groupMap map[string]interface{}
-			json.Unmarshal(data, &groupMap)
+			if err := json.Unmarshal(data, &groupMap); err != nil {
+				return fmt.Errorf("unmarshaling group: %w", err)
+			}
 
 			for _, col := range columns {
 				col = strings.ToLower(col)

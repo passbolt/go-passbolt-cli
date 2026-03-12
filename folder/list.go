@@ -96,7 +96,9 @@ func printJSONFolders(folders []api.Folder, isColumnsChanged bool, columns []str
 			filteredMap[i] = make(map[string]interface{})
 			data, _ := json.Marshal(outputFolders[i])
 			var folderMap map[string]interface{}
-			json.Unmarshal(data, &folderMap)
+			if err := json.Unmarshal(data, &folderMap); err != nil {
+				return fmt.Errorf("unmarshaling folder: %w", err)
+			}
 
 			for _, col := range columns {
 				col = strings.ToLower(col)

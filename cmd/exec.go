@@ -93,7 +93,7 @@ func resolveEnvironmentSecrets(ctx context.Context, client *api.Client) ([]strin
 		envVars[i] = key + "=" + secret
 
 		if viper.GetBool("debug") {
-			fmt.Fprintf(os.Stdout, "%v env var populated with resource id %v\n", key, resourceID)
+			fmt.Printf("%v env var populated with resource id %v\n", key, resourceID)
 		}
 	}
 

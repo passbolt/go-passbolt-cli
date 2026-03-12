@@ -118,7 +118,9 @@ func KeepassExport(cmd *cobra.Command, args []string) error {
 		Groups: []gokeepasslib.Group{rootGroup},
 	}
 
-	db.LockProtectedEntries()
+	if err := db.LockProtectedEntries(); err != nil {
+		return fmt.Errorf("locking protected entries: %w", err)
+	}
 
 	keepassEncoder := gokeepasslib.NewEncoder(file)
 	if err := keepassEncoder.Encode(db); err != nil {

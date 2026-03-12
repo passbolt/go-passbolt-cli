@@ -127,7 +127,9 @@ func initConfig() {
 			fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
 		}
 		// update Config file Permissions
-		os.Chmod(viper.ConfigFileUsed(), 0600)
+		if err := os.Chmod(viper.ConfigFileUsed(), 0600); err != nil {
+			fmt.Fprintln(os.Stderr, "Warning: failed to set config file permissions:", err)
+		}
 	}
 
 	// Read in Private Key from File if userprivatekeyfile is set
@@ -167,7 +169,7 @@ func initConfig() {
 func SetVersionInfo(version, commit, date string, dirty bool) {
 	v := fmt.Sprintf("%s (Built on %s from Git SHA %s)", version, date, commit)
 	if dirty {
-		v = v + " dirty"
+		v += " dirty"
 	}
 	rootCmd.Version = v
 }

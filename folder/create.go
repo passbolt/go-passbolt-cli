@@ -65,7 +65,7 @@ func FolderCreate(cmd *cobra.Command, args []string) error {
 			"  ",
 		)
 		if err != nil {
-			return fmt.Errorf("marshalling Json: %w", err)
+			return fmt.Errorf("marshaling Json: %w", err)
 		}
 		fmt.Println(string(jsonID))
 	} else {

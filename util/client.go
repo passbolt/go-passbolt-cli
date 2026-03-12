@@ -98,7 +98,7 @@ func GetClient(ctx context.Context) (*api.Client, error) {
 	if token != "" {
 		err = client.VerifyServer(ctx, token, encToken)
 		if err != nil {
-			return nil, fmt.Errorf("verifing Server: %w", err)
+			return nil, fmt.Errorf("verifying Server: %w", err)
 		}
 	}
 
@@ -127,7 +127,8 @@ func GetClient(ctx context.Context) (*api.Client, error) {
 				var raw *http.Response
 				raw, _, err = c.DoCustomRequestAndReturnRawResponseV5(ctx, "POST", "mfa/verify/totp.json", req, nil)
 				if err != nil {
-					if errors.Unwrap(err) != api.ErrAPIResponseErrorStatusCode {
+					var apiErr *api.APIError
+					if !errors.As(err, &apiErr) {
 						return http.Cookie{}, fmt.Errorf("doing MFA Challenge Response: %w", err)
 					}
 					fmt.Println("TOTP Verification Failed")
