@@ -1,0 +1,9 @@
+pre-commit:
+  parallel: true
+  commands:
+    fmt-check:
+      glob: "*.go"
+      run: gofmt -l {staged_files} | grep . && echo "Run 'go fmt' to fix" && exit 1 || true
+    golangci-lint:
+      glob: "*.go"
+      run: golangci-lint run --new-from-rev=HEAD ./...
