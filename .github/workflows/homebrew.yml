@@ -20,14 +20,14 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
+          go-version: '1.25'
 
       - name: Run GoReleaser for Homebrew Only
         uses: goreleaser/goreleaser-action@v5
         with:
           distribution: goreleaser
           version: latest
-          args: release --skip=publish --skip=announce --skip=validate
+          args: release --skip=publish --skip=announce --skip=validate --skip=nfpm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
