@@ -188,6 +188,12 @@ func decryptResourcesParallel(ctx context.Context, client *api.Client, resources
 						uri:         resource.URI,
 						password:    "",
 						description: resource.Description,
+						metadataFields: map[string]any{
+							"name":        resource.Name,
+							"username":    resource.Username,
+							"uri":         resource.URI,
+							"description": resource.Description,
+						},
 					}
 					continue
 				}
@@ -198,7 +204,7 @@ func decryptResourcesParallel(ctx context.Context, client *api.Client, resources
 					secret = resource.Secrets[0]
 				}
 
-				_, name, username, uri, pass, desc, err := helper.GetResourceFromDataWithOptions(
+				_, name, username, uri, pass, desc, metaFields, secFields, err := helper.GetResourceFieldMaps(
 					client,
 					resource,
 					secret,
@@ -206,14 +212,16 @@ func decryptResourcesParallel(ctx context.Context, client *api.Client, resources
 					needSecrets,
 				)
 				results <- decryptedResource{
-					index:       idx,
-					resource:    resource,
-					name:        name,
-					username:    username,
-					uri:         uri,
-					password:    pass,
-					description: desc,
-					err:         err,
+					index:          idx,
+					resource:       resource,
+					name:           name,
+					username:       username,
+					uri:            uri,
+					password:       pass,
+					description:    desc,
+					metadataFields: metaFields,
+					secretFields:   secFields,
+					err:            err,
 				}
 			}
 		}()
