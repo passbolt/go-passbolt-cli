@@ -21,14 +21,16 @@ import (
 
 // decryptedResource holds the result of decrypting a single resource
 type decryptedResource struct {
-	index       int
-	resource    api.Resource
-	name        string
-	username    string
-	uri         string
-	password    string
-	description string
-	err         error
+	index          int
+	resource       api.Resource
+	name           string
+	username       string
+	uri            string
+	password       string
+	description    string
+	metadataFields map[string]any
+	secretFields   map[string]any
+	err            error
 }
 
 var defaultTableColumns = []string{"ID", "FolderParentID", "Name", "Username", "URI"}
@@ -284,7 +286,7 @@ func printJSONResources(
 		uri := d.uri
 		pass := d.password
 		desc := d.description
-		outputResources[i] = ResourceJSONOutput{
+		output := ResourceJSONOutput{
 			ID:                &d.resource.ID,
 			FolderParentID:    &d.resource.FolderParentID,
 			Name:              &name,
@@ -295,6 +297,13 @@ func printJSONResources(
 			CreatedTimestamp:  &d.resource.Created.Time,
 			ModifiedTimestamp: &d.resource.Modified.Time,
 		}
+		if len(d.metadataFields) > 0 {
+			output.Metadata = d.metadataFields
+		}
+		if len(d.secretFields) > 0 {
+			output.Secret = d.secretFields
+		}
+		outputResources[i] = output
 	}
 
 	if isColumnsChanged {

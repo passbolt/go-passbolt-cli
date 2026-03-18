@@ -63,24 +63,40 @@ func ResourceGet(cmd *cobra.Command, args []string) error {
 	defer util.SaveSessionKeysAndLogout(ctx, client)
 	cmd.SilenceUsage = true
 
-	folderParentID, name, username, uri, password, description, err := helper.GetResource(
-		ctx,
-		client,
-		id,
-	)
+	// Use the Resource wrapper for dynamic field access
+	r, err := helper.FetchResourceWithSecret(ctx, client, id)
 	if err != nil {
-		return fmt.Errorf("getting Resource: %w", err)
+		return fmt.Errorf("getting resource: %w", err)
 	}
 
+	folderParentID := r.FolderParentID()
+	name, _ := r.Name(ctx)
+	username, _ := r.Username(ctx)
+	uri, _ := r.URI(ctx)
+	password, _ := r.Password(ctx)
+	description, _ := r.Description(ctx)
+
 	if jsonOutput {
-		jsonResource, err := json.MarshalIndent(ResourceJSONOutput{
+		output := ResourceJSONOutput{
 			FolderParentID: &folderParentID,
 			Name:           &name,
 			Username:       &username,
 			URI:            &uri,
 			Password:       &password,
 			Description:    &description,
-		}, "", "  ")
+		}
+
+		// Include full metadata and secret maps for richer output
+		metadata, _ := r.MetadataFields(ctx)
+		secretFields, _ := r.SecretFields(ctx)
+		if len(metadata) > 0 {
+			output.Metadata = metadata
+		}
+		if len(secretFields) > 0 {
+			output.Secret = secretFields
+		}
+
+		jsonResource, err := json.MarshalIndent(output, "", "  ")
 		if err != nil {
 			return err
 		}
@@ -92,6 +108,17 @@ func ResourceGet(cmd *cobra.Command, args []string) error {
 		fmt.Printf("URI: %v\n", shellescape.StripUnsafe(uri))
 		fmt.Printf("Password: %v\n", shellescape.StripUnsafe(password))
 		fmt.Printf("Description: %v\n", shellescape.StripUnsafe(description))
+
+		// Show additional metadata fields not covered by standard output
+		metadata, _ := r.MetadataFields(ctx)
+		for k, v := range metadata {
+			switch k {
+			case "name", "username", "uri", "uris", "description", "object_type", "resource_type_id":
+				continue
+			default:
+				fmt.Printf("%s: %v\n", k, v)
+			}
+		}
 	}
 	return nil
 }
