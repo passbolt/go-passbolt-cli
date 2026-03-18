@@ -63,32 +63,23 @@ func ResourceGet(cmd *cobra.Command, args []string) error {
 	defer util.SaveSessionKeysAndLogout(ctx, client)
 	cmd.SilenceUsage = true
 
-	// Use the Resource wrapper for dynamic field access
-	r, err := helper.FetchResourceWithSecret(ctx, client, id)
+	resource, err := client.GetResource(ctx, id)
 	if err != nil {
 		return fmt.Errorf("getting resource: %w", err)
 	}
+	rType, err := client.GetResourceType(ctx, resource.ResourceTypeID)
+	if err != nil {
+		return fmt.Errorf("getting resource type: %w", err)
+	}
+	secret, err := client.GetSecret(ctx, resource.ID)
+	if err != nil {
+		return fmt.Errorf("getting secret: %w", err)
+	}
 
-	folderParentID := r.FolderParentID()
-	name, err := r.Name(ctx)
+	folderParentID, name, username, uri, password, description, metadata, secretFields, err :=
+		helper.GetResourceFieldMaps(client, *resource, *secret, *rType, true)
 	if err != nil {
-		return fmt.Errorf("decrypting resource name: %w", err)
-	}
-	username, err := r.Username(ctx)
-	if err != nil {
-		return fmt.Errorf("decrypting resource username: %w", err)
-	}
-	uri, err := r.URI(ctx)
-	if err != nil {
-		return fmt.Errorf("decrypting resource uri: %w", err)
-	}
-	password, err := r.Password(ctx)
-	if err != nil {
-		return fmt.Errorf("decrypting resource password: %w", err)
-	}
-	description, err := r.Description(ctx)
-	if err != nil {
-		return fmt.Errorf("decrypting resource description: %w", err)
+		return fmt.Errorf("decrypting resource: %w", err)
 	}
 
 	if jsonOutput {
@@ -99,16 +90,6 @@ func ResourceGet(cmd *cobra.Command, args []string) error {
 			URI:            &uri,
 			Password:       &password,
 			Description:    &description,
-		}
-
-		// Include full metadata and secret maps for richer output
-		metadata, err := r.MetadataFields(ctx)
-		if err != nil {
-			return fmt.Errorf("getting metadata fields: %w", err)
-		}
-		secretFields, err := r.SecretFields(ctx)
-		if err != nil {
-			return fmt.Errorf("getting secret fields: %w", err)
 		}
 		if len(metadata) > 0 {
 			output.Metadata = metadata
@@ -130,11 +111,6 @@ func ResourceGet(cmd *cobra.Command, args []string) error {
 		fmt.Printf("Password: %v\n", shellescape.StripUnsafe(password))
 		fmt.Printf("Description: %v\n", shellescape.StripUnsafe(description))
 
-		// Show additional metadata fields not covered by standard output
-		metadata, err := r.MetadataFields(ctx)
-		if err != nil {
-			return fmt.Errorf("getting metadata fields: %w", err)
-		}
 		for k, v := range metadata {
 			switch k {
 			case "name", "username", "uri", "uris", "description", "object_type", "resource_type_id":
