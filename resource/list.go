@@ -80,9 +80,9 @@ func ResourceList(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	// Check if CEL filter references Password or Description
+	// Check if CEL filter references Password, Description, or Secret
 	if !needSecrets && config.celFilter != "" {
-		refsSecrets, err := util.CELExpressionReferencesFields(config.celFilter, []string{"Password", "Description"}, CelEnvOptions...)
+		refsSecrets, err := util.CELExpressionReferencesFields(config.celFilter, []string{"Password", "Description", "Secret"}, CelEnvOptions...)
 		if err != nil {
 			return fmt.Errorf("parsing filter: %w", err)
 		}
