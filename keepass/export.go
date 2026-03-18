@@ -175,6 +175,11 @@ func getKeepassEntry(client *api.Client, resource api.Resource, secret api.Secre
 				totpData.Period = int(p)
 			}
 
+			// Skip TOTP entry if secret_key is missing — can't build a valid OTP URI
+			if totpData.SecretKey == "" {
+				return &entry, nil
+			}
+
 			v := url.Values{}
 			v.Set("secret", totpData.SecretKey)
 			v.Set("period", strconv.FormatUint(uint64(totpData.Period), 10))

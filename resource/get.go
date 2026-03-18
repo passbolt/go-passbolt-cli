@@ -70,11 +70,26 @@ func ResourceGet(cmd *cobra.Command, args []string) error {
 	}
 
 	folderParentID := r.FolderParentID()
-	name, _ := r.Name(ctx)
-	username, _ := r.Username(ctx)
-	uri, _ := r.URI(ctx)
-	password, _ := r.Password(ctx)
-	description, _ := r.Description(ctx)
+	name, err := r.Name(ctx)
+	if err != nil {
+		return fmt.Errorf("decrypting resource name: %w", err)
+	}
+	username, err := r.Username(ctx)
+	if err != nil {
+		return fmt.Errorf("decrypting resource username: %w", err)
+	}
+	uri, err := r.URI(ctx)
+	if err != nil {
+		return fmt.Errorf("decrypting resource uri: %w", err)
+	}
+	password, err := r.Password(ctx)
+	if err != nil {
+		return fmt.Errorf("decrypting resource password: %w", err)
+	}
+	description, err := r.Description(ctx)
+	if err != nil {
+		return fmt.Errorf("decrypting resource description: %w", err)
+	}
 
 	if jsonOutput {
 		output := ResourceJSONOutput{
@@ -87,8 +102,14 @@ func ResourceGet(cmd *cobra.Command, args []string) error {
 		}
 
 		// Include full metadata and secret maps for richer output
-		metadata, _ := r.MetadataFields(ctx)
-		secretFields, _ := r.SecretFields(ctx)
+		metadata, err := r.MetadataFields(ctx)
+		if err != nil {
+			return fmt.Errorf("getting metadata fields: %w", err)
+		}
+		secretFields, err := r.SecretFields(ctx)
+		if err != nil {
+			return fmt.Errorf("getting secret fields: %w", err)
+		}
 		if len(metadata) > 0 {
 			output.Metadata = metadata
 		}
@@ -110,13 +131,16 @@ func ResourceGet(cmd *cobra.Command, args []string) error {
 		fmt.Printf("Description: %v\n", shellescape.StripUnsafe(description))
 
 		// Show additional metadata fields not covered by standard output
-		metadata, _ := r.MetadataFields(ctx)
+		metadata, err := r.MetadataFields(ctx)
+		if err != nil {
+			return fmt.Errorf("getting metadata fields: %w", err)
+		}
 		for k, v := range metadata {
 			switch k {
 			case "name", "username", "uri", "uris", "description", "object_type", "resource_type_id":
 				continue
 			default:
-				fmt.Printf("%s: %v\n", k, v)
+				fmt.Printf("%s: %v\n", k, shellescape.StripUnsafe(fmt.Sprint(v)))
 			}
 		}
 	}

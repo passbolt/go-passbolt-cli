@@ -24,21 +24,48 @@ func init() {
 	ResourceUpdateCmd.Flags().StringP("password", "p", "", "Resource Password")
 	ResourceUpdateCmd.Flags().StringP("description", "d", "", "Resource Description")
 	ResourceUpdateCmd.Flags().String("expiry", "", "Expiry as RFC3339 (e.g. 2025-12-31T23:59:59Z), duration (e.g. 7d, 12h), or 'none' to clear")
-	ResourceUpdateCmd.Flags().StringArray("field", []string{}, "Metadata field as key=value (repeatable)")
-	ResourceUpdateCmd.Flags().StringArray("secret-field", []string{}, "Secret field as key=value (repeatable)")
+	ResourceUpdateCmd.Flags().StringArray("field", []string{}, "Metadata field as key=value (repeatable; JSON values like [\"a\"] are parsed automatically)")
+	ResourceUpdateCmd.Flags().StringArray("secret-field", []string{}, "Secret field as key=value (repeatable; JSON values are parsed automatically)")
 	ResourceUpdateCmd.MarkFlagRequired("id")
 }
 
 func ResourceUpdate(cmd *cobra.Command, args []string) error {
-	id, _ := cmd.Flags().GetString("id")
-	name, _ := cmd.Flags().GetString("name")
-	username, _ := cmd.Flags().GetString("username")
-	uri, _ := cmd.Flags().GetString("uri")
-	password, _ := cmd.Flags().GetString("password")
-	description, _ := cmd.Flags().GetString("description")
-	expiry, _ := cmd.Flags().GetString("expiry")
-	fields, _ := cmd.Flags().GetStringArray("field")
-	secretFields, _ := cmd.Flags().GetStringArray("secret-field")
+	id, err := cmd.Flags().GetString("id")
+	if err != nil {
+		return err
+	}
+	name, err := cmd.Flags().GetString("name")
+	if err != nil {
+		return err
+	}
+	username, err := cmd.Flags().GetString("username")
+	if err != nil {
+		return err
+	}
+	uri, err := cmd.Flags().GetString("uri")
+	if err != nil {
+		return err
+	}
+	password, err := cmd.Flags().GetString("password")
+	if err != nil {
+		return err
+	}
+	description, err := cmd.Flags().GetString("description")
+	if err != nil {
+		return err
+	}
+	expiry, err := cmd.Flags().GetString("expiry")
+	if err != nil {
+		return err
+	}
+	fields, err := cmd.Flags().GetStringArray("field")
+	if err != nil {
+		return err
+	}
+	secretFields, err := cmd.Flags().GetStringArray("secret-field")
+	if err != nil {
+		return err
+	}
 
 	useGeneric := len(fields) > 0 || len(secretFields) > 0
 
@@ -64,16 +91,7 @@ func ResourceUpdate(cmd *cobra.Command, args []string) error {
 			metadataUpdates["username"] = username
 		}
 		if uri != "" {
-			// Fetch the resource to determine if v5 (needs "uris") or v4 (needs "uri")
-			resource, fetchErr := client.GetResource(ctx, id)
-			if fetchErr != nil {
-				return fmt.Errorf("getting resource: %w", fetchErr)
-			}
-			if resource.Metadata != "" {
-				metadataUpdates["uris"] = []string{uri}
-			} else {
-				metadataUpdates["uri"] = uri
-			}
+			metadataUpdates["uri"] = uri
 		}
 		if description != "" {
 			metadataUpdates["description"] = description

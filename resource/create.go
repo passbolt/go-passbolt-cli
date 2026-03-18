@@ -27,22 +27,55 @@ func init() {
 	ResourceCreateCmd.Flags().StringP("folderParentID", "f", "", "Folder in which to create the Resource")
 	ResourceCreateCmd.Flags().String("expiry", "", "Expiry as RFC3339 (e.g. 2025-12-31T23:59:59Z) or Go duration (e.g. 48h, 30m)")
 	ResourceCreateCmd.Flags().String("type", "", "Resource type slug (e.g. v5-default, password-and-description, v5-custom-fields)")
-	ResourceCreateCmd.Flags().StringArray("field", []string{}, "Metadata field as key=value (repeatable)")
-	ResourceCreateCmd.Flags().StringArray("secret-field", []string{}, "Secret field as key=value (repeatable)")
+	ResourceCreateCmd.Flags().StringArray("field", []string{}, "Metadata field as key=value (repeatable; JSON values like [\"a\"] are parsed automatically)")
+	ResourceCreateCmd.Flags().StringArray("secret-field", []string{}, "Secret field as key=value (repeatable; JSON values are parsed automatically)")
 }
 
 func ResourceCreate(cmd *cobra.Command, args []string) error {
-	name, _ := cmd.Flags().GetString("name")
-	username, _ := cmd.Flags().GetString("username")
-	uri, _ := cmd.Flags().GetString("uri")
-	password, _ := cmd.Flags().GetString("password")
-	description, _ := cmd.Flags().GetString("description")
-	folderParentID, _ := cmd.Flags().GetString("folderParentID")
-	expiry, _ := cmd.Flags().GetString("expiry")
-	resourceType, _ := cmd.Flags().GetString("type")
-	fields, _ := cmd.Flags().GetStringArray("field")
-	secretFields, _ := cmd.Flags().GetStringArray("secret-field")
-	jsonOutput, _ := cmd.Flags().GetBool("json")
+	name, err := cmd.Flags().GetString("name")
+	if err != nil {
+		return err
+	}
+	username, err := cmd.Flags().GetString("username")
+	if err != nil {
+		return err
+	}
+	uri, err := cmd.Flags().GetString("uri")
+	if err != nil {
+		return err
+	}
+	password, err := cmd.Flags().GetString("password")
+	if err != nil {
+		return err
+	}
+	description, err := cmd.Flags().GetString("description")
+	if err != nil {
+		return err
+	}
+	folderParentID, err := cmd.Flags().GetString("folderParentID")
+	if err != nil {
+		return err
+	}
+	expiry, err := cmd.Flags().GetString("expiry")
+	if err != nil {
+		return err
+	}
+	resourceType, err := cmd.Flags().GetString("type")
+	if err != nil {
+		return err
+	}
+	fields, err := cmd.Flags().GetStringArray("field")
+	if err != nil {
+		return err
+	}
+	secretFields, err := cmd.Flags().GetStringArray("secret-field")
+	if err != nil {
+		return err
+	}
+	jsonOutput, err := cmd.Flags().GetBool("json")
+	if err != nil {
+		return err
+	}
 
 	useGeneric := resourceType != "" || len(fields) > 0 || len(secretFields) > 0
 
@@ -71,12 +104,7 @@ func ResourceCreate(cmd *cobra.Command, args []string) error {
 			metadataFields["username"] = username
 		}
 		if uri != "" {
-			// Will be set as "uris" or "uri" by CreateResourceGeneric based on type
-			if resourceType != "" && strings.HasPrefix(resourceType, "v5-") {
-				metadataFields["uris"] = []string{uri}
-			} else {
-				metadataFields["uri"] = uri
-			}
+			metadataFields["uri"] = uri
 		}
 		if description != "" {
 			metadataFields["description"] = description
