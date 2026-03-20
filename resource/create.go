@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/passbolt/go-passbolt-cli/util"
+	"github.com/passbolt/go-passbolt/api"
 	"github.com/passbolt/go-passbolt/helper"
 	"github.com/spf13/cobra"
 )
@@ -132,7 +133,11 @@ func ResourceCreate(cmd *cobra.Command, args []string) error {
 		}
 
 		if resourceType == "" {
-			resourceType = "v5-default" // default to v5 when using generic flags
+			if client.MetadataTypeSettings().DefaultResourceType == api.PassboltAPIVersionTypeV5 {
+				resourceType = "v5-default"
+			} else {
+				resourceType = "password-and-description"
+			}
 		}
 
 		id, err = helper.CreateResourceGeneric(ctx, client, resourceType, folderParentID, metadataFields, secretFieldsMap)
