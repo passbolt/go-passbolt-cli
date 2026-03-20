@@ -147,71 +147,65 @@ func getKeepassEntry(client *api.Client, resource api.Resource, secret api.Secre
 		gokeepasslib.ValueData{Key: "Notes", Value: gokeepasslib.V{Content: desc}},
 	)
 
-	if resource.ResourceType.Slug == "password-description-totp" || resource.ResourceType.Slug == "totp" || resource.ResourceType.Slug == "v5-default-with-totp" || resource.ResourceType.Slug == "v5-totp-standalone" {
-		var totpData api.SecretDataTOTP
-
+	// Extract TOTP data using generic map-based approach
+	if rType.HasSecretField("totp") {
 		rawSecretData, err := client.DecryptMessage(resource.Secrets[0].Data)
 		if err != nil {
 			return nil, fmt.Errorf("decrypting Secret Data: %w", err)
 		}
 
-		switch resource.ResourceType.Slug {
-		case "password-description-totp":
-			var secretData api.SecretDataTypePasswordDescriptionTOTP
-			err = json.Unmarshal([]byte(rawSecretData), &secretData)
-			if err != nil {
-				return nil, fmt.Errorf("parsing Decrypted Secret Data: %w", err)
-			}
-			totpData = secretData.TOTP
-		case "totp":
-			var secretData api.SecretDataTypeTOTP
-			err = json.Unmarshal([]byte(rawSecretData), &secretData)
-			if err != nil {
-				return nil, fmt.Errorf("parsing Decrypted Secret Data: %w", err)
-			}
-			totpData = secretData.TOTP
-		case "v5-default-with-totp":
-			var secretData api.SecretDataTypeV5DefaultWithTOTP
-			err = json.Unmarshal([]byte(rawSecretData), &secretData)
-			if err != nil {
-				return nil, fmt.Errorf("parsing Decrypted Secret Data: %w", err)
-			}
-			totpData = secretData.TOTP
-		case "v5-totp-standalone":
-			var secretData api.SecretDataTypeV5TOTPStandalone
-			err = json.Unmarshal([]byte(rawSecretData), &secretData)
-			if err != nil {
-				return nil, fmt.Errorf("parsing Decrypted Secret Data: %w", err)
-			}
-			totpData = secretData.TOTP
+		var secretMap map[string]any
+		err = json.Unmarshal([]byte(rawSecretData), &secretMap)
+		if err != nil {
+			return nil, fmt.Errorf("parsing Decrypted Secret Data: %w", err)
 		}
 
-		v := url.Values{}
-		v.Set("secret", totpData.SecretKey)
-		v.Set("period", strconv.FormatUint(uint64(totpData.Period), 10))
-		v.Set("algorithm", totpData.Algorithm)
-		v.Set("digits", fmt.Sprint(totpData.Digits))
+		if totpRaw, ok := secretMap["totp"].(map[string]any); ok {
+			totpData := api.SecretDataTOTP{}
+			if s, ok := totpRaw["secret_key"].(string); ok {
+				totpData.SecretKey = s
+			}
+			if s, ok := totpRaw["algorithm"].(string); ok {
+				totpData.Algorithm = s
+			}
+			if d, ok := totpRaw["digits"].(float64); ok {
+				totpData.Digits = int(d)
+			}
+			if p, ok := totpRaw["period"].(float64); ok {
+				totpData.Period = int(p)
+			}
 
-		issuer := uri
-		if uri == "" {
-			issuer = name
+			// Skip TOTP entry if secret_key is missing — can't build a valid OTP URI
+			if totpData.SecretKey == "" {
+				return &entry, nil
+			}
 
+			v := url.Values{}
+			v.Set("secret", totpData.SecretKey)
+			v.Set("period", strconv.FormatUint(uint64(totpData.Period), 10))
+			v.Set("algorithm", totpData.Algorithm)
+			v.Set("digits", fmt.Sprint(totpData.Digits))
+
+			issuer := uri
+			if uri == "" {
+				issuer = name
+			}
+			v.Set("issuer", issuer)
+
+			accountName := username
+			if username == "" {
+				accountName = name
+			}
+
+			u := url.URL{
+				Scheme:   "otpauth",
+				Host:     "totp",
+				Path:     "/" + issuer + ":" + accountName,
+				RawQuery: encodeQuery(v),
+			}
+
+			entry.Values = append(entry.Values, gokeepasslib.ValueData{Key: "otp", Value: gokeepasslib.V{Content: u.String(), Protected: w.NewBoolWrapper(true)}})
 		}
-		v.Set("issuer", issuer)
-
-		accountName := username
-		if username == "" {
-			accountName = name
-		}
-
-		u := url.URL{
-			Scheme:   "otpauth",
-			Host:     "totp",
-			Path:     "/" + issuer + ":" + accountName,
-			RawQuery: encodeQuery(v),
-		}
-
-		entry.Values = append(entry.Values, gokeepasslib.ValueData{Key: "otp", Value: gokeepasslib.V{Content: u.String(), Protected: w.NewBoolWrapper(true)}})
 	}
 
 	return &entry, nil

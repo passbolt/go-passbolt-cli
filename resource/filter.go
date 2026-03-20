@@ -19,6 +19,8 @@ var CelEnvOptions = []cel.EnvOption{
 	cel.Variable("Description", cel.StringType),
 	cel.Variable("CreatedTimestamp", cel.TimestampType),
 	cel.Variable("ModifiedTimestamp", cel.TimestampType),
+	cel.Variable("Metadata", cel.MapType(cel.StringType, cel.DynType)),
+	cel.Variable("Secret", cel.MapType(cel.StringType, cel.DynType)),
 }
 
 // filterDecryptedResources filters already-decrypted resources by evaluating a CEL expression.
@@ -34,6 +36,16 @@ func filterDecryptedResources(resources []decryptedResource, celCmd string, ctx 
 
 	filtered := []decryptedResource{}
 	for _, d := range resources {
+		// Build metadata and secret maps for CEL, defaulting to empty maps
+		metadata := d.metadataFields
+		if metadata == nil {
+			metadata = map[string]any{}
+		}
+		secret := d.secretFields
+		if secret == nil {
+			secret = map[string]any{}
+		}
+
 		val, _, err := (*program).ContextEval(ctx, map[string]any{
 			"ID":                d.resource.ID,
 			"FolderParentID":    d.resource.FolderParentID,
@@ -44,6 +56,8 @@ func filterDecryptedResources(resources []decryptedResource, celCmd string, ctx 
 			"Description":       d.description,
 			"CreatedTimestamp":  d.resource.Created.Time,
 			"ModifiedTimestamp": d.resource.Modified.Time,
+			"Metadata":          metadata,
+			"Secret":            secret,
 		})
 
 		if err != nil {
