@@ -204,7 +204,7 @@ func decryptResourcesParallel(ctx context.Context, client *api.Client, resources
 					secret = resource.Secrets[0]
 				}
 
-				_, name, username, uri, pass, desc, metaFields, secFields, err := helper.GetResourceFieldMaps(
+				_, metaFields, secFields, err := helper.GetResourceFieldMaps(
 					client,
 					resource,
 					secret,
@@ -214,11 +214,11 @@ func decryptResourcesParallel(ctx context.Context, client *api.Client, resources
 				results <- decryptedResource{
 					index:          idx,
 					resource:       resource,
-					name:           name,
-					username:       username,
-					uri:            uri,
-					password:       pass,
-					description:    desc,
+					name:           helper.GetStringField(metaFields, "name"),
+					username:       helper.GetStringField(metaFields, "username"),
+					uri:            helper.GetStringField(metaFields, "uri"),
+					password:       helper.GetStringField(secFields, "password"),
+					description:    helper.GetStringField(metaFields, "description"),
 					metadataFields: metaFields,
 					secretFields:   secFields,
 					err:            err,

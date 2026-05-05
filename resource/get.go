@@ -76,11 +76,17 @@ func ResourceGet(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("getting secret: %w", err)
 	}
 
-	folderParentID, name, username, uri, password, description, metadata, secretFields, err :=
+	folderParentID, metadata, secretFields, err :=
 		helper.GetResourceFieldMaps(client, *resource, *secret, *rType, true)
 	if err != nil {
 		return fmt.Errorf("decrypting resource: %w", err)
 	}
+
+	name := helper.GetStringField(metadata, "name")
+	username := helper.GetStringField(metadata, "username")
+	uri := helper.GetStringField(metadata, "uri")
+	description := helper.GetStringField(metadata, "description")
+	password := helper.GetStringField(secretFields, "password")
 
 	if jsonOutput {
 		output := ResourceJSONOutput{
