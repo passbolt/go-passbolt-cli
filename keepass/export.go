@@ -29,7 +29,7 @@ var KeepassExportCmd = &cobra.Command{
 func init() {
 	KeepassExportCmd.Flags().StringP("file", "f", "passbolt-export.kdbx", "File name of the KeePass File")
 	KeepassExportCmd.Flags().StringP("password", "p", "", "Password for the KeePass File, if empty prompts interactively")
-	KeepassExportCmd.Flags().Bool("aes-kdf", false, "Use AES-KDF (KDBX 3.1) instead of Argon2 (KDBX 4); needed by importers that don't support Argon2")
+	KeepassExportCmd.Flags().String("kdbx-version", "v3", "KDBX format version: v3 (AES-KDF, KDBX 3.1) or v4 (Argon2, KDBX 4)")
 }
 
 func KeepassExport(cmd *cobra.Command, args []string) error {
@@ -47,9 +47,19 @@ func KeepassExport(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	useAESKDF, err := cmd.Flags().GetBool("aes-kdf")
+	kdbxVersionFlag, err := cmd.Flags().GetString("kdbx-version")
 	if err != nil {
 		return err
+	}
+
+	var kdbxVersion gokeepasslib.DatabaseOption
+	switch kdbxVersionFlag {
+	case "v3":
+		kdbxVersion = gokeepasslib.WithDatabaseKDBXVersion3()
+	case "v4":
+		kdbxVersion = gokeepasslib.WithDatabaseKDBXVersion4()
+	default:
+		return fmt.Errorf("invalid kdbx-version %q: must be v3 or v4", kdbxVersionFlag)
 	}
 
 	ctx, cancel := util.GetContext()
@@ -110,10 +120,6 @@ func KeepassExport(cmd *cobra.Command, args []string) error {
 		progressbar.Increment()
 	}
 
-	kdbxVersion := gokeepasslib.WithDatabaseKDBXVersion4()
-	if useAESKDF {
-		kdbxVersion = gokeepasslib.WithDatabaseKDBXVersion3()
-	}
 	db := gokeepasslib.NewDatabase(kdbxVersion)
 	db.Content.Meta.DatabaseName = "Passbolt Export"
 
