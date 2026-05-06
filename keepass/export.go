@@ -30,6 +30,7 @@ var KeepassExportCmd = &cobra.Command{
 func init() {
 	KeepassExportCmd.Flags().StringP("file", "f", "passbolt-export.kdbx", "File name of the KeePass File")
 	KeepassExportCmd.Flags().StringP("password", "p", "", "Password for the KeePass File, if empty prompts interactively")
+	KeepassExportCmd.Flags().Bool("aes-kdf", false, "Use AES-KDF (KDBX 3.1) instead of Argon2 (KDBX 4); needed by importers that don't support Argon2")
 }
 
 func KeepassExport(cmd *cobra.Command, args []string) error {
@@ -43,6 +44,11 @@ func KeepassExport(cmd *cobra.Command, args []string) error {
 	}
 
 	keepassPassword, err := cmd.Flags().GetString("password")
+	if err != nil {
+		return err
+	}
+
+	useAESKDF, err := cmd.Flags().GetBool("aes-kdf")
 	if err != nil {
 		return err
 	}
@@ -105,9 +111,11 @@ func KeepassExport(cmd *cobra.Command, args []string) error {
 		progressbar.Increment()
 	}
 
-	db := gokeepasslib.NewDatabase(
-		gokeepasslib.WithDatabaseKDBXVersion4(),
-	)
+	kdbxVersion := gokeepasslib.WithDatabaseKDBXVersion4()
+	if useAESKDF {
+		kdbxVersion = gokeepasslib.WithDatabaseKDBXVersion3()
+	}
+	db := gokeepasslib.NewDatabase(kdbxVersion)
 	db.Content.Meta.DatabaseName = "Passbolt Export"
 
 	if keepassPassword != "" {
