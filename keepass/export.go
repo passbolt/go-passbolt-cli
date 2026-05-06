@@ -1,7 +1,6 @@
 package keepass
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/url"
 	"os"
@@ -140,10 +139,16 @@ func KeepassExport(cmd *cobra.Command, args []string) error {
 }
 
 func getKeepassEntry(client *api.Client, resource api.Resource, secret api.Secret, rType api.ResourceType) (*gokeepasslib.Entry, error) {
-	_, name, username, uri, pass, desc, err := helper.GetResourceFromData(client, resource, resource.Secrets[0], resource.ResourceType)
+	_, metadata, secretFields, err := helper.GetResourceFieldMaps(client, resource, secret, rType, true)
 	if err != nil {
 		return nil, fmt.Errorf("get Resource %v: %w", resource.ID, err)
 	}
+
+	name := helper.GetStringField(metadata, "name")
+	username := helper.GetStringField(metadata, "username")
+	uri := helper.GetStringField(metadata, "uri")
+	password := helper.GetStringField(secretFields, "password")
+	description := helper.GetStringField(metadata, "description")
 
 	entry := gokeepasslib.NewEntry()
 	entry.Values = append(
@@ -151,48 +156,28 @@ func getKeepassEntry(client *api.Client, resource api.Resource, secret api.Secre
 		gokeepasslib.ValueData{Key: "Title", Value: gokeepasslib.V{Content: name}},
 		gokeepasslib.ValueData{Key: "UserName", Value: gokeepasslib.V{Content: username}},
 		gokeepasslib.ValueData{Key: "URL", Value: gokeepasslib.V{Content: uri}},
-		gokeepasslib.ValueData{Key: "Password", Value: gokeepasslib.V{Content: pass, Protected: w.NewBoolWrapper(true)}},
-		gokeepasslib.ValueData{Key: "Notes", Value: gokeepasslib.V{Content: desc}},
+		gokeepasslib.ValueData{Key: "Password", Value: gokeepasslib.V{Content: password, Protected: w.NewBoolWrapper(true)}},
+		gokeepasslib.ValueData{Key: "Notes", Value: gokeepasslib.V{Content: description}},
 	)
 
-	// Extract TOTP data using generic map-based approach
-	if rType.HasSecretField("totp") {
-		rawSecretData, err := client.DecryptMessage(resource.Secrets[0].Data)
-		if err != nil {
-			return nil, fmt.Errorf("decrypting Secret Data: %w", err)
-		}
-
-		var secretMap map[string]any
-		err = json.Unmarshal([]byte(rawSecretData), &secretMap)
-		if err != nil {
-			return nil, fmt.Errorf("parsing Decrypted Secret Data: %w", err)
-		}
-
-		if totpRaw, ok := secretMap["totp"].(map[string]any); ok {
-			totpData := api.SecretDataTOTP{}
-			if s, ok := totpRaw["secret_key"].(string); ok {
-				totpData.SecretKey = s
-			}
-			if s, ok := totpRaw["algorithm"].(string); ok {
-				totpData.Algorithm = s
-			}
+	if totpRaw, ok := secretFields["totp"].(map[string]any); ok {
+		secretKey, _ := totpRaw["secret_key"].(string)
+		// Skip TOTP entry if secret_key is missing — can't build a valid OTP URI
+		if secretKey != "" {
+			algorithm, _ := totpRaw["algorithm"].(string)
+			var digits, period int
 			if d, ok := totpRaw["digits"].(float64); ok {
-				totpData.Digits = int(d)
+				digits = int(d)
 			}
 			if p, ok := totpRaw["period"].(float64); ok {
-				totpData.Period = int(p)
-			}
-
-			// Skip TOTP entry if secret_key is missing — can't build a valid OTP URI
-			if totpData.SecretKey == "" {
-				return &entry, nil
+				period = int(p)
 			}
 
 			v := url.Values{}
-			v.Set("secret", totpData.SecretKey)
-			v.Set("period", strconv.FormatUint(uint64(totpData.Period), 10))
-			v.Set("algorithm", totpData.Algorithm)
-			v.Set("digits", fmt.Sprint(totpData.Digits))
+			v.Set("secret", secretKey)
+			v.Set("period", strconv.FormatUint(uint64(period), 10))
+			v.Set("algorithm", algorithm)
+			v.Set("digits", fmt.Sprint(digits))
 
 			issuer := uri
 			if uri == "" {
@@ -216,7 +201,48 @@ func getKeepassEntry(client *api.Client, resource api.Resource, secret api.Secre
 		}
 	}
 
+	// Custom fields: each one becomes a protected KDBX field, matching what the
+	// Passbolt browser extension does in resourcesKdbxExporter.setCustomFields.
+	// Field name comes from metadata.custom_fields[].metadata_key, value from
+	// secret.custom_fields[].secret_value, correlated by id.
+	addCustomFields(&entry, metadata, secretFields)
+
 	return &entry, nil
+}
+
+func addCustomFields(entry *gokeepasslib.Entry, metadata, secretFields map[string]any) {
+	metaList, _ := metadata["custom_fields"].([]any)
+	if len(metaList) == 0 {
+		return
+	}
+	secretList, _ := secretFields["custom_fields"].([]any)
+	valueByID := make(map[string]string, len(secretList))
+	for _, item := range secretList {
+		m, ok := item.(map[string]any)
+		if !ok {
+			continue
+		}
+		id, _ := m["id"].(string)
+		val, _ := m["secret_value"].(string)
+		if id != "" {
+			valueByID[id] = val
+		}
+	}
+	for _, item := range metaList {
+		m, ok := item.(map[string]any)
+		if !ok {
+			continue
+		}
+		id, _ := m["id"].(string)
+		key, _ := m["metadata_key"].(string)
+		if key == "" {
+			continue
+		}
+		entry.Values = append(entry.Values, gokeepasslib.ValueData{
+			Key:   key,
+			Value: gokeepasslib.V{Content: valueByID[id], Protected: w.NewBoolWrapper(true)},
+		})
+	}
 }
 
 // EncodeQuery is a copy-paste of url.Values.Encode, except it uses %20 instead
