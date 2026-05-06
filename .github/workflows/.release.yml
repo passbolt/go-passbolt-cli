@@ -64,6 +64,13 @@ jobs:
       - name: Verify Build
         run: dist/go-passbolt-cli_linux_amd64_v1/passbolt -v
 
+      - name: Upload Homebrew Formula
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: homebrew-formula
+          path: dist/homebrew/Formula/go-passbolt-cli.rb
+          if-no-files-found: error
+
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: go-passbolt-cli-artifacts
