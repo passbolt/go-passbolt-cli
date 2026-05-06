@@ -21,14 +21,16 @@ import (
 
 // decryptedResource holds the result of decrypting a single resource
 type decryptedResource struct {
-	index       int
-	resource    api.Resource
-	name        string
-	username    string
-	uri         string
-	password    string
-	description string
-	err         error
+	index          int
+	resource       api.Resource
+	name           string
+	username       string
+	uri            string
+	password       string
+	description    string
+	metadataFields map[string]any
+	secretFields   map[string]any
+	err            error
 }
 
 var defaultTableColumns = []string{"ID", "FolderParentID", "Name", "Username", "URI"}
@@ -78,9 +80,9 @@ func ResourceList(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	// Check if CEL filter references Password or Description
+	// Check if CEL filter references Password, Description, or Secret
 	if !needSecrets && config.celFilter != "" {
-		refsSecrets, err := util.CELExpressionReferencesFields(config.celFilter, []string{"Password", "Description"}, CelEnvOptions...)
+		refsSecrets, err := util.CELExpressionReferencesFields(config.celFilter, []string{"Password", "Description", "Secret"}, CelEnvOptions...)
 		if err != nil {
 			return fmt.Errorf("parsing filter: %w", err)
 		}
@@ -186,6 +188,12 @@ func decryptResourcesParallel(ctx context.Context, client *api.Client, resources
 						uri:         resource.URI,
 						password:    "",
 						description: resource.Description,
+						metadataFields: map[string]any{
+							"name":        resource.Name,
+							"username":    resource.Username,
+							"uri":         resource.URI,
+							"description": resource.Description,
+						},
 					}
 					continue
 				}
@@ -196,7 +204,7 @@ func decryptResourcesParallel(ctx context.Context, client *api.Client, resources
 					secret = resource.Secrets[0]
 				}
 
-				_, name, username, uri, pass, desc, err := helper.GetResourceFromDataWithOptions(
+				_, metaFields, secFields, err := helper.GetResourceFieldMaps(
 					client,
 					resource,
 					secret,
@@ -204,14 +212,16 @@ func decryptResourcesParallel(ctx context.Context, client *api.Client, resources
 					needSecrets,
 				)
 				results <- decryptedResource{
-					index:       idx,
-					resource:    resource,
-					name:        name,
-					username:    username,
-					uri:         uri,
-					password:    pass,
-					description: desc,
-					err:         err,
+					index:          idx,
+					resource:       resource,
+					name:           helper.GetStringField(metaFields, "name"),
+					username:       helper.GetStringField(metaFields, "username"),
+					uri:            helper.GetStringField(metaFields, "uri"),
+					password:       helper.GetStringField(secFields, "password"),
+					description:    helper.GetStringField(metaFields, "description"),
+					metadataFields: metaFields,
+					secretFields:   secFields,
+					err:            err,
 				}
 			}
 		}()
@@ -284,7 +294,7 @@ func printJSONResources(
 		uri := d.uri
 		pass := d.password
 		desc := d.description
-		outputResources[i] = ResourceJSONOutput{
+		output := ResourceJSONOutput{
 			ID:                &d.resource.ID,
 			FolderParentID:    &d.resource.FolderParentID,
 			Name:              &name,
@@ -295,6 +305,13 @@ func printJSONResources(
 			CreatedTimestamp:  &d.resource.Created.Time,
 			ModifiedTimestamp: &d.resource.Modified.Time,
 		}
+		if len(d.metadataFields) > 0 {
+			output.Metadata = d.metadataFields
+		}
+		if len(d.secretFields) > 0 {
+			output.Secret = d.secretFields
+		}
+		outputResources[i] = output
 	}
 
 	if isColumnsChanged {

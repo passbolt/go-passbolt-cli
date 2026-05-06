@@ -1,7 +1,6 @@
 package keepass
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/url"
 	"os"
@@ -30,6 +29,7 @@ var KeepassExportCmd = &cobra.Command{
 func init() {
 	KeepassExportCmd.Flags().StringP("file", "f", "passbolt-export.kdbx", "File name of the KeePass File")
 	KeepassExportCmd.Flags().StringP("password", "p", "", "Password for the KeePass File, if empty prompts interactively")
+	KeepassExportCmd.Flags().String("kdbx-version", "v3", "KDBX format version: v3 (AES-KDF, KDBX 3.1) or v4 (Argon2, KDBX 4)")
 }
 
 func KeepassExport(cmd *cobra.Command, args []string) error {
@@ -45,6 +45,21 @@ func KeepassExport(cmd *cobra.Command, args []string) error {
 	keepassPassword, err := cmd.Flags().GetString("password")
 	if err != nil {
 		return err
+	}
+
+	kdbxVersionFlag, err := cmd.Flags().GetString("kdbx-version")
+	if err != nil {
+		return err
+	}
+
+	var kdbxVersion gokeepasslib.DatabaseOption
+	switch kdbxVersionFlag {
+	case "v3":
+		kdbxVersion = gokeepasslib.WithDatabaseKDBXVersion3()
+	case "v4":
+		kdbxVersion = gokeepasslib.WithDatabaseKDBXVersion4()
+	default:
+		return fmt.Errorf("invalid kdbx-version %q: must be v3 or v4", kdbxVersionFlag)
 	}
 
 	ctx, cancel := util.GetContext()
@@ -105,9 +120,7 @@ func KeepassExport(cmd *cobra.Command, args []string) error {
 		progressbar.Increment()
 	}
 
-	db := gokeepasslib.NewDatabase(
-		gokeepasslib.WithDatabaseKDBXVersion4(),
-	)
+	db := gokeepasslib.NewDatabase(kdbxVersion)
 	db.Content.Meta.DatabaseName = "Passbolt Export"
 
 	if keepassPassword != "" {
@@ -132,10 +145,16 @@ func KeepassExport(cmd *cobra.Command, args []string) error {
 }
 
 func getKeepassEntry(client *api.Client, resource api.Resource, secret api.Secret, rType api.ResourceType) (*gokeepasslib.Entry, error) {
-	_, name, username, uri, pass, desc, err := helper.GetResourceFromData(client, resource, resource.Secrets[0], resource.ResourceType)
+	_, metadata, secretFields, err := helper.GetResourceFieldMaps(client, resource, secret, rType, true)
 	if err != nil {
 		return nil, fmt.Errorf("get Resource %v: %w", resource.ID, err)
 	}
+
+	name := helper.GetStringField(metadata, "name")
+	username := helper.GetStringField(metadata, "username")
+	uri := helper.GetStringField(metadata, "uri")
+	password := helper.GetStringField(secretFields, "password")
+	description := helper.GetStringField(metadata, "description")
 
 	entry := gokeepasslib.NewEntry()
 	entry.Values = append(
@@ -143,78 +162,93 @@ func getKeepassEntry(client *api.Client, resource api.Resource, secret api.Secre
 		gokeepasslib.ValueData{Key: "Title", Value: gokeepasslib.V{Content: name}},
 		gokeepasslib.ValueData{Key: "UserName", Value: gokeepasslib.V{Content: username}},
 		gokeepasslib.ValueData{Key: "URL", Value: gokeepasslib.V{Content: uri}},
-		gokeepasslib.ValueData{Key: "Password", Value: gokeepasslib.V{Content: pass, Protected: w.NewBoolWrapper(true)}},
-		gokeepasslib.ValueData{Key: "Notes", Value: gokeepasslib.V{Content: desc}},
+		gokeepasslib.ValueData{Key: "Password", Value: gokeepasslib.V{Content: password, Protected: w.NewBoolWrapper(true)}},
+		gokeepasslib.ValueData{Key: "Notes", Value: gokeepasslib.V{Content: description}},
 	)
 
-	if resource.ResourceType.Slug == "password-description-totp" || resource.ResourceType.Slug == "totp" || resource.ResourceType.Slug == "v5-default-with-totp" || resource.ResourceType.Slug == "v5-totp-standalone" {
-		var totpData api.SecretDataTOTP
-
-		rawSecretData, err := client.DecryptMessage(resource.Secrets[0].Data)
-		if err != nil {
-			return nil, fmt.Errorf("decrypting Secret Data: %w", err)
-		}
-
-		switch resource.ResourceType.Slug {
-		case "password-description-totp":
-			var secretData api.SecretDataTypePasswordDescriptionTOTP
-			err = json.Unmarshal([]byte(rawSecretData), &secretData)
-			if err != nil {
-				return nil, fmt.Errorf("parsing Decrypted Secret Data: %w", err)
+	if totpRaw, ok := secretFields["totp"].(map[string]any); ok {
+		secretKey, _ := totpRaw["secret_key"].(string)
+		// Skip TOTP entry if secret_key is missing — can't build a valid OTP URI
+		if secretKey != "" {
+			algorithm, _ := totpRaw["algorithm"].(string)
+			var digits, period int
+			if d, ok := totpRaw["digits"].(float64); ok {
+				digits = int(d)
 			}
-			totpData = secretData.TOTP
-		case "totp":
-			var secretData api.SecretDataTypeTOTP
-			err = json.Unmarshal([]byte(rawSecretData), &secretData)
-			if err != nil {
-				return nil, fmt.Errorf("parsing Decrypted Secret Data: %w", err)
+			if p, ok := totpRaw["period"].(float64); ok {
+				period = int(p)
 			}
-			totpData = secretData.TOTP
-		case "v5-default-with-totp":
-			var secretData api.SecretDataTypeV5DefaultWithTOTP
-			err = json.Unmarshal([]byte(rawSecretData), &secretData)
-			if err != nil {
-				return nil, fmt.Errorf("parsing Decrypted Secret Data: %w", err)
+
+			v := url.Values{}
+			v.Set("secret", secretKey)
+			v.Set("period", strconv.FormatUint(uint64(period), 10))
+			v.Set("algorithm", algorithm)
+			v.Set("digits", fmt.Sprint(digits))
+
+			issuer := uri
+			if uri == "" {
+				issuer = name
 			}
-			totpData = secretData.TOTP
-		case "v5-totp-standalone":
-			var secretData api.SecretDataTypeV5TOTPStandalone
-			err = json.Unmarshal([]byte(rawSecretData), &secretData)
-			if err != nil {
-				return nil, fmt.Errorf("parsing Decrypted Secret Data: %w", err)
+			v.Set("issuer", issuer)
+
+			accountName := username
+			if username == "" {
+				accountName = name
 			}
-			totpData = secretData.TOTP
+
+			u := url.URL{
+				Scheme:   "otpauth",
+				Host:     "totp",
+				Path:     "/" + issuer + ":" + accountName,
+				RawQuery: encodeQuery(v),
+			}
+
+			entry.Values = append(entry.Values, gokeepasslib.ValueData{Key: "otp", Value: gokeepasslib.V{Content: u.String(), Protected: w.NewBoolWrapper(true)}})
 		}
-
-		v := url.Values{}
-		v.Set("secret", totpData.SecretKey)
-		v.Set("period", strconv.FormatUint(uint64(totpData.Period), 10))
-		v.Set("algorithm", totpData.Algorithm)
-		v.Set("digits", fmt.Sprint(totpData.Digits))
-
-		issuer := uri
-		if uri == "" {
-			issuer = name
-
-		}
-		v.Set("issuer", issuer)
-
-		accountName := username
-		if username == "" {
-			accountName = name
-		}
-
-		u := url.URL{
-			Scheme:   "otpauth",
-			Host:     "totp",
-			Path:     "/" + issuer + ":" + accountName,
-			RawQuery: encodeQuery(v),
-		}
-
-		entry.Values = append(entry.Values, gokeepasslib.ValueData{Key: "otp", Value: gokeepasslib.V{Content: u.String(), Protected: w.NewBoolWrapper(true)}})
 	}
 
+	// Custom fields: each one becomes a protected KDBX field, matching what the
+	// Passbolt browser extension does in resourcesKdbxExporter.setCustomFields.
+	// Field name comes from metadata.custom_fields[].metadata_key, value from
+	// secret.custom_fields[].secret_value, correlated by id.
+	addCustomFields(&entry, metadata, secretFields)
+
 	return &entry, nil
+}
+
+func addCustomFields(entry *gokeepasslib.Entry, metadata, secretFields map[string]any) {
+	metaList, _ := metadata["custom_fields"].([]any)
+	if len(metaList) == 0 {
+		return
+	}
+	secretList, _ := secretFields["custom_fields"].([]any)
+	valueByID := make(map[string]string, len(secretList))
+	for _, item := range secretList {
+		m, ok := item.(map[string]any)
+		if !ok {
+			continue
+		}
+		id, _ := m["id"].(string)
+		val, _ := m["secret_value"].(string)
+		if id != "" {
+			valueByID[id] = val
+		}
+	}
+	for _, item := range metaList {
+		m, ok := item.(map[string]any)
+		if !ok {
+			continue
+		}
+		id, _ := m["id"].(string)
+		key, _ := m["metadata_key"].(string)
+		if key == "" {
+			continue
+		}
+		entry.Values = append(entry.Values, gokeepasslib.ValueData{
+			Key:   key,
+			Value: gokeepasslib.V{Content: valueByID[id], Protected: w.NewBoolWrapper(true)},
+		})
+	}
 }
 
 // EncodeQuery is a copy-paste of url.Values.Encode, except it uses %20 instead
