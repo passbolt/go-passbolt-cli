@@ -1,0 +1,17 @@
+# Folder CRUD round-trip: create, get, update name, delete is via defer.
+
+pb create folder --name test-folder-rt --json
+cp stdout create.json
+jsonget create.json id ID
+jsonexists create.json id
+defer pb delete folder --id $ID
+
+pb get folder --id $ID --json
+cp stdout get.json
+jsoneq get.json name test-folder-rt
+
+pb update folder --id $ID --name test-folder-rt-updated
+
+pb get folder --id $ID --json
+cp stdout updated.json
+jsoneq updated.json name test-folder-rt-updated

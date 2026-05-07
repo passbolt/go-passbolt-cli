@@ -1,0 +1,17 @@
+# Create a v5 resource entirely via --field/--secret-field flags. The generic
+# router must place each field on the correct side of the metadata/secret split.
+
+pb create resource --type v5-default --field name=test-field-create --field username=field-user --field uri=https://field.example.com --secret-field password=field-pass --secret-field description='field desc' --json
+cp stdout create.json
+jsonget create.json id ID
+defer pb delete resource --id $ID
+jsonexists create.json id
+
+pb get resource --id $ID --json
+cp stdout get.json
+jsoneq get.json name test-field-create
+jsoneq get.json username field-user
+jsoneq get.json uri https://field.example.com
+jsoneq get.json password field-pass
+jsoneq get.json description 'field desc'
+

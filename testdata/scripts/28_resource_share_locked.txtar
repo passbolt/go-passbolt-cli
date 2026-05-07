@@ -1,0 +1,21 @@
+# Resource share is currently blocked on servers that have rotated their
+# metadata key when the user lacks a trust callback. The CLI doesn't expose
+# the SDK's MetadataKeyUpdatedCallback, so on this dev server every share
+# attempt by a non-trusting client fails with a clear error.
+#
+# This scenario locks in that behaviour: when the CLI eventually plumbs a
+# --trustNewMetadataKey flag (or equivalent), this test will start passing
+# the share and fail the negative assertion, prompting a rewrite into a
+# proper share roundtrip.
+
+pb list user --json
+cp stdout users.json
+jsonget users.json [username=adele@passbolt.com].id ADELE_ID
+
+pb create resource --type v5-default --name test-share-locked --password p --json
+cp stdout resource.json
+jsonget resource.json id RID
+defer pb delete resource --id $RID
+
+! pb share resource --id $RID --type 1 --user $ADELE_ID
+stderr 'metadata Key has changed'

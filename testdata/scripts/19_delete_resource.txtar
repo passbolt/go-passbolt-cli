@@ -1,0 +1,10 @@
+# delete resource removes the resource server-side. A subsequent get must fail.
+
+pb create resource --name test-delete-me --password to-be-deleted --json
+cp stdout create.json
+jsonget create.json id ID
+defer pb delete resource --id $ID
+
+pb delete resource --id $ID
+
+! pb get resource --id $ID --json

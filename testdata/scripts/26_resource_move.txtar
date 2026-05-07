@@ -1,0 +1,23 @@
+# Move a resource into a folder; verify folder_parent_id changes.
+
+pb create folder --name test-move-target --json
+cp stdout folder.json
+jsonget folder.json id FID
+defer pb delete folder --id $FID
+
+pb create resource --type v5-default --name test-move-resource --password p --json
+cp stdout resource.json
+jsonget resource.json id RID
+defer pb delete resource --id $RID
+
+# Initially, no folder parent.
+pb get resource --id $RID --json
+cp stdout before.json
+jsoneq before.json folder_parent_id ''
+
+# Move into the folder.
+pb move resource --id $RID --folderParentID $FID
+
+pb get resource --id $RID --json
+cp stdout after.json
+jsoneq after.json folder_parent_id $FID

@@ -1,0 +1,14 @@
+# v5-totp-standalone has only a TOTP secret (no password). Verifies the
+# different algorithm/digits/period combination round-trips.
+
+pb create resource --type v5-totp-standalone --name test-totp-standalone --uri https://totp-sa.example.com --secret-field totp={"secret_key":"HXDMVJECJJWSRB3HWIZR4IFUGFTMXBOZ","algorithm":"SHA256","digits":8,"period":60} --json
+cp stdout create.json
+jsonget create.json id ID
+defer pb delete resource --id $ID
+jsonexists create.json id
+
+pb get resource --id $ID --json
+cp stdout get.json
+jsoneq get.json name test-totp-standalone
+stdout HXDMVJECJJWSRB3HWIZR4IFUGFTMXBOZ
+

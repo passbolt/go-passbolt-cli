@@ -1,0 +1,16 @@
+# v5-default-with-totp combines password fields with a TOTP secret in the
+# secret payload. The TOTP secret_key must round-trip on get.
+
+pb create resource --type v5-default-with-totp --name test-totp --username totp-user --uri https://totp.example.com --password totp-pass --secret-field totp={"secret_key":"JBSWY3DPEHPK3PXP","algorithm":"SHA1","digits":6,"period":30} --json
+cp stdout create.json
+jsonget create.json id ID
+defer pb delete resource --id $ID
+jsonexists create.json id
+
+pb get resource --id $ID --json
+cp stdout get.json
+jsoneq get.json name test-totp
+jsoneq get.json username totp-user
+jsoneq get.json password totp-pass
+stdout JBSWY3DPEHPK3PXP
+
