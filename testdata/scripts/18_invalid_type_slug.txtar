@@ -1,0 +1,5 @@
+# An unknown resource type slug must be rejected with a clear error before any
+# server call.
+
+! pb create resource --type nonexistent-type --name bad --password x --json
+stderr 'cannot find resource type'

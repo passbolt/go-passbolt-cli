@@ -1,0 +1,16 @@
+# V5-default stores description in the secret payload (the v5-default schema
+# routes it there). It must round-trip on get and be queryable via the
+# Metadata.description CEL path (which the helper normalises across schemas).
+
+pb create resource --type v5-default --name test-desc-routing --password desc-pass --description routed-description --json
+cp stdout create.json
+jsonget create.json id ID
+defer pb delete resource --id $ID
+
+pb get resource --id $ID --json
+cp stdout get.json
+jsoneq get.json description routed-description
+
+pb list resource --filter 'Metadata.description == "routed-description"' --json
+stdout $ID
+

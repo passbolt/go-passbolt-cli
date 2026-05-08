@@ -1,0 +1,25 @@
+# Negative tests on the v5-custom-fields validator: each case must fail with
+# a specific error string before any server call.
+
+uuid GOOD1
+uuid GOOD2
+
+# Non-UUID id is rejected.
+! pb create resource --type v5-custom-fields --name bad-id --field custom_fields=[{"id":"not-a-uuid","type":"text","metadata_key":"k"}] --secret-field custom_fields=[{"id":"not-a-uuid","type":"text","secret_value":"v"}] --json
+stderr 'custom field id must be a valid UUID'
+
+# Missing metadata_key on the metadata side.
+! pb create resource --type v5-custom-fields --name no-key --field custom_fields=[{"id":"$GOOD1","type":"text"}] --secret-field custom_fields=[{"id":"$GOOD1","type":"text","secret_value":"v"}] --json
+stderr 'must have metadata_key'
+
+# Missing secret_value on the secret side.
+! pb create resource --type v5-custom-fields --name no-value --field custom_fields=[{"id":"$GOOD1","type":"text","metadata_key":"k"}] --secret-field custom_fields=[{"id":"$GOOD1","type":"text"}] --json
+stderr 'must have secret_value'
+
+# Cross-side key violation: same logical key on both metadata and secret.
+! pb create resource --type v5-custom-fields --name cross-key --field custom_fields=[{"id":"$GOOD1","type":"text","metadata_key":"k","metadata_value":"v"}] --secret-field custom_fields=[{"id":"$GOOD1","type":"text","secret_key":"k2","secret_value":"v2"}] --json
+stderr 'must be defined in only one of metadata or secret'
+
+# ID mismatch: metadata array and secret array must reference the same ids.
+! pb create resource --type v5-custom-fields --name mismatch --field custom_fields=[{"id":"$GOOD1","type":"text","metadata_key":"k"}] --secret-field custom_fields=[{"id":"$GOOD2","type":"text","secret_value":"v"}] --json
+stderr 'must match'

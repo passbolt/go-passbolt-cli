@@ -1,0 +1,36 @@
+# List resources of mixed v4/v5 types. Default list (no Password column) must
+# return entries by name (table + json) but must NOT include decrypted secrets.
+
+uuid CF1
+uuid CF2
+
+pb create resource --type password-and-description --name test-list-v4 --password pass-v4 --json
+cp stdout v4.json
+jsonget v4.json id V4_ID
+defer pb delete resource --id $V4_ID
+
+pb create resource --type v5-default --name test-list-v5 --password pass-v5 --json
+cp stdout v5.json
+jsonget v5.json id V5_ID
+defer pb delete resource --id $V5_ID
+
+pb create resource --type v5-custom-fields --name test-list-cf --field custom_fields=[{"id":"$CF1","type":"text","metadata_key":"k"}] --secret-field custom_fields=[{"id":"$CF1","type":"text","secret_value":"v"}] --json
+cp stdout cf.json
+jsonget cf.json id CF_ID
+defer pb delete resource --id $CF_ID
+
+# Table output must contain all three names.
+pb list resource
+stdout test-list-v4
+stdout test-list-v5
+stdout test-list-cf
+
+# JSON output must contain all three.
+pb list resource --json
+cp stdout list.json
+stdout test-list-v4
+stdout test-list-v5
+stdout test-list-cf
+
+# Default list omits decrypted secrets.
+! jsonexists list.json [id=$V5_ID].password

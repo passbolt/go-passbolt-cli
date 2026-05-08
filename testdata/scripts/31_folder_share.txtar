@@ -1,0 +1,17 @@
+# Share a folder with a user (Read Only). Verify the grant appears in the
+# folder's permission list.
+
+pb list user --json
+cp stdout users.json
+jsonget users.json [username=adele@passbolt.com].id ADELE_ID
+
+pb create folder --name test-share-folder --json
+cp stdout folder.json
+jsonget folder.json id FID
+defer pb delete folder --id $FID
+
+pb share folder --id $FID --type 1 --user $ADELE_ID
+
+pb get folder permission --id $FID --json
+cp stdout perms.json
+jsoneq perms.json [aro_foreign_key=$ADELE_ID].aro_foreign_key $ADELE_ID

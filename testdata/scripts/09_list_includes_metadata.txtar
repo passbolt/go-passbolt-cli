@@ -1,0 +1,12 @@
+# list --json must include the encrypted-metadata map for v5 resources, so the
+# returned object_type identifies it as PASSBOLT_RESOURCE_METADATA.
+
+pb create resource --type v5-default --name test-list-meta --password meta-pass --json
+cp stdout create.json
+jsonget create.json id ID
+defer pb delete resource --id $ID
+
+pb list resource --json
+cp stdout list.json
+jsoneq list.json [id=$ID].metadata.object_type PASSBOLT_RESOURCE_METADATA
+

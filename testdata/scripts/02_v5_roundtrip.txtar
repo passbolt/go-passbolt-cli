@@ -1,0 +1,27 @@
+# V5 resource (v5-default type): create, get, update, get.
+# Verifies the encrypted-metadata map is included in the response.
+
+pb create resource --type v5-default --name test-v5 --username user-v5 --uri https://v5.example.com --password pass-v5 --description 'v5 description' --json
+cp stdout create.json
+jsonget create.json id ID
+defer pb delete resource --id $ID
+jsonexists create.json id
+
+pb get resource --id $ID --json
+cp stdout get.json
+jsoneq get.json name test-v5
+jsoneq get.json username user-v5
+jsoneq get.json uri https://v5.example.com
+jsoneq get.json password pass-v5
+jsoneq get.json description 'v5 description'
+stdout PASSBOLT_RESOURCE_METADATA
+
+pb update resource --id $ID --name test-v5-updated --password pass-v5-new
+
+pb get resource --id $ID --json
+cp stdout updated.json
+jsoneq updated.json name test-v5-updated
+jsoneq updated.json password pass-v5-new
+jsoneq updated.json username user-v5
+jsoneq updated.json description 'v5 description'
+

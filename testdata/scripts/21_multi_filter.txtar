@@ -1,0 +1,15 @@
+# Combined CEL filter (Name.contains + URI ==) and timestamp filter.
+
+pb create resource --type v5-default --name test-multi-filter-v5 --uri https://multi.example.com --password multi-pass --json
+cp stdout create.json
+jsonget create.json id ID
+defer pb delete resource --id $ID
+
+# AND of name-contains and exact URI.
+pb list resource --filter 'Name.contains("test-multi-filter") && URI == "https://multi.example.com"' --json
+stdout $ID
+
+# Timestamp filter: every resource was created after epoch.
+pb list resource --filter 'CreatedTimestamp > timestamp("2000-01-01T00:00:00Z")' --json
+stdout test-multi-filter-v5
+

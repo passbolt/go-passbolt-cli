@@ -1,0 +1,6 @@
+# Negative: get folder with a random (well-formed but nonexistent) UUID errors.
+
+uuid BOGUS
+
+! pb get folder --id $BOGUS --json
+stderr 'does not exist|not found|404|error'

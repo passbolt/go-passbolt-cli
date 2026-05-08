@@ -1,0 +1,16 @@
+# Update an existing v5 resource using --field (metadata) and --secret-field
+# (secret) flags. Verifies the generic field router updates the right side.
+
+pb create resource --type v5-default --name test-update-fields --username old-user --password old-pass --json
+cp stdout create.json
+jsonget create.json id ID
+defer pb delete resource --id $ID
+
+pb update resource --id $ID --field username=updated-user --secret-field password=generic-updated-pass
+
+pb get resource --id $ID --json
+cp stdout get.json
+jsoneq get.json username updated-user
+jsoneq get.json password generic-updated-pass
+jsoneq get.json name test-update-fields
+

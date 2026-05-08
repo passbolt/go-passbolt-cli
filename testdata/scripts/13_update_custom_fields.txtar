@@ -1,0 +1,20 @@
+# Update v5-custom-fields: change one label (metadata) and both values (secret).
+# Field ids must remain stable; only metadata_key and secret_value change.
+
+uuid CF1
+uuid CF2
+
+pb create resource --type v5-custom-fields --name test-update-cf --field custom_fields=[{"id":"$CF1","type":"text","metadata_key":"environment"},{"id":"$CF2","type":"text","metadata_key":"api_key"}] --secret-field custom_fields=[{"id":"$CF1","type":"text","secret_value":"production"},{"id":"$CF2","type":"text","secret_value":"sk-secret-123"}] --json
+cp stdout create.json
+jsonget create.json id ID
+defer pb delete resource --id $ID
+
+pb update resource --id $ID --field custom_fields=[{"id":"$CF1","type":"text","metadata_key":"env-updated"},{"id":"$CF2","type":"text","metadata_key":"api_key"}] --secret-field custom_fields=[{"id":"$CF1","type":"text","secret_value":"staging"},{"id":"$CF2","type":"text","secret_value":"sk-secret-456"}]
+
+pb get resource --id $ID --json
+cp stdout updated.json
+stdout env-updated
+stdout staging
+stdout sk-secret-456
+jsoneq updated.json name test-update-cf
+

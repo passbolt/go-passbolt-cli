@@ -1,0 +1,11 @@
+# Negative: share resource with a non-existent user id must fail cleanly.
+
+pb create resource --type v5-default --name test-share-bogus --password p --json
+cp stdout create.json
+jsonget create.json id ID
+defer pb delete resource --id $ID
+
+uuid BOGUS
+
+! pb share resource --id $ID --type 1 --user $BOGUS
+stderr '.'

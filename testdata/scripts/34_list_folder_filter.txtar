@@ -1,0 +1,15 @@
+# list folder --filter applies a CEL expression on folder fields. Parity check
+# with resource list filtering.
+
+pb create folder --name test-folder-filter --json
+cp stdout create.json
+jsonget create.json id ID
+defer pb delete folder --id $ID
+
+# Exact-name filter must return our folder.
+pb list folder --filter 'Name == "test-folder-filter"' --json
+stdout $ID
+
+# Substring filter via Name.contains.
+pb list folder --filter 'Name.contains("test-folder-filter")' --json
+stdout test-folder-filter
