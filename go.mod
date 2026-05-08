@@ -6,7 +6,7 @@ require (
 	al.essio.dev/pkg/shellescape v1.6.0
 	github.com/google/cel-go v0.28.0
 	github.com/google/uuid v1.6.0
-	github.com/passbolt/go-passbolt v0.8.0-beta.1.0.20260312121958-50fc7ea8f485
+	github.com/passbolt/go-passbolt v0.8.0-beta.2
 	github.com/pterm/pterm v0.12.83
 	github.com/rogpeppe/go-internal v1.14.1
 	github.com/spf13/cobra v1.10.2
