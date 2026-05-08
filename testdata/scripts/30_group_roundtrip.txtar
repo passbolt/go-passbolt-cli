@@ -1,0 +1,24 @@
+# Group CRUD round-trip. Group create is admin-only on this server (per the
+# default Passbolt policy), so we drive the lifecycle as admin via `pba`.
+
+[!env:HAS_ADMIN] skip 'admin config not available; group create requires admin'
+
+pba list user --json
+cp stdout users.json
+jsonget users.json [username=ada@passbolt.com].id ADA_ID
+
+pba create group --name test-group-rt --manager $ADA_ID --json
+cp stdout create.json
+jsonget create.json id ID
+jsonexists create.json id
+defer pba delete group --id $ID
+
+pba get group --id $ID --json
+cp stdout get.json
+jsoneq get.json name test-group-rt
+
+pba update group --id $ID --name test-group-rt-updated
+
+pba get group --id $ID --json
+cp stdout updated.json
+jsoneq updated.json name test-group-rt-updated

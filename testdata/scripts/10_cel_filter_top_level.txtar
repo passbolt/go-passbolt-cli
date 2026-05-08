@@ -1,0 +1,39 @@
+# CEL filters on top-level Resource fields (Name, URI, Username, Password).
+# Creates a v4 + v5 pair, then exercises exact match, contains, and a
+# password-decryption filter.
+
+pb create resource --type password-and-description --name test-cel-v4 --username cel-user-v4 --uri https://cel-v4.example.com --password pass-cel-v4 --json
+cp stdout v4.json
+jsonget v4.json id V4_ID
+defer pb delete resource --id $V4_ID
+
+pb create resource --type v5-default --name test-cel-v5 --username cel-user-v5 --uri https://cel-v5.example.com --password pass-cel-v5 --json
+cp stdout v5.json
+jsonget v5.json id V5_ID
+defer pb delete resource --id $V5_ID
+
+# Exact name match returns the v5 resource and excludes the v4.
+pb list resource --filter 'Name == "test-cel-v5"' --json
+cp stdout filter-name.json
+jsoneq filter-name.json [id=$V5_ID].id $V5_ID
+! jsonexists filter-name.json [id=$V4_ID]
+
+# Substring (contains) match.
+pb list resource --filter 'Name.contains("test-cel-v4")' --json
+stdout test-cel-v4
+
+# Filter by URI.
+pb list resource --filter 'URI == "https://cel-v5.example.com"' --json
+stdout test-cel-v5
+
+# Filter by Username.
+pb list resource --filter 'Username == "cel-user-v5"' --json
+stdout $V5_ID
+
+# Filter by Password (forces secret decryption).
+pb list resource --filter 'Password == "pass-cel-v4"' --json
+stdout $V4_ID
+
+# A filter with no matches must fail with a clear message.
+! pb list resource --filter 'Name == "nonexistent-resource-xyz"'
+stderr 'no such resources found'

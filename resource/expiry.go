@@ -21,36 +21,43 @@ func SetResourceExpiry(ctx context.Context, client *api.Client, id string, expir
 		return fmt.Errorf("invalid resource id: %q", id)
 	}
 
-	// allow a single keyword to clear expiry (no TrimSpace: flags shouldn't need quoting spaces)
-	if strings.ToLower(expiryInput) == "none" {
-		// TODO: Should be handled in go-passbolt when the planned new Resource API is available
-		_, _, err := client.DoCustomRequestAndReturnRawResponseV5(
-			ctx,
-			"PUT",
-			fmt.Sprintf("resources/%s.json", id),
-			map[string]*string{"expired": nil},
-			nil,
-		)
-		if err != nil {
-			return fmt.Errorf("clearing expiry: %w", err)
-		}
-		return nil
+	// The server validates resource_type_id on every PUT and treats its
+	// absence as a request to drop back to the default (v4) type, which it
+	// then rejects when v5→v4 downgrade is disabled. Fetch the existing
+	// type id and include it so the PUT touches expiry only.
+	existing, err := client.GetResource(ctx, id)
+	if err != nil {
+		return fmt.Errorf("fetching resource for expiry update: %w", err)
 	}
 
-	isoExpiry, err := ParseExpiry(expiryInput)
-	if err != nil {
-		return err
+	body := map[string]any{"resource_type_id": existing.ResourceTypeID}
+	if existing.Metadata != "" {
+		// V5 resource: re-send the encrypted metadata block unchanged so
+		// the server runs v5 validation rather than the v4 fallback.
+		body["metadata"] = existing.Metadata
+		body["metadata_key_id"] = existing.MetadataKeyID
+		body["metadata_key_type"] = existing.MetadataKeyType
 	}
+	if strings.ToLower(expiryInput) == "none" {
+		body["expired"] = nil
+	} else {
+		isoExpiry, err := ParseExpiry(expiryInput)
+		if err != nil {
+			return err
+		}
+		body["expired"] = isoExpiry
+	}
+
 	// TODO: Should be handled in go-passbolt when the planned new Resource API is available
 	_, _, err = client.DoCustomRequestAndReturnRawResponseV5(
 		ctx,
 		"PUT",
 		fmt.Sprintf("resources/%s.json", id),
-		map[string]string{"expired": isoExpiry},
+		body,
 		nil,
 	)
 	if err != nil {
-		return fmt.Errorf("setting expiry: %w", err)
+		return fmt.Errorf("updating expiry: %w", err)
 	}
 	return nil
 }

@@ -1,0 +1,23 @@
+# V5 custom-fields resource: each field appears in BOTH metadata and secret
+# arrays, matched by id. Metadata side carries the visible label
+# (metadata_key); secret side carries the encrypted secret_value.
+
+uuid CF1
+uuid CF2
+
+pb create resource --type v5-custom-fields --name test-custom-fields --field custom_fields=[{"id":"$CF1","type":"text","metadata_key":"environment"},{"id":"$CF2","type":"text","metadata_key":"api_key"}] --secret-field custom_fields=[{"id":"$CF1","type":"text","secret_value":"production"},{"id":"$CF2","type":"text","secret_value":"sk-secret-123"}] --json
+cp stdout create.json
+jsonget create.json id ID
+defer pb delete resource --id $ID
+jsonexists create.json id
+
+pb get resource --id $ID --json
+cp stdout get.json
+jsoneq get.json name test-custom-fields
+stdout environment
+stdout api_key
+stdout production
+stdout sk-secret-123
+stdout $CF1
+stdout $CF2
+

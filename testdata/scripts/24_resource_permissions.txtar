@@ -1,0 +1,10 @@
+# get resource permission returns the ACL entries for a resource.
+
+pb create resource --type v5-default --name test-perm --password perm-pass --json
+cp stdout create.json
+jsonget create.json id ID
+defer pb delete resource --id $ID
+
+pb get resource permission --id $ID --json
+stdout aco_foreign_key
+

@@ -1,0 +1,30 @@
+# Folder hierarchy: create two parents, create a child inside parent A,
+# then move the child into parent B. (The CLI/SDK can't move a folder back
+# to root because Folder.FolderParentID has the omitempty json tag, so an
+# empty string serialises as a missing field; that limit is verified
+# elsewhere as a future bug — not here.)
+
+pb create folder --name test-parent-a --json
+cp stdout parent-a.json
+jsonget parent-a.json id PID_A
+defer pb delete folder --id $PID_A
+
+pb create folder --name test-parent-b --json
+cp stdout parent-b.json
+jsonget parent-b.json id PID_B
+defer pb delete folder --id $PID_B
+
+pb create folder --name test-child-folder --folderParentID $PID_A --json
+cp stdout child.json
+jsonget child.json id CID
+defer pb delete folder --id $CID
+
+pb get folder --id $CID --json
+cp stdout child-before.json
+jsoneq child-before.json folder_parent_id $PID_A
+
+pb move folder --id $CID --folderParentID $PID_B
+
+pb get folder --id $CID --json
+cp stdout child-after.json
+jsoneq child-after.json folder_parent_id $PID_B

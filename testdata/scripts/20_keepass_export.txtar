@@ -1,0 +1,5 @@
+# export keepass produces a .kdbx file at the requested path.
+
+pb export keepass --file $WORK/export.kdbx --password test-kdbx-pass
+
+exists $WORK/export.kdbx

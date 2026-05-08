@@ -1,0 +1,13 @@
+# Create a resource without specifying --type; server picks v4 or v5 default.
+
+pb create resource --name test-default --password pass-default --json
+cp stdout create.json
+jsonget create.json id ID
+defer pb delete resource --id $ID
+jsonexists create.json id
+
+pb get resource --id $ID --json
+cp stdout get.json
+jsoneq get.json name test-default
+jsoneq get.json password pass-default
+

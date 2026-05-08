@@ -1,0 +1,24 @@
+# V4 resource (password-and-description type): create, get, update, get.
+
+pb create resource --type password-and-description --name test-v4 --username user-v4 --uri https://v4.example.com --password pass-v4 --description 'v4 description' --json
+cp stdout create.json
+jsonget create.json id ID
+jsonexists create.json id
+defer pb delete resource --id $ID
+
+pb get resource --id $ID --json
+cp stdout get.json
+jsoneq get.json name test-v4
+jsoneq get.json username user-v4
+jsoneq get.json uri https://v4.example.com
+jsoneq get.json password pass-v4
+jsoneq get.json description 'v4 description'
+
+pb update resource --id $ID --name test-v4-updated --password pass-v4-new
+
+pb get resource --id $ID --json
+cp stdout updated.json
+jsoneq updated.json name test-v4-updated
+jsoneq updated.json password pass-v4-new
+jsoneq updated.json username user-v4
+jsoneq updated.json description 'v4 description'

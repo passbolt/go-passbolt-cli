@@ -12,38 +12,43 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   homebrew:
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'workflow_dispatch' || !github.event.release.prerelease }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          ref: ${{ github.event.release.tag_name || inputs.tag }}
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.25'
-
-      - name: Run GoReleaser for Homebrew Only
-        uses: goreleaser/goreleaser-action@v5
-        with:
-          distribution: goreleaser
-          version: latest
-          args: release --skip=publish --skip=announce --skip=validate --skip=nfpm
+      - name: Download Homebrew Formula from release workflow
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ github.event.release.tag_name || inputs.tag }}"
+          RUN_ID=$(gh run list \
+            --repo "${{ github.repository }}" \
+            --workflow=.release.yml \
+            --branch="$TAG" \
+            --status=success \
+            --limit=1 \
+            --json databaseId \
+            --jq '.[0].databaseId')
+          if [ -z "$RUN_ID" ] || [ "$RUN_ID" = "null" ]; then
+            echo "::error::No successful .release.yml run found for tag $TAG"
+            exit 1
+          fi
+          echo "Downloading homebrew-formula from run $RUN_ID"
+          mkdir -p formula
+          gh run download "$RUN_ID" \
+            --repo "${{ github.repository }}" \
+            --name homebrew-formula \
+            --dir formula
 
       - name: Update Homebrew Tap
         env:
           TAP_GITHUB_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
         run: |
           git clone https://x-access-token:${TAP_GITHUB_TOKEN}@github.com/passbolt/homebrew-tap.git tap
-          cp dist/homebrew/Formula/go-passbolt-cli.rb tap/Formula/
+          cp formula/go-passbolt-cli.rb tap/Formula/
           cd tap
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
