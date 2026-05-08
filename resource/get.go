@@ -63,24 +63,48 @@ func ResourceGet(cmd *cobra.Command, args []string) error {
 	defer util.SaveSessionKeysAndLogout(ctx, client)
 	cmd.SilenceUsage = true
 
-	folderParentID, name, username, uri, password, description, err := helper.GetResource(
-		ctx,
-		client,
-		id,
-	)
+	resource, err := client.GetResource(ctx, id)
 	if err != nil {
-		return fmt.Errorf("getting Resource: %w", err)
+		return fmt.Errorf("getting resource: %w", err)
+	}
+	rType, err := client.GetResourceType(ctx, resource.ResourceTypeID)
+	if err != nil {
+		return fmt.Errorf("getting resource type: %w", err)
+	}
+	secret, err := client.GetSecret(ctx, resource.ID)
+	if err != nil {
+		return fmt.Errorf("getting secret: %w", err)
 	}
 
+	folderParentID, metadata, secretFields, err :=
+		helper.GetResourceFieldMaps(client, *resource, *secret, *rType, true)
+	if err != nil {
+		return fmt.Errorf("decrypting resource: %w", err)
+	}
+
+	name := helper.GetStringField(metadata, "name")
+	username := helper.GetStringField(metadata, "username")
+	uri := helper.GetStringField(metadata, "uri")
+	description := helper.GetStringField(metadata, "description")
+	password := helper.GetStringField(secretFields, "password")
+
 	if jsonOutput {
-		jsonResource, err := json.MarshalIndent(ResourceJSONOutput{
+		output := ResourceJSONOutput{
 			FolderParentID: &folderParentID,
 			Name:           &name,
 			Username:       &username,
 			URI:            &uri,
 			Password:       &password,
 			Description:    &description,
-		}, "", "  ")
+		}
+		if len(metadata) > 0 {
+			output.Metadata = metadata
+		}
+		if len(secretFields) > 0 {
+			output.Secret = secretFields
+		}
+
+		jsonResource, err := json.MarshalIndent(output, "", "  ")
 		if err != nil {
 			return err
 		}
@@ -92,6 +116,15 @@ func ResourceGet(cmd *cobra.Command, args []string) error {
 		fmt.Printf("URI: %v\n", shellescape.StripUnsafe(uri))
 		fmt.Printf("Password: %v\n", shellescape.StripUnsafe(password))
 		fmt.Printf("Description: %v\n", shellescape.StripUnsafe(description))
+
+		for k, v := range metadata {
+			switch k {
+			case "name", "username", "uri", "uris", "description", "object_type", "resource_type_id":
+				continue
+			default:
+				fmt.Printf("%s: %v\n", k, shellescape.StripUnsafe(fmt.Sprint(v)))
+			}
+		}
 	}
 	return nil
 }
