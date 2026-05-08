@@ -64,8 +64,8 @@ github.com/lithammer/fuzzysearch v1.1.8 h1:/HIuJnjHuXS8bKaiTMeeDlW2/AyIWk2brx1V8
 github.com/lithammer/fuzzysearch v1.1.8/go.mod h1:IdqeyBClc3FFqSzYq/MXESsS4S0FsZ5ajtkr5xPLts4=
 github.com/mattn/go-runewidth v0.0.23 h1:7ykA0T0jkPpzSvMS5i9uoNn2Xy3R383f9HDx3RybWcw=
 github.com/mattn/go-runewidth v0.0.23/go.mod h1:XBkDxAl56ILZc9knddidhrOlY5R/pDhgLpndooCuJAs=
-github.com/passbolt/go-passbolt v0.8.0-beta.1.0.20260312121958-50fc7ea8f485 h1:HBHc0vuWfuK97oW8r1RfhA2GqSDuEWx9pjtRgefKYJs=
-github.com/passbolt/go-passbolt v0.8.0-beta.1.0.20260312121958-50fc7ea8f485/go.mod h1:2xaQdmCPtiwzJwy/KL0NMjtnkTnGknCi/UlVd1NSx4I=
+github.com/passbolt/go-passbolt v0.8.0-beta.2 h1:fL5pQjY/gM2rWwr4iAl2XIo7H6FleMTd38haqKA3KCg=
+github.com/passbolt/go-passbolt v0.8.0-beta.2/go.mod h1:Pwo/d2ukIkOifarrWnb+13G5dhtqMfsaihRTFEeYKZE=
 github.com/pelletier/go-toml/v2 v2.3.1 h1:MYEvvGnQjeNkRF1qUuGolNtNExTDwct51yp7olPtrEc=
 github.com/pelletier/go-toml/v2 v2.3.1/go.mod h1:2gIqNv+qfxSVS7cM2xJQKtLSTLUE9V8t9Stt+h56mCY=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
