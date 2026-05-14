@@ -8,32 +8,28 @@ Disclaimer: This project is community driven and not associated with [Passbolt S
 
 # Install
 
-## Via Repository (Preferred):
-[![Packaging status](https://repology.org/badge/vertical-allrepos/passbolt-cli.svg)](https://repology.org/project/passbolt-cli/versions)
-
-Use the package from your distros official repository.
-
-## Via Package:
-
-Download the deb/rpm package for your distro and architecture from the latest release.
-
-Install via your distros package manager like `dpkg -i`.
-
-## Via Homebrew
+**Homebrew**
 
     brew install passbolt/tap/go-passbolt-cli
 
-## Via Archive:
+**Download Binary**
 
-Download and extract the archive for your OS and architecture from the latest release.
+Download the deb/rpm package or archive for your OS and architecture from the [latest release](https://github.com/passbolt/go-passbolt-cli/releases/latest).
 
-Note: Tab completion and manpages will need to be installed manually.
+For deb/rpm, install via your distro's package manager (e.g. `dpkg -i`).
 
-## Via Go:
+For archives, tab completion and manpages will need to be installed manually.
+
+**Via Go**
 
     go install github.com/passbolt/go-passbolt-cli@latest
 
-Note: This will install the binary as `go-passbolt-cli`. Also, tab completion and manpages will be missing.
+Note: This installs the binary as `go-passbolt-cli`. Tab completion and manpages will be missing.
+
+## Community Packages
+
+The following packages are maintained by the community and not by the Passbolt team.
+See [Repology](https://repology.org/project/passbolt-cli/versions) for available packages and versions.
 
 # Getting Started
 
