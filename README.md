@@ -124,6 +124,49 @@ You can set up MFA also using the configuration sub command. Only TOTP is suppor
 
 To enable server verification, you need to run `passbolt verify` once, after that the server will always be verified if the same config is used.
 
+# Behind an SSO Reverse Proxy (oauth2-proxy)
+
+If your Passbolt instance sits behind an authenticating reverse proxy such as [oauth2-proxy](https://oauth2-proxy.github.io/oauth2-proxy/) (for example Google SSO in front of Passbolt), the proxy intercepts every request before it reaches Passbolt. Unauthenticated API requests get a `401`/`403` from the proxy, which the CLI surfaces as a confusing `API error (code 0)`.
+
+You have two ways to get past the proxy.
+
+## Send a custom header (any proxy)
+
+The `--header` flag adds an arbitrary HTTP header to every request and can be repeated. This works for any fronting proxy, for example a Cloudflare Access service token or a copied session cookie:
+
+```bash
+passbolt verify --header "Cookie: _oauth_cookie_=<session cookie value>"
+passbolt list resources --header "CF-Access-Client-Id: <id>" --header "CF-Access-Client-Secret: <secret>"
+```
+
+Important: only forward the proxy's own cookies. Do not forward Passbolt's `passbolt_session`/`csrfToken` cookies, or Passbolt will report `You are already logged in` and refuse to authenticate.
+
+Avoid passing `--header` to `passbolt configure`: it would write the header (and any secret it contains) into the plaintext config file. For a session cookie that rotates, prefer the auto-extract approach below, which only stores the cookie name and reads the value fresh on every run.
+
+## Auto-extract the proxy cookie from your browser
+
+If you log in through a Firefox-based browser (Zen, Firefox, LibreWolf), the CLI can read the proxy's session cookie straight from the browser's cookie store on every run, so you never copy/paste and an expiring session is handled as long as you stay logged in. Set the cookie name once:
+
+```bash
+passbolt configure --serverAddress https://passbolt.example.org --userPrivateKeyFile key.asc --ssoCookieName _oauth_cookie_
+passbolt verify
+passbolt list resources
+```
+
+Related flags:
+
+| Flag                  | Description                                                                                                               |
+|-----------------------|-------------------------------------------------------------------------------------------------------------------------|
+| `--ssoCookieName`     | Name of the proxy session cookie to extract (e.g. oauth2-proxy's `_oauth_cookie_`). Empty disables the feature.          |
+| `--ssoCookieHost`     | Host to match for the cookie. Defaults to the host of `serverAddress`.                                                   |
+| `--ssoCookieDatabase` | Path to a specific `cookies.sqlite`. Defaults to auto-discovering Zen/Firefox/LibreWolf profiles.                        |
+
+Notes:
+
+- The cookie value is read fresh on every invocation and is **never** written to the config file. Only the cookie name/host/database path are stored.
+- The cookie is read from the browser's committed database. A cookie set seconds ago may not be visible until the browser checkpoints its write-ahead log; this is rarely an issue for SSO sessions, which are set at login.
+- This reads the browser cookie store directly and works with both single and chunked oauth2-proxy cookies.
+
 # Scripting
 
 For scripting we have a `-j` or `--json` flag to convert the output for the `create`, `get` and `list` commands to JSON for easier parsing in scripts.

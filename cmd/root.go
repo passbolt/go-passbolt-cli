@@ -68,6 +68,12 @@ func init() {
 
 	rootCmd.PersistentFlags().Uint("workers", 0, "Number of Concurrent Workers for Expensive Operations. 0 (default) uses the number of CPU cores")
 
+	rootCmd.PersistentFlags().StringArray("header", []string{}, "Extra HTTP Header to send with every request in 'Name: Value' format, can be repeated. Useful for reaching servers behind an authenticating proxy (e.g. --header 'Cookie: _oauth2_proxy=...')")
+
+	rootCmd.PersistentFlags().String("ssoCookieName", "", "Name of an SSO reverse-proxy session cookie (e.g. oauth2-proxy's '_oauth_cookie_') to auto-extract from a Firefox-based browser (Zen, Firefox, LibreWolf) and send with every request. Empty disables this. The cookie value is read fresh on every run and never written to the config")
+	rootCmd.PersistentFlags().String("ssoCookieHost", "", "Host to match when extracting the SSO cookie. Defaults to the host of serverAddress")
+	rootCmd.PersistentFlags().String("ssoCookieDatabase", "", "Path to a Firefox-based browser cookies.sqlite. Defaults to auto-discovering Zen/Firefox/LibreWolf profiles")
+
 	viper.BindPFlag("debug", rootCmd.PersistentFlags().Lookup("debug"))
 	viper.BindPFlag("timeout", rootCmd.PersistentFlags().Lookup("timeout"))
 	viper.BindPFlag("serverAddress", rootCmd.PersistentFlags().Lookup("serverAddress"))
@@ -86,6 +92,10 @@ func init() {
 	viper.BindPFlag("tlsClientPrivateKey", rootCmd.PersistentFlags().Lookup("tlsClientPrivateKey"))
 
 	viper.BindPFlag("workers", rootCmd.PersistentFlags().Lookup("workers"))
+	viper.BindPFlag("headers", rootCmd.PersistentFlags().Lookup("header"))
+	viper.BindPFlag("ssoCookieName", rootCmd.PersistentFlags().Lookup("ssoCookieName"))
+	viper.BindPFlag("ssoCookieHost", rootCmd.PersistentFlags().Lookup("ssoCookieHost"))
+	viper.BindPFlag("ssoCookieDatabase", rootCmd.PersistentFlags().Lookup("ssoCookieDatabase"))
 }
 
 func fileToContent(file, contentFlag string) {

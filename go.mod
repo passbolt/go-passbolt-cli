@@ -5,6 +5,7 @@ go 1.25.0
 require (
 	al.essio.dev/pkg/shellescape v1.6.0
 	github.com/ProtonMail/gopenpgp/v3 v3.4.1
+	github.com/go-sqlite/sqlite3 v0.0.0-20180313105335-53dd8e640ee7
 	github.com/google/cel-go v0.28.0
 	github.com/google/uuid v1.6.0
 	github.com/passbolt/go-passbolt v0.8.0
@@ -49,6 +50,7 @@ require (
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/go-viper/mapstructure/v2 v2.5.0 // indirect
+	github.com/gonuts/binary v0.2.0 // indirect
 	github.com/google/go-querystring v1.2.0 // indirect
 	github.com/gookit/color v1.6.1 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
@@ -96,7 +98,7 @@ require (
 	golang.org/x/exp v0.0.0-20260410095643-746e56fc9e2f // indirect
 	golang.org/x/sys v0.44.0 // indirect
 	golang.org/x/text v0.36.0 // indirect
-	golang.org/x/tools v0.44.0 // indirect
+	golang.org/x/tools v0.45.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260504160031-60b97b32f348 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260504160031-60b97b32f348 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
