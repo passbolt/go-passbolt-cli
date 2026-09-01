@@ -37,7 +37,7 @@ func ReadPassword(prompt string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer term.Restore(fd, oldState)
+	defer func() { _ = term.Restore(fd, oldState) }()
 
 	var pass []byte
 	buf := make([]byte, 1)

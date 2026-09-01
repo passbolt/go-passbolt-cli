@@ -142,9 +142,9 @@ func KeepassExport(cmd *cobra.Command, args []string) error {
 		}
 		committed := false
 		defer func() {
-			file.Close()
+			_ = file.Close()
 			if !committed {
-				os.Remove(tmpName)
+				_ = os.Remove(tmpName)
 			}
 		}()
 
@@ -363,7 +363,7 @@ func appendComments(entry *gokeepasslib.Entry, comments []api.Comment) {
 		for _, c := range cs {
 			b.WriteString("\n" + indent)
 			if c.Created != nil {
-				b.WriteString(c.Created.Time.Format("2006-01-02 15:04") + " ")
+				b.WriteString(c.Created.Format("2006-01-02 15:04") + " ")
 			}
 			b.WriteString(c.Content)
 			walk(c.Children, indent+"  ")
