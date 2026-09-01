@@ -18,28 +18,112 @@ import (
 	"golang.org/x/term"
 )
 
-// ReadPassword reads a Password interactively or via Pipe
+// ReadPassword reads a Password interactively or via Pipe. Interactive input
+// echoes one '*' per typed rune; like term.ReadPassword it does not echo the
+// final newline, callers print their own.
 func ReadPassword(prompt string) (string, error) {
 	fd := int(os.Stdin.Fd())
-	var pass string
-	if term.IsTerminal(fd) {
-		fmt.Fprint(os.Stderr, prompt)
-
-		inputPass, err := term.ReadPassword(fd)
-		if err != nil {
-			return "", err
-		}
-		pass = string(inputPass)
-	} else {
+	if !term.IsTerminal(fd) {
 		reader := bufio.NewReader(os.Stdin)
 		s, err := reader.ReadString('\n')
 		if err != nil {
 			return "", err
 		}
-		pass = s
+		return strings.Replace(s, "\n", "", 1), nil
 	}
 
-	return strings.Replace(pass, "\n", "", 1), nil
+	fmt.Fprint(os.Stderr, prompt)
+	oldState, err := term.MakeRaw(fd)
+	if err != nil {
+		return "", err
+	}
+	defer term.Restore(fd, oldState)
+
+	var pass []byte
+	buf := make([]byte, 1)
+	inEscape := false
+	for {
+		n, err := os.Stdin.Read(buf)
+		if err != nil {
+			return "", err
+		}
+		if n == 0 {
+			continue
+		}
+		c := buf[0]
+
+		// Arrow and function keys arrive as ESC sequences in raw mode; swallow
+		// them so they don't leak bytes into the password. CSI sequences end
+		// with a byte in 0x40..0x7E.
+		if inEscape {
+			if c >= 0x40 && c <= 0x7E {
+				inEscape = false
+			}
+			continue
+		}
+
+		switch {
+		case c == '\r' || c == '\n':
+			return string(pass), nil
+		case c == 3: // Ctrl+C
+			return "", fmt.Errorf("input aborted")
+		case c == 27: // ESC
+			inEscape = true
+		case c == 8 || c == 127: // Backspace / DEL: drop one rune, not one byte
+			if len(pass) == 0 {
+				continue
+			}
+			for len(pass) > 1 && pass[len(pass)-1]&0xC0 == 0x80 {
+				pass = pass[:len(pass)-1]
+			}
+			pass = pass[:len(pass)-1]
+			fmt.Fprint(os.Stderr, "\b \b")
+		case c >= 32: // printable, including all UTF-8 multi-byte content
+			pass = append(pass, c)
+			if c&0xC0 != 0x80 { // one '*' per rune, not per continuation byte
+				fmt.Fprint(os.Stderr, "*")
+			}
+		}
+	}
+}
+
+// ReadNewPassword prompts for a new password and a confirmation (both masked
+// with '*'), refusing empty input and giving three attempts for two matching
+// entries. On a pipe it reads a single line and only enforces non-emptiness,
+// so scripted use stays a one-liner.
+func ReadNewPassword(prompt, confirmPrompt string) (string, error) {
+	if !term.IsTerminal(int(os.Stdin.Fd())) {
+		pass, err := ReadPassword(prompt)
+		if err != nil {
+			return "", err
+		}
+		if pass == "" {
+			return "", fmt.Errorf("the password cannot be empty")
+		}
+		return pass, nil
+	}
+
+	for range 3 {
+		first, err := ReadPassword(prompt)
+		if err != nil {
+			return "", err
+		}
+		fmt.Fprintln(os.Stderr)
+		if first == "" {
+			fmt.Fprintln(os.Stderr, "The password cannot be empty.")
+			continue
+		}
+		second, err := ReadPassword(confirmPrompt)
+		if err != nil {
+			return "", err
+		}
+		fmt.Fprintln(os.Stderr)
+		if first == second {
+			return first, nil
+		}
+		fmt.Fprintln(os.Stderr, "The passwords do not match, try again.")
+	}
+	return "", fmt.Errorf("no matching non-empty password after 3 attempts")
 }
 
 // SaveSessionKeysAndLogout saves any pending session keys to the server and then logs out.

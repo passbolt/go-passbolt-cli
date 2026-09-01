@@ -4,7 +4,9 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/passbolt/go-passbolt/api"
 	"github.com/tobischo/gokeepasslib/v3"
 )
 
@@ -124,6 +126,168 @@ func TestAddCustomFields(t *testing.T) {
 		if !got.Value.Protected.Bool {
 			t.Errorf("value %d (%s): not protected, want every custom field protected", i, w.key)
 		}
+	}
+}
+
+func entryContent(entry *gokeepasslib.Entry, key string) (string, bool) {
+	for _, v := range entry.Values {
+		if v.Key == key {
+			return v.Value.Content, true
+		}
+	}
+	return "", false
+}
+
+func TestAddTotp_WritesBothConventions(t *testing.T) {
+	entry := gokeepasslib.NewEntry()
+	addTotp(&entry, map[string]any{
+		"totp": map[string]any{
+			"secret_key": "jbsw y3dp ehpk3pxp",
+			"algorithm":  "SHA256",
+			"digits":     float64(8),
+			"period":     float64(60),
+		},
+	}, "Acme", "user", "https://acme.example.com")
+
+	otp, ok := entryContent(&entry, "otp")
+	if !ok || !strings.HasPrefix(otp, "otpauth://totp/") {
+		t.Errorf("otp = %q, want otpauth://totp/ URI", otp)
+	}
+
+	want := map[string]string{
+		"TimeOtp-Secret-Base32": "JBSWY3DPEHPK3PXP", // normalized: upper, no spaces
+		"TimeOtp-Length":        "8",
+		"TimeOtp-Period":        "60",
+		"TimeOtp-Algorithm":     "HMAC-SHA-256",
+	}
+	for key, wantValue := range want {
+		if got, ok := entryContent(&entry, key); !ok || got != wantValue {
+			t.Errorf("%s = %q (present=%v), want %q", key, got, ok, wantValue)
+		}
+	}
+
+	for _, v := range entry.Values {
+		if v.Key == "otp" || v.Key == "TimeOtp-Secret-Base32" {
+			if !v.Value.Protected.Bool {
+				t.Errorf("%s must be protected", v.Key)
+			}
+		}
+	}
+}
+
+func TestAddTotp_SHA1OmitsAlgorithmField(t *testing.T) {
+	// SHA-1 is the KeePass default; writing the field would just be noise.
+	entry := gokeepasslib.NewEntry()
+	addTotp(&entry, map[string]any{
+		"totp": map[string]any{"secret_key": "JBSWY3DPEHPK3PXP", "algorithm": "SHA1", "digits": float64(6), "period": float64(30)},
+	}, "n", "u", "")
+	if _, ok := entryContent(&entry, "TimeOtp-Algorithm"); ok {
+		t.Error("TimeOtp-Algorithm written for SHA1, want omitted")
+	}
+	if got, ok := entryContent(&entry, "TimeOtp-Length"); !ok || got != "6" {
+		t.Errorf("TimeOtp-Length = %q, want 6", got)
+	}
+}
+
+func TestAddTotp_NoTotpOrNoSecret(t *testing.T) {
+	entry := gokeepasslib.NewEntry()
+	addTotp(&entry, map[string]any{"password": "p"}, "n", "u", "")
+	if len(entry.Values) != 0 {
+		t.Errorf("no totp: got %+v, want no values", entry.Values)
+	}
+
+	entry = gokeepasslib.NewEntry()
+	addTotp(&entry, map[string]any{"totp": map[string]any{"algorithm": "SHA1"}}, "n", "u", "")
+	if len(entry.Values) != 0 {
+		t.Errorf("totp without secret_key: got %+v, want no values", entry.Values)
+	}
+}
+
+func TestAppendComments(t *testing.T) {
+	created := api.Time{Time: time.Date(2026, 3, 4, 10, 30, 0, 0, time.UTC)}
+	entry := gokeepasslib.NewEntry()
+	entry.Values = append(entry.Values, gokeepasslib.ValueData{
+		Key: "Notes", Value: gokeepasslib.V{Content: "existing description"},
+	})
+
+	appendComments(&entry, []api.Comment{
+		{Content: "top comment", Created: &created, Children: []api.Comment{
+			{Content: "a reply"},
+		}},
+	})
+
+	notes, _ := entryContent(&entry, "Notes")
+	want := "existing description\n\nComments:\n2026-03-04 10:30 top comment\n  a reply"
+	if notes != want {
+		t.Errorf("Notes = %q, want %q", notes, want)
+	}
+}
+
+func TestAppendComments_NoComments(t *testing.T) {
+	entry := gokeepasslib.NewEntry()
+	entry.Values = append(entry.Values, gokeepasslib.ValueData{
+		Key: "Notes", Value: gokeepasslib.V{Content: "desc"},
+	})
+	appendComments(&entry, nil)
+	if notes, _ := entryContent(&entry, "Notes"); notes != "desc" {
+		t.Errorf("Notes = %q, want unchanged desc", notes)
+	}
+}
+
+func TestAddTags(t *testing.T) {
+	entry := gokeepasslib.NewEntry()
+	addTags(&entry, api.Resource{Tags: []api.Tag{{Slug: "prod"}, {Slug: "server"}}})
+	if entry.Tags != "prod;server" {
+		t.Errorf("Tags = %q, want prod;server", entry.Tags)
+	}
+
+	entry = gokeepasslib.NewEntry()
+	addTags(&entry, api.Resource{})
+	if entry.Tags != "" {
+		t.Errorf("no tags: Tags = %q, want empty", entry.Tags)
+	}
+}
+
+func TestAddTimes(t *testing.T) {
+	created := time.Date(2024, 1, 2, 3, 4, 5, 0, time.UTC)
+	modified := time.Date(2025, 6, 7, 8, 9, 10, 0, time.UTC)
+	expired := time.Date(2026, 11, 12, 13, 14, 15, 0, time.UTC)
+
+	entry := gokeepasslib.NewEntry()
+	addTimes(&entry, api.Resource{
+		Created:  &api.Time{Time: created},
+		Modified: &api.Time{Time: modified},
+		Expired:  &api.Time{Time: expired},
+	})
+
+	if !entry.Times.CreationTime.Time.Equal(created) {
+		t.Errorf("CreationTime = %v, want %v", entry.Times.CreationTime.Time, created)
+	}
+	if !entry.Times.LastModificationTime.Time.Equal(modified) {
+		t.Errorf("LastModificationTime = %v, want %v", entry.Times.LastModificationTime.Time, modified)
+	}
+	if !entry.Times.Expires.Bool {
+		t.Error("Expires flag not set for expired resource")
+	}
+	if entry.Times.ExpiryTime == nil || !entry.Times.ExpiryTime.Time.Equal(expired) {
+		t.Errorf("ExpiryTime = %v, want %v", entry.Times.ExpiryTime, expired)
+	}
+}
+
+func TestAddTimes_NoTimestamps(t *testing.T) {
+	// Without timestamps the NewEntry defaults ("now") stay untouched and no
+	// expiry is set.
+	entry := gokeepasslib.NewEntry()
+	before := entry.Times.CreationTime.Time
+	addTimes(&entry, api.Resource{})
+	if !entry.Times.CreationTime.Time.Equal(before) {
+		t.Errorf("CreationTime changed: %v -> %v", before, entry.Times.CreationTime.Time)
+	}
+	if entry.Times.Expires.Bool {
+		t.Error("Expires flag set without an expiry date")
+	}
+	if entry.Times.ExpiryTime != nil {
+		t.Errorf("ExpiryTime = %v, want nil", entry.Times.ExpiryTime)
 	}
 }
 

@@ -15,6 +15,7 @@ import (
 	"github.com/passbolt/go-passbolt-cli/internal/cmd"
 	"github.com/passbolt/go-passbolt-cli/internal/testenv"
 	"github.com/rogpeppe/go-internal/testscript"
+	"github.com/tobischo/gokeepasslib/v3"
 )
 
 // TestMain wires the test binary so that any `passbolt`, `pb`, or `pba`
@@ -94,6 +95,7 @@ func TestCLI(t *testing.T) {
 			"jsonexists": cmdJSONExists,
 			"uuid":       cmdUUID,
 			"defer":      cmdDefer,
+			"kdbxcheck":  cmdKdbxCheck,
 		},
 		Condition: func(cond string) (bool, error) {
 			if name, ok := strings.CutPrefix(cond, "env:"); ok {
@@ -195,6 +197,87 @@ func cmdDefer(ts *testscript.TestScript, neg bool, args []string) {
 	ts.Defer(func() {
 		_ = ts.Exec(name, rest...)
 	})
+}
+
+// kdbxcheck <file> <password> <group/.../entryTitle> [key=value]...
+//
+// Asserts that the KeePass file contains an entry at the given path: a
+// '/'-separated chain of group names starting at the top-level group, with
+// the final segment being the entry title. Same-named sibling groups (legal
+// in Passbolt and KDBX) are all searched. Extra key=value args assert entry
+// field contents (protected fields are unlocked first). `! kdbxcheck`
+// asserts absence of the entry and takes no field args.
+func cmdKdbxCheck(ts *testscript.TestScript, neg bool, args []string) {
+	if len(args) < 3 || (neg && len(args) > 3) {
+		ts.Fatalf("usage: kdbxcheck <file> <password> <group/.../entryTitle> [key=value]...")
+	}
+	file, err := os.Open(ts.MkAbs(args[0]))
+	if err != nil {
+		ts.Fatalf("kdbxcheck open: %v", err)
+	}
+	defer file.Close()
+
+	db := gokeepasslib.NewDatabase()
+	db.Credentials = gokeepasslib.NewPasswordCredentials(args[1])
+	if err := gokeepasslib.NewDecoder(file).Decode(db); err != nil {
+		ts.Fatalf("kdbxcheck decode: %v", err)
+	}
+	if err := db.UnlockProtectedEntries(); err != nil {
+		ts.Fatalf("kdbxcheck unlock: %v", err)
+	}
+
+	segments := strings.Split(args[2], "/")
+	if len(segments) < 2 {
+		ts.Fatalf("kdbxcheck: path %q needs at least <topGroup>/<entryTitle>", args[2])
+	}
+	var found *gokeepasslib.Entry
+	for i := range db.Content.Root.Groups {
+		if entry := kdbxFindEntry(&db.Content.Root.Groups[i], segments); entry != nil {
+			found = entry
+			break
+		}
+	}
+	switch {
+	case found != nil && neg:
+		ts.Fatalf("kdbxcheck: entry %q present, expected absent", args[2])
+	case found == nil && !neg:
+		ts.Fatalf("kdbxcheck: entry %q not found", args[2])
+	case found == nil:
+		return
+	}
+
+	for _, assertion := range args[3:] {
+		key, want, ok := strings.Cut(assertion, "=")
+		if !ok {
+			ts.Fatalf("kdbxcheck: invalid field assertion %q (need key=value)", assertion)
+		}
+		if got := found.GetContent(key); got != want {
+			ts.Fatalf("kdbxcheck: entry %q field %s = %q, want %q", args[2], key, got, want)
+		}
+	}
+}
+
+// kdbxFindEntry returns the first entry titled segments[len-1] under the
+// group chain segments[1:len-1], or nil; group must match segments[0].
+func kdbxFindEntry(group *gokeepasslib.Group, segments []string) *gokeepasslib.Entry {
+	if group.Name != segments[0] {
+		return nil
+	}
+	rest := segments[1:]
+	if len(rest) == 1 {
+		for i := range group.Entries {
+			if group.Entries[i].GetTitle() == rest[0] {
+				return &group.Entries[i]
+			}
+		}
+		return nil
+	}
+	for i := range group.Groups {
+		if entry := kdbxFindEntry(&group.Groups[i], rest); entry != nil {
+			return entry
+		}
+	}
+	return nil
 }
 
 // uuid <varname>  — generate a fresh UUIDv4 into env var <varname>.

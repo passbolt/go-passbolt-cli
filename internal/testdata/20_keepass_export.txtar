@@ -1,5 +1,57 @@
-# export keepass produces a .kdbx file at the requested path.
+# export keepass produces a .kdbx file at the requested path and mirrors the
+# folder hierarchy as nested groups: nested folders, a resource inside a
+# subfolder, a folderless resource in the top group, and --folder limiting
+# the export to one subtree. kdbxcheck decodes the file and asserts entry
+# placement.
+
+pb create folder --name test-kdbx-parent --json
+cp stdout kdbx-parent.json
+jsonget kdbx-parent.json id KP_ID
+defer pb delete folder --id $KP_ID
+
+pb create folder --name test-kdbx-child --folderParentID $KP_ID --json
+cp stdout kdbx-child.json
+jsonget kdbx-child.json id KC_ID
+defer pb delete folder --id $KC_ID
+
+pb create resource --name test-kdbx-in-folder --password pass-in-folder --folderParentID $KC_ID --json
+cp stdout kdbx-res-folder.json
+jsonget kdbx-res-folder.json id RF_ID
+defer pb delete resource --id $RF_ID
+
+pb create resource --name test-kdbx-rootless --password pass-rootless --json
+cp stdout kdbx-res-root.json
+jsonget kdbx-res-root.json id RR_ID
+defer pb delete resource --id $RR_ID
+
+pb create resource --type v5-default-with-totp --name test-kdbx-totp --username totp-user --uri https://totp.example.com --password totp-pass --secret-field totp={"secret_key":"JBSWY3DPEHPK3PXP","algorithm":"SHA256","digits":8,"period":60} --folderParentID $KC_ID --json
+cp stdout kdbx-res-totp.json
+jsonget kdbx-res-totp.json id RT_ID
+defer pb delete resource --id $RT_ID
 
 pb export keepass --file $WORK/export.kdbx --password test-kdbx-pass
 
 exists $WORK/export.kdbx
+kdbxcheck $WORK/export.kdbx test-kdbx-pass 'Passbolt Export/test-kdbx-parent/test-kdbx-child/test-kdbx-in-folder'
+kdbxcheck $WORK/export.kdbx test-kdbx-pass 'Passbolt Export/test-kdbx-rootless'
+! kdbxcheck $WORK/export.kdbx test-kdbx-pass 'Passbolt Export/test-kdbx-in-folder'
+
+# the TOTP resource carries both otp conventions: KeePass 2 native TimeOtp-*
+# fields and (checked implicitly by presence) the otpauth URI.
+kdbxcheck $WORK/export.kdbx test-kdbx-pass 'Passbolt Export/test-kdbx-parent/test-kdbx-child/test-kdbx-totp' TimeOtp-Secret-Base32=JBSWY3DPEHPK3PXP TimeOtp-Length=8 TimeOtp-Period=60 TimeOtp-Algorithm=HMAC-SHA-256 UserName=totp-user
+
+# --comments still produces a valid export (no comments on the test data,
+# so entries must be unchanged).
+pb export keepass --file $WORK/export-comments.kdbx --password test-kdbx-pass --comments
+
+kdbxcheck $WORK/export-comments.kdbx test-kdbx-pass 'Passbolt Export/test-kdbx-rootless'
+
+# --folder limits the export to the selected subtree; the folderless
+# resource must not appear.
+pb export keepass --file $WORK/export-sub.kdbx --password test-kdbx-pass --folder $KP_ID
+
+kdbxcheck $WORK/export-sub.kdbx test-kdbx-pass 'Passbolt Export/test-kdbx-parent/test-kdbx-child/test-kdbx-in-folder'
+! kdbxcheck $WORK/export-sub.kdbx test-kdbx-pass 'Passbolt Export/test-kdbx-rootless'
+
+# an unknown folder id fails instead of silently exporting everything
+! pb export keepass --file $WORK/export-bad.kdbx --password test-kdbx-pass --folder 00000000-0000-0000-0000-000000000000

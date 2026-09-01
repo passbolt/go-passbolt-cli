@@ -5,6 +5,22 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 Releases before this file was introduced are documented in the [GitHub releases](https://github.com/passbolt/go-passbolt-cli/releases).
 
 ## [Unreleased]
+### Added
+- KeePass export mirrors the Passbolt folder hierarchy as nested groups; folderless resources stay in the top group (#57, #138)
+- KeePass export: `--folder` exports only the given folder and its subfolders (#75)
+- KeePass export carries Passbolt tags, creation/modification timestamps and expiry dates into the KDBX entries
+- KeePass export writes TOTP configuration in both conventions: the otpauth `otp` field (KeePassXC, KeeOtp2) and the native `TimeOtp-*` fields (KeePass 2.x built-in generator)
+- KeePass export: `--comments` includes the Passbolt comment threads in the KeePass Notes field
+- Interactive password prompts mask input with '*'; the KeePass export password is asked twice for confirmation
+
+### Fixed
+- KeePass export: harden the KDF settings (600k AES-KDF rounds for v3, 64 MiB Argon2 memory for v4) so KeePass no longer warns about weak key transformation
+- KeePass export: an empty password is rejected instead of silently writing an unprotected kdbx
+- KeePass export: a resource without a secret is skipped instead of crashing the export
+- KeePass export: a failed export no longer leaves a partial .kdbx behind (write to temp file, rename on success), and write errors on close are reported
+
+### Changed
+- KeePass export: the top-level group is named "Passbolt Export" instead of "root"
 
 ## [0.5.2] - 2026-08-28
 ### Fixed
