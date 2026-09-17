@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"uuid"
@@ -121,6 +122,7 @@ func cliParams(t testing.TB) testscript.Params {
 			"jsonget":    cmdJSONGet,
 			"jsonexists": cmdJSONExists,
 			"uuid":       cmdUUID,
+			"payload":    cmdPayload,
 			"defer":      cmdDefer,
 		},
 		Condition: func(cond string) (bool, error) {
@@ -270,6 +272,24 @@ func cmdDefer(ts *testscript.TestScript, neg bool, args []string) {
 }
 
 // ---- JSON path -----------------------------------------------------------
+
+// payload <varname> <go-quoted-string>  — decode Go escape sequences into env var
+// <varname>. testscript's parser does no backslash processing, so this is the only
+// way to get a real ESC byte into a CLI argument; single-quote a payload containing
+// spaces ('"a\nb c"').
+func cmdPayload(ts *testscript.TestScript, neg bool, args []string) {
+	if neg {
+		ts.Fatalf("payload does not support negation")
+	}
+	if len(args) != 2 {
+		ts.Fatalf("usage: payload <varname> <quoted-string>")
+	}
+	s, err := strconv.Unquote(args[1])
+	if err != nil {
+		ts.Fatalf("payload: unquote %s: %v", args[1], err)
+	}
+	ts.Setenv(args[0], s)
+}
 
 // jsonPath resolves a path against parsed JSON.
 //
