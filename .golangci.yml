@@ -7,6 +7,7 @@ linters:
   default: none
   enable:
     - errcheck
+    - forbidigo
     - gocritic
     - gosec
     - govet
@@ -28,6 +29,27 @@ linters:
         - (*github.com/spf13/cobra.Command).GenZshCompletion
         - (*github.com/spf13/cobra.Command).GenFishCompletion
         - (*github.com/spf13/cobra.Command).GenPowerShellCompletionWithDesc
+    forbidigo:
+      # Human-facing output goes through util.Out/util.Err.
+      analyze-types: true
+      forbid:
+        - pattern: '^fmt\.(Print|Fprint)(f|ln)?$'
+          pkg: '^fmt$'
+          msg: use util.Printf/Println/Print so server-controlled text is sanitized
+        - pattern: '^os\.(Stdout|Stderr)$'
+          pkg: '^os$'
+          msg: use util.Out/util.Err instead of the raw stream
+        - pattern: '^(print|println)$'
+          msg: use util.Print/Println so server-controlled text is sanitized
+        - pattern: '^log\.((Print|Fatal|Panic)(f|ln)?|Default)$'
+          pkg: '^log$'
+          msg: the default logger writes raw to stderr; use util.Eprintf or log.New(util.Err, ...)
+        - pattern: '^pterm\.(Print|Fprint|Info|Warning|Error|Success|Debug|Fatal)'
+          msg: pterm writes raw to stdout; use util.Print*
+        - pattern: '^pterm\.DefaultTable$'
+          msg: use util.RenderTable so cells are sanitized and the table goes to util.Out
+        - pattern: '^cobra\.CheckErr$'
+          msg: CheckErr writes raw to os.Stderr; use util.Eprintln with Sanitize
     gocritic:
       disabled-checks:
         - captLocal
@@ -36,11 +58,16 @@ linters:
       locale: US
   exclusions:
     rules:
-      # Exclude errcheck and gosec from test files
+      # Tests: unchecked errors are fine, and they capture the raw streams.
       - path: _test\.go
         linters:
           - errcheck
+          - forbidigo
           - gosec
+      # sanitize.go is where Out/Err and the Print* wrappers are defined.
+      - path: internal/util/sanitize\.go
+        linters:
+          - forbidigo
       # pterm Render() — table output to stdout, non-critical
       - text: "Render"
         linters:
