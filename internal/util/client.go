@@ -22,7 +22,7 @@ import (
 func ReadPassword(prompt string) (string, error) {
 	fd := int(os.Stdin.Fd())
 	var pass string
-	if term.IsTerminal(fd) {
+	if IsInteractive() {
 		Eprint(prompt)
 
 		inputPass, err := term.ReadPassword(fd)

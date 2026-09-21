@@ -1,9 +1,10 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
-	"github.com/passbolt/go-passbolt-cli/internal/util"
 
+	"github.com/passbolt/go-passbolt-cli/internal/util"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -20,11 +21,28 @@ this makes using the cli easier as they don't have to be specified all the time.
 			return fmt.Errorf("writing Config: %w", err)
 		}
 		if viper.GetBool("debug") {
-			// serverVerifyEncToken is server-supplied and rendered on one line.
-			util.Printf("Saved: %v\n", util.Sanitize(fmt.Sprintf("%+v", viper.AllSettings())))
+			assumeYes, _ := cmd.Flags().GetBool("yes")
+			dumpSettings(assumeYes)
 		}
 		return nil
 	},
+}
+
+// dumpSettings prints every saved setting, secrets included, once confirmed.
+func dumpSettings(assumeYes bool) {
+	if !assumeYes {
+		util.Eprintln("Warning: --debug prints your private key, passphrase and MFA seed in cleartext.")
+		confirmed, err := util.Confirm("Print them? [y/N]: ")
+		if errors.Is(err, util.ErrNotInteractive) {
+			util.Eprintln("Skipped: not a terminal. Re-run with --yes to print anyway.")
+			return
+		}
+		if err != nil || !confirmed {
+			return
+		}
+	}
+	// stderr keeps secrets out of a --json pipeline and lets 2>/dev/null suppress them.
+	util.Eprintf("Saved: %v\n", util.Sanitize(fmt.Sprintf("%+v", viper.AllSettings())))
 }
 
 func init() {

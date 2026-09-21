@@ -64,6 +64,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "Config File")
 
 	rootCmd.PersistentFlags().Bool("debug", false, "Enable Debug Logging")
+	rootCmd.PersistentFlags().BoolP("yes", "y", false, "Assume yes for confirmation prompts, for use in scripts")
 	rootCmd.PersistentFlags().Duration("timeout", time.Minute, "Timeout for the Context")
 	rootCmd.PersistentFlags().String("serverAddress", "", "Passbolt Server Address (https://passbolt.example.com)")
 	rootCmd.PersistentFlags().String("userPrivateKey", "", "Passbolt User Private Key")
@@ -90,6 +91,7 @@ func init() {
 
 	rootCmd.PersistentFlags().Uint("workers", 0, "Number of Concurrent Workers for Expensive Operations. 0 (default) uses the number of CPU cores")
 
+	// yes is unbound: configure writes AllSettings, which would persist "yes = true".
 	viper.BindPFlag("debug", rootCmd.PersistentFlags().Lookup("debug"))
 	viper.BindPFlag("timeout", rootCmd.PersistentFlags().Lookup("timeout"))
 	viper.BindPFlag("serverAddress", rootCmd.PersistentFlags().Lookup("serverAddress"))
