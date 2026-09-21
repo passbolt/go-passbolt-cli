@@ -19,6 +19,9 @@ var cfgFile string
 // cfgPath is where configure and verify write, resolved by initConfig.
 var cfgPath string
 
+// defaultConfigFile is what configure creates when there is no config yet.
+const defaultConfigFile = "go-passbolt-cli.toml"
+
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:          "passbolt",
@@ -119,11 +122,28 @@ func fileToContent(file, contentFlag string) {
 	viper.Set(contentFlag, string(content))
 }
 
+// hardenConfigFile repairs the default config's mode before the read, or warns for --config.
+func hardenConfigFile() {
+	if cfgFile != "" {
+		util.WarnIfGroupOrWorldAccessible(cfgPath)
+		return
+	}
+	// os.MkdirAll leaves an existing directory alone and is masked by the umask.
+	if err := util.RepairMode(filepath.Dir(cfgPath), 0o700); err != nil {
+		util.Eprintln("Warning: failed to set config directory permissions:", util.Sanitize(err.Error()))
+	}
+	if err := util.RepairMode(cfgPath, 0o600); err != nil {
+		util.Eprintln("Warning: failed to set config file permissions:", util.Sanitize(err.Error()))
+	}
+}
+
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
+	// Where configure writes when the search below finds nothing.
+	newConfigPath := ""
+
 	if cfgFile != "" {
 		// Use config file from the flag.
-		cfgPath = cfgFile
 		viper.SetConfigFile(cfgFile)
 	} else {
 		// Find config directory.
@@ -135,9 +155,9 @@ func initConfig() {
 		}
 
 		confDir = filepath.Join(confDir, "go-passbolt-cli")
-		_ = os.MkdirAll(confDir, 0700)
+		_ = os.MkdirAll(confDir, 0o700)
 
-		cfgPath = filepath.Join(confDir, "go-passbolt-cli.toml")
+		newConfigPath = filepath.Join(confDir, defaultConfigFile)
 		viper.AddConfigPath(confDir)
 		viper.SetConfigType("toml")
 		viper.SetConfigName("go-passbolt-cli")
@@ -150,11 +170,16 @@ func initConfig() {
 		if viper.GetBool("debug") {
 			util.Eprintln("Using config file:", viper.ConfigFileUsed())
 		}
-		// update Config file Permissions
-		if err := os.Chmod(viper.ConfigFileUsed(), 0600); err != nil {
-			util.Eprintln("Warning: failed to set config file permissions:", err)
-		}
 	}
+
+	// Read first: viper records the file it picked even when parsing it failed, which is
+	// exactly when the mode still needs repairing.
+	cfgPath = viper.ConfigFileUsed()
+	if cfgPath == "" {
+		cfgPath = newConfigPath
+	}
+
+	hardenConfigFile()
 
 	// Read in Private Key from File if userprivatekeyfile is set
 	userprivatekeyfile, err := rootCmd.PersistentFlags().GetString("userPrivateKeyFile")
