@@ -60,16 +60,8 @@ var verifyCMD = &cobra.Command{
 		viper.Set("serverVerifyToken", token)
 		viper.Set("serverVerifyEncToken", enctoken)
 
-		if viper.ConfigFileUsed() == "" {
-			err := viper.SafeWriteConfig()
-			if err != nil {
-				return fmt.Errorf("writing Config: %w", err)
-			}
-		} else {
-			err := viper.WriteConfig()
-			if err != nil {
-				return fmt.Errorf("writing Config: %w", err)
-			}
+		if err := util.WriteViperConfig(cfgPath); err != nil {
+			return fmt.Errorf("writing Config: %w", err)
 		}
 		util.Println("Verification Enabled")
 		return nil

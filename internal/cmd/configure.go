@@ -16,16 +16,8 @@ var configureCmd = &cobra.Command{
 this makes using the cli easier as they don't have to be specified all the time.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 
-		if viper.ConfigFileUsed() == "" {
-			err := viper.SafeWriteConfig()
-			if err != nil {
-				return fmt.Errorf("writing Config: %w", err)
-			}
-		} else {
-			err := viper.WriteConfig()
-			if err != nil {
-				return fmt.Errorf("writing Config: %w", err)
-			}
+		if err := util.WriteViperConfig(cfgPath); err != nil {
+			return fmt.Errorf("writing Config: %w", err)
 		}
 		if viper.GetBool("debug") {
 			// serverVerifyEncToken is server-supplied and rendered on one line.

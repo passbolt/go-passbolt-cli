@@ -16,6 +16,9 @@ import (
 
 var cfgFile string
 
+// cfgPath is where configure and verify write, resolved by initConfig.
+var cfgPath string
+
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:          "passbolt",
@@ -120,6 +123,7 @@ func fileToContent(file, contentFlag string) {
 func initConfig() {
 	if cfgFile != "" {
 		// Use config file from the flag.
+		cfgPath = cfgFile
 		viper.SetConfigFile(cfgFile)
 	} else {
 		// Find config directory.
@@ -133,7 +137,7 @@ func initConfig() {
 		confDir = filepath.Join(confDir, "go-passbolt-cli")
 		_ = os.MkdirAll(confDir, 0700)
 
-		viper.SetConfigPermissions(os.FileMode(0600))
+		cfgPath = filepath.Join(confDir, "go-passbolt-cli.toml")
 		viper.AddConfigPath(confDir)
 		viper.SetConfigType("toml")
 		viper.SetConfigName("go-passbolt-cli")
