@@ -13,7 +13,9 @@ import (
 var verifyCMD = &cobra.Command{
 	Use:   "verify",
 	Short: "Verify Setup the Server Verification",
-	Long:  `Verify Setup the Server Verification. You need to run this once after that the Server will always be verified if the same config is used`,
+	Long: `Verify Setup the Server Verification. You need to run this once after that the Server will always be verified if the same config is used
+
+The verification tokens are written to the config file (mode 0600).`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx, cancel := util.GetContext()
 		defer cancel()

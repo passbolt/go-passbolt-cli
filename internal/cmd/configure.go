@@ -14,7 +14,10 @@ var configureCmd = &cobra.Command{
 	Use:   "configure",
 	Short: "Configure saves the provided global flags to the Config File",
 	Long: `Configure saves the provided global flags to the Config File.
-this makes using the cli easier as they don't have to be specified all the time.`,
+this makes using the cli easier as they don't have to be specified all the time.
+
+Secrets are stored in cleartext, so the file is kept at mode 0600;
+a --config file with looser permissions is reported, not changed.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 
 		if err := util.WriteViperConfig(cfgPath); err != nil {

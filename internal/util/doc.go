@@ -42,4 +42,9 @@
 // control and renders no server text. The SDK's own debug log writes raw server
 // responses straight to os.Stdout, so --debug output is not sanitized; it is opt-in
 // and for diagnosis, not normal use.
+//
+// # Config and output files
+//
+// The config file holds secrets in cleartext: CreateSecretFile writes it and the KeePass
+// export at 0600, and RepairMode fixes the default config (a --config path is only reported).
 package util

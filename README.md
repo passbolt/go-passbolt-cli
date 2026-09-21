@@ -72,6 +72,31 @@ Notes:
 - Passwordless private keys are not supported.
 - MFA settings can also be saved permanently this way.
 
+## The config file
+
+`passbolt configure` writes to `$XDG_CONFIG_HOME/go-passbolt-cli/go-passbolt-cli.toml`
+(`~/.config/...` by default; `~/Library/Application Support/...` on macOS,
+`%AppData%\...` on Windows), or to the path given by `--config`.
+
+**It stores what you give it in cleartext** — your private key, its passphrase,
+your MFA seed and the server verification tokens. Anyone who can read the file
+can log in as you and decrypt every password you can see, so it is written
+readable and writable by you alone (mode `0600`), in a `0700` directory. The CLI
+repairs those permissions on the default file if it finds them loosened, and
+warns about a `--config` file it cannot vouch for rather than changing it.
+
+A symlink to one of your own files works, so dotfiles setups can keep the real
+file in a repository and link it into place; a link to another user's file, or to
+a device or pipe, is refused before anything is written.
+
+If you would rather not keep the secrets on disk, store only `serverAddress` and
+supply the rest through environment variables or flags; with no `userPassword`
+saved the CLI prompts for it each time.
+
+Note that `--debug` prints every stored setting, secrets included. It asks before
+doing so, and skips the dump entirely when it is not attached to a terminal
+unless you pass `--yes`.
+
 # Usage
 
 Generally, the structure of commands are like this:
