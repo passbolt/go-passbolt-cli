@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/url"
-	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -84,7 +83,8 @@ func KeepassExport(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("getting Resources: %w", err)
 		}
 
-		file, err := os.Create(filename)
+		// os.Create would leave this at 0644: encrypted, but every password the user has.
+		file, err := util.CreateSecretFile(filename)
 		if err != nil {
 			return fmt.Errorf("creating File: %w", err)
 		}
