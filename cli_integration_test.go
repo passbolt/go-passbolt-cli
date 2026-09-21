@@ -6,7 +6,7 @@
 // Three parts, in order:
 //   - the harness entry points and the ephemeral environment they boot;
 //   - the custom commands the scripts call (jsoneq, jsonget, jsonexists,
-//     uuid, defer);
+//     uuid, defer, payload, perm);
 //   - the JSON path resolver backing the three json* commands.
 //
 // cliParams is shared with BenchmarkCLI in cli_bench_test.go.
@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"testing"
@@ -124,6 +125,7 @@ func cliParams(t testing.TB) testscript.Params {
 			"uuid":       cmdUUID,
 			"payload":    cmdPayload,
 			"defer":      cmdDefer,
+			"perm":       cmdPerm,
 		},
 		Condition: func(cond string) (bool, error) {
 			if name, ok := strings.CutPrefix(cond, "env:"); ok {
@@ -269,6 +271,34 @@ func cmdDefer(ts *testscript.TestScript, neg bool, args []string) {
 	ts.Defer(func() {
 		_ = ts.Exec(name, rest...)
 	})
+}
+
+// perm <file> <octal>  — assert permission bits; "exists -readonly" only checks mode&0222.
+func cmdPerm(ts *testscript.TestScript, neg bool, args []string) {
+	if len(args) != 2 {
+		ts.Fatalf("usage: perm <file> <octal>")
+	}
+	if runtime.GOOS == "windows" {
+		return
+	}
+	want, err := strconv.ParseUint(args[1], 8, 32)
+	if err != nil {
+		ts.Fatalf("perm: bad mode %q: %v", args[1], err)
+	}
+	info, err := os.Lstat(ts.MkAbs(args[0]))
+	if err != nil {
+		ts.Fatalf("perm: %v", err)
+	}
+	got := info.Mode().Perm()
+	if neg {
+		if got == os.FileMode(want) {
+			ts.Fatalf("perm: %s is %04o, want it not to be", args[0], got)
+		}
+		return
+	}
+	if got != os.FileMode(want) {
+		ts.Fatalf("perm: %s is %04o, want %04o", args[0], got, want)
+	}
 }
 
 // ---- JSON path -----------------------------------------------------------
