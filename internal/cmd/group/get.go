@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"al.essio.dev/pkg/shellescape"
 	"github.com/passbolt/go-passbolt-cli/internal/util"
 	"github.com/passbolt/go-passbolt/api"
 	"github.com/passbolt/go-passbolt/helper"
@@ -71,7 +70,7 @@ func GroupGet(cmd *cobra.Command, args []string) error {
 			})
 		}
 
-		fmt.Printf("Name: %v\n", name)
+		util.Printf("Name: %v\n", util.Sanitize(name))
 		// Print Memberships
 		if len(columns) != 0 {
 			data := pterm.TableData{columns}
@@ -85,11 +84,11 @@ func GroupGet(cmd *cobra.Command, args []string) error {
 					case "isgroupmanager":
 						entry[i] = fmt.Sprint(membership.IsGroupManager)
 					case "username":
-						entry[i] = shellescape.StripUnsafe(membership.Username)
+						entry[i] = membership.Username
 					case "userfirstname":
-						entry[i] = shellescape.StripUnsafe(membership.UserFirstName)
+						entry[i] = membership.UserFirstName
 					case "userlastname":
-						entry[i] = shellescape.StripUnsafe(membership.UserLastName)
+						entry[i] = membership.UserLastName
 					default:
 						cmd.SilenceUsage = false
 						return fmt.Errorf("unknown Column: %v", columns[i])
@@ -98,7 +97,7 @@ func GroupGet(cmd *cobra.Command, args []string) error {
 				data = append(data, entry)
 			}
 
-			pterm.DefaultTable.WithHasHeader().WithData(data).Render()
+			util.RenderTable(data)
 		}
 		return nil
 	})

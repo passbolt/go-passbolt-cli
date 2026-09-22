@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"al.essio.dev/pkg/shellescape"
 	"github.com/passbolt/go-passbolt-cli/internal/util"
 	"github.com/passbolt/go-passbolt/api"
 	"github.com/spf13/cobra"
@@ -60,8 +59,8 @@ func FolderGet(cmd *cobra.Command, args []string) error {
 				Name:           &folder.Name,
 			})
 		}
-		fmt.Printf("FolderParentID: %v\n", folder.FolderParentID)
-		fmt.Printf("Name: %v\n", shellescape.StripUnsafe(folder.Name))
+		util.Printf("FolderParentID: %v\n", util.Sanitize(folder.FolderParentID))
+		util.Printf("Name: %v\n", util.Sanitize(folder.Name))
 		return nil
 	})
 }

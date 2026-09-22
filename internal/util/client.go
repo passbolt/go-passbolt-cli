@@ -23,7 +23,7 @@ func ReadPassword(prompt string) (string, error) {
 	fd := int(os.Stdin.Fd())
 	var pass string
 	if term.IsTerminal(fd) {
-		fmt.Fprint(os.Stderr, prompt)
+		Eprint(prompt)
 
 		inputPass, err := term.ReadPassword(fd)
 		if err != nil {
@@ -50,9 +50,9 @@ func SaveSessionKeysAndLogout(ctx context.Context, client *api.Client) {
 		saved, err := client.SavePendingSessionKeys(ctx)
 		if err != nil {
 			// Log but don't fail - session keys can be re-discovered on next access
-			fmt.Fprintf(os.Stderr, "Warning: failed to save session keys: %v\n", err)
+			Eprintf("Warning: failed to save session keys: %v\n", err)
 		} else if saved > 0 {
-			fmt.Fprintf(os.Stderr, "Saved %d session keys to server\n", saved)
+			Eprintf("Saved %d session keys to server\n", saved)
 		}
 	}
 	client.Logout(ctx)
@@ -91,12 +91,12 @@ func GetClient(ctx context.Context) (*api.Client, error) {
 	if userPassword == "" {
 		cliPassword, err := ReadPassword("Enter Password:")
 		if err != nil {
-			fmt.Println()
+			Println()
 			return nil, fmt.Errorf("reading Password: %w", err)
 		}
 
 		userPassword = cliPassword
-		fmt.Println()
+		Println()
 	}
 
 	httpClient, err := GetHTTPClient()
@@ -135,10 +135,10 @@ func GetClient(ctx context.Context) (*api.Client, error) {
 				var code string
 				code, err = ReadPassword("Enter TOTP:")
 				if err != nil {
-					fmt.Printf("\n")
+					Printf("\n")
 					return http.Cookie{}, fmt.Errorf("reading TOTP: %w", err)
 				}
-				fmt.Printf("\n")
+				Printf("\n")
 				req := api.MFAChallengeResponse{
 					TOTP: code,
 				}
@@ -148,7 +148,7 @@ func GetClient(ctx context.Context) (*api.Client, error) {
 					if _, ok := errors.AsType[*api.APIError](err); !ok {
 						return http.Cookie{}, fmt.Errorf("doing MFA Challenge Response: %w", err)
 					}
-					fmt.Println("TOTP Verification Failed")
+					Println("TOTP Verification Failed")
 				} else {
 					// MFA worked so lets find the cookie and return it
 					for _, cookie := range raw.Cookies() {

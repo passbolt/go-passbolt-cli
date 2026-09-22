@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"al.essio.dev/pkg/shellescape"
 	"github.com/passbolt/go-passbolt-cli/internal/util"
 	"github.com/passbolt/go-passbolt/api"
 	"github.com/passbolt/go-passbolt/helper"
@@ -52,10 +51,10 @@ func UserGet(cmd *cobra.Command, args []string) error {
 				Role:      &role,
 			})
 		}
-		fmt.Printf("Username: %v\n", shellescape.StripUnsafe(username))
-		fmt.Printf("FirstName: %v\n", shellescape.StripUnsafe(firstname))
-		fmt.Printf("LastName: %v\n", shellescape.StripUnsafe(lastname))
-		fmt.Printf("Role: %v\n", shellescape.StripUnsafe(role))
+		util.Printf("Username: %v\n", util.Sanitize(username))
+		util.Printf("FirstName: %v\n", util.Sanitize(firstname))
+		util.Printf("LastName: %v\n", util.Sanitize(lastname))
+		util.Printf("Role: %v\n", util.Sanitize(role))
 		return nil
 	})
 }

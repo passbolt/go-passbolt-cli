@@ -3,7 +3,6 @@ module github.com/passbolt/go-passbolt-cli
 go 1.27.1
 
 require (
-	al.essio.dev/pkg/shellescape v1.6.0
 	github.com/ProtonMail/gopenpgp/v3 v3.4.1
 	github.com/google/cel-go v0.31.0
 	github.com/passbolt/go-passbolt v0.8.4-alpha.1
