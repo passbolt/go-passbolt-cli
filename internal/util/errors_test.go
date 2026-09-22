@@ -3,10 +3,12 @@ package util
 import (
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 	"testing"
 
 	"github.com/passbolt/go-passbolt/api"
+	"github.com/passbolt/go-passbolt/helper"
 )
 
 // TestSentinelsMatchableWhenWrapped documents the contract that callers and
@@ -113,7 +115,7 @@ func TestAPIStatusHint(t *testing.T) {
 }
 
 // TestExplainAPIError_NoHintStatus verifies that an API error with a status that
-// has no hint (400) is only op-wrapped — no spurious hint text — while the
+// has no hint (400) is only op-wrapped, with no spurious hint text, while the
 // *api.APIError stays recoverable via errors.As.
 func TestExplainAPIError_NoHintStatus(t *testing.T) {
 	apiErr := &api.APIError{StatusCode: 400, Message: "Bad Request"}
@@ -131,5 +133,147 @@ func TestExplainAPIError_NoHintStatus(t *testing.T) {
 		strings.Contains(err.Error(), "access denied") ||
 		strings.Contains(err.Error(), "internal error") {
 		t.Errorf("no hint should be added for status 400, got %q", err.Error())
+	}
+}
+
+// TestExplainWriteError_SchemaMismatch covers the guidance shown when strict write validation
+// rejects a document: name the type, lead with the likelier cause, keep the chain intact.
+func TestExplainWriteError_SchemaMismatch(t *testing.T) {
+	inner := fmt.Errorf("validating metadata: %w: additional properties 'bogus' not allowed",
+		helper.ErrSchemaMismatch)
+
+	err := ExplainWriteError("creating Resource", "v5-default", inner)
+	if err == nil {
+		t.Fatal("expected an error")
+	}
+	if !errors.Is(err, helper.ErrSchemaMismatch) {
+		t.Error("the original chain must stay matchable with errors.Is")
+	}
+
+	msg := err.Error()
+	for _, want := range []string{
+		"creating Resource",
+		`Resource type "v5-default"`,
+		"check the field names",
+		"update go-passbolt-cli",
+		"bogus", // the jsonschema detail must survive
+	} {
+		if !strings.Contains(msg, want) {
+			t.Errorf("message should contain %q, got %q", want, msg)
+		}
+	}
+
+	// "check the field names" must come before the update advice, since a typo is the commoner
+	// cause of this error.
+	if strings.Index(msg, "check the field names") > strings.Index(msg, "update go-passbolt-cli") {
+		t.Error("the field-name explanation should precede the update advice")
+	}
+}
+
+// TestExplainWriteError_UnknownSlug covers the update path, which never resolves a slug.
+func TestExplainWriteError_UnknownSlug(t *testing.T) {
+	inner := fmt.Errorf("wrapped: %w", helper.ErrSchemaMismatch)
+
+	msg := ExplainWriteError("updating Resource", "", inner).Error()
+	if !strings.Contains(msg, "this Resource type") {
+		t.Errorf("expected the no-slug phrasing, got %q", msg)
+	}
+	if strings.Contains(msg, `""`) {
+		t.Errorf("an empty slug must not render as empty quotes, got %q", msg)
+	}
+}
+
+// TestExplainWriteError_FallsThroughToAPIHint checks that routing write commands through
+// ExplainWriteError did not cost them ExplainAPIError's status guidance.
+func TestExplainWriteError_FallsThroughToAPIHint(t *testing.T) {
+	apiErr := &api.APIError{StatusCode: http.StatusForbidden}
+
+	msg := ExplainWriteError("creating Resource", "v5-default", apiErr).Error()
+	if !strings.Contains(msg, "access denied") {
+		t.Errorf("expected the 403 hint from ExplainAPIError, got %q", msg)
+	}
+	if strings.Contains(msg, "bundled schema") {
+		t.Errorf("a non-schema error must not get the schema hint, got %q", msg)
+	}
+}
+
+// TestExplainReadError_UnsupportedType covers a Resource whose type this build has no schema for.
+func TestExplainReadError_UnsupportedType(t *testing.T) {
+	inner := fmt.Errorf("getting metadata: %w: v5-quantum", helper.ErrUnsupportedResourceType)
+
+	err := ExplainReadError("decrypting Resource", "v5-quantum", inner)
+	if !errors.Is(err, helper.ErrUnsupportedResourceType) {
+		t.Error("the original chain must stay matchable with errors.Is")
+	}
+
+	msg := err.Error()
+	for _, want := range []string{"decrypting Resource", "has no schema", `"v5-quantum"`, "update go-passbolt-cli"} {
+		if !strings.Contains(msg, want) {
+			t.Errorf("message should contain %q, got %q", want, msg)
+		}
+	}
+
+	// An unrelated error keeps the plain wrapping.
+	plain := ExplainReadError("decrypting Resource", "v5-default", errors.New("boom")).Error()
+	if strings.Contains(plain, "has no schema") {
+		t.Errorf("an unrelated error must not get the unsupported-type hint, got %q", plain)
+	}
+}
+
+// TestExplainWriteError_SchemaValidation covers a write whose values, not names, break the
+// schema: the hint points at the values and never at the field names.
+func TestExplainWriteError_SchemaValidation(t *testing.T) {
+	inner := fmt.Errorf("validating metadata: %w: 'name' length must be <= 255", helper.ErrSchemaValidation)
+
+	err := ExplainWriteError("updating Resource", "", inner)
+	if !errors.Is(err, helper.ErrSchemaValidation) {
+		t.Error("the original chain must stay matchable with errors.Is")
+	}
+
+	msg := err.Error()
+	for _, want := range []string{"updating Resource", "this Resource type", "check the field values", "update go-passbolt-cli", "255"} {
+		if !strings.Contains(msg, want) {
+			t.Errorf("message should contain %q, got %q", want, msg)
+		}
+	}
+	if strings.Contains(msg, "check the field names") {
+		t.Errorf("a declared-constraint failure must not blame the field names, got %q", msg)
+	}
+}
+
+// The SDK's write guards return ErrUnsupportedResourceType, which needs its own hint.
+func TestExplainWriteError_UnsupportedType(t *testing.T) {
+	inner := fmt.Errorf("%w: v5-brandnew", helper.ErrUnsupportedResourceType)
+
+	err := ExplainWriteError("creating Resource", "v5-brandnew", inner)
+	if !errors.Is(err, helper.ErrUnsupportedResourceType) {
+		t.Error("the original chain must stay matchable with errors.Is")
+	}
+
+	msg := err.Error()
+	for _, want := range []string{"creating Resource", "has no schema", `"v5-brandnew"`, "update go-passbolt-cli"} {
+		if !strings.Contains(msg, want) {
+			t.Errorf("message should contain %q, got %q", want, msg)
+		}
+	}
+}
+
+// A stored document this build rejects: the user supplied nothing, so the advice is to update.
+func TestExplainReadError_SchemaOutdated(t *testing.T) {
+	inner := fmt.Errorf("getting metadata: %w: at '/icon/type': value must be one of", helper.ErrSchemaValidation)
+
+	err := ExplainReadError("decrypting Resource", "v5-default", inner)
+	if !errors.Is(err, helper.ErrSchemaValidation) {
+		t.Error("the original chain must stay matchable with errors.Is")
+	}
+
+	msg := err.Error()
+	for _, want := range []string{"stored data does not match", `"v5-default"`, "update go-passbolt-cli"} {
+		if !strings.Contains(msg, want) {
+			t.Errorf("message should contain %q, got %q", want, msg)
+		}
+	}
+	if strings.Contains(msg, "check the field names") {
+		t.Error("the read path must not suggest checking field names; the user supplied none")
 	}
 }

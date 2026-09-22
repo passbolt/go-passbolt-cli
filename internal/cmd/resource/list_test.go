@@ -115,3 +115,50 @@ func TestParseResourceListFlags_DefaultsColumnsNotChanged(t *testing.T) {
 		t.Error("columns should default to the registry default set")
 	}
 }
+
+// TestFormatSkippedTypes pins the notice shown for resources this build cannot decrypt. The
+// ordering assertion matters: the tally is a map, so the lines used to come out in random order.
+func TestFormatSkippedTypes(t *testing.T) {
+	tests := []struct {
+		name     string
+		counts   map[string]int
+		want     string
+		contains []string
+	}{
+		{
+			name:   "nothing skipped renders nothing",
+			counts: nil,
+			want:   "",
+		},
+		{
+			name:   "empty map renders nothing",
+			counts: map[string]int{},
+			want:   "",
+		},
+		{
+			name:   "one resource uses the singular",
+			counts: map[string]int{"v5-quantum": 1},
+			want: "Warning: 1 resource ignored: their Resource type is unknown to this version of " +
+				"go-passbolt-cli or disabled on the server\n" +
+				"  - v5-quantum: 1\n" +
+				"Update go-passbolt-cli to include the types it does not know yet\n",
+		},
+		{
+			name:   "several slugs are totalled and sorted",
+			counts: map[string]int{"v5-quantum": 2, "v5-brandnew": 1},
+			want: "Warning: 3 resources ignored: their Resource type is unknown to this version of " +
+				"go-passbolt-cli or disabled on the server\n" +
+				"  - v5-brandnew: 1\n" +
+				"  - v5-quantum: 2\n" +
+				"Update go-passbolt-cli to include the types it does not know yet\n",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := formatSkippedTypes(tc.counts); got != tc.want {
+				t.Errorf("formatSkippedTypes() =\n%q\nwant\n%q", got, tc.want)
+			}
+		})
+	}
+}

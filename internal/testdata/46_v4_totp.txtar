@@ -1,0 +1,21 @@
+# The v4 "totp" type: name and uri are plaintext columns, and the secret is JSON carrying only
+# a totp object. Nothing else covered this type end to end, so a strict-write regression on it
+# would have gone unnoticed.
+
+pb create resource --type totp --name test-v4-totp --uri https://v4-totp.example.com --secret-field totp={"secret_key":"JBSWY3DPEHPK3PXP","algorithm":"SHA1","digits":6,"period":30} --json
+cp stdout create.json
+jsonget create.json id ID
+defer pb delete resource --id $ID
+jsonexists create.json id
+
+pb get resource --id $ID --json
+cp stdout get.json
+jsoneq get.json name test-v4-totp
+stdout JBSWY3DPEHPK3PXP
+
+# Update re-validates the merged document strictly, so renaming must still pass.
+pb update resource --id $ID --field name=test-v4-totp-renamed
+pb get resource --id $ID --json
+cp stdout renamed.json
+jsoneq renamed.json name test-v4-totp-renamed
+stdout JBSWY3DPEHPK3PXP

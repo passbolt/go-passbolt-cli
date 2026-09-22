@@ -138,8 +138,8 @@ github.com/opencontainers/go-digest v1.0.0 h1:apOUWs51W5PlhuyGyz9FCeeBIOUDA/6nW8
 github.com/opencontainers/go-digest v1.0.0/go.mod h1:0JzlMkj0TRzQZfJkVvzbP0HBR3IKzErnv2BNG4W4MAM=
 github.com/opencontainers/image-spec v1.1.1 h1:y0fUlFfIZhPF1W537XOLg0/fcx6zcHCJwooC2xJA040=
 github.com/opencontainers/image-spec v1.1.1/go.mod h1:qpqAh3Dmcf36wStyyWU+kCeDgrGnAve2nCC8+7h8Q0M=
-github.com/passbolt/go-passbolt v0.8.3 h1:9ybKiVCpojZJ3f+3TKvzbftC+y37prKdOfzf4O6Z9k8=
-github.com/passbolt/go-passbolt v0.8.3/go.mod h1:CLRWahnjlIJoFm0nj5Wrpk+Tm8ypaiF2dK6BdE4QHBg=
+github.com/passbolt/go-passbolt v0.8.4-alpha.1 h1:iUOKfgebUbfR1w5Vux43s0CEI5woL+5BqbxuR5T1TE4=
+github.com/passbolt/go-passbolt v0.8.4-alpha.1/go.mod h1:Ta/fMtG8loz1DX5SPqKTxaSL8WN9JRgjSRRpJwhNMxs=
 github.com/pelletier/go-toml/v2 v2.4.3 h1:GTRvJQutkOSftxIFD5xw9aepkYNuPWmVJpffdDPYVpY=
 github.com/pelletier/go-toml/v2 v2.4.3/go.mod h1:2gIqNv+qfxSVS7cM2xJQKtLSTLUE9V8t9Stt+h56mCY=
 github.com/power-devops/perfstat v0.0.0-20260805114148-88456608a4f6 h1:jL3a8soXdzuTCcRnKhOmtcsVOObdDTFf4O2B403HPRU=

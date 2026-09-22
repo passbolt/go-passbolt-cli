@@ -1,0 +1,15 @@
+# v5-pin-code arrived in Passbolt 5.12, so this is gated on the server advertising it: on an
+# older release the client correctly refuses the type, which is not a failure. The marker is set
+# per advertised slug in cli_integration_test.go.
+
+[!env:HAS_TYPE_V5_PIN_CODE] skip 'server does not advertise v5-pin-code (added in 5.12)'
+
+pb create resource --type v5-pin-code --name test-v5-pin --secret-field pin_code=8675309 --json
+cp stdout create.json
+jsonget create.json id ID
+defer pb delete resource --id $ID
+
+pb get resource --id $ID --json
+cp stdout get.json
+jsoneq get.json name test-v5-pin
+stdout 8675309

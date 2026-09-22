@@ -9,6 +9,9 @@ Releases before this file was introduced are documented in the [GitHub releases]
 - PB-54147: Bump go version to 1.27.0 (the minimum supported Go version is now 1.27)
 - PB-54147: Use go 1.27 syntax (the go-passbolt SDK :stays buildable on Go 1.26.7, so this only affects the CLI)
 
+### Changed
+- PB-54610: `list resource` skips Resources whose type is unknown to this build or disabled on the server and reports how many were ignored, and `create`, `update`, `share` and `get` explain schema validation failures (Go SDK PB-54610)
+
 ## [0.5.2] - 2026-08-28
 ### Fixed
 - PB-53937: Sign shared v5 metadata with both the user key and the metadata key (Go SDK v0.8.3)

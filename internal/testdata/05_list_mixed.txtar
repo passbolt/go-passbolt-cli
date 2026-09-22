@@ -24,6 +24,9 @@ pb list resource
 stdout test-list-v4
 stdout test-list-v5
 stdout test-list-cf
+# Every type this server ships must have a bundled schema. If a schema ever drifts such that
+# resources are silently ignored, this catches it here rather than as missing rows downstream.
+! stderr 'resources? ignored'
 
 # JSON output must contain all three.
 pb list resource --json
@@ -31,6 +34,7 @@ cp stdout list.json
 stdout test-list-v4
 stdout test-list-v5
 stdout test-list-cf
+! stderr 'resources? ignored'
 
 # Default list omits decrypted secrets.
 ! jsonexists list.json [id=$V5_ID].password

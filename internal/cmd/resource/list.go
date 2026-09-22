@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
+	"slices"
 	"strings"
 	"sync"
 
@@ -17,8 +19,10 @@ import (
 
 // decryptedResource holds the result of decrypting a single resource
 type decryptedResource struct {
-	index          int
-	resource       api.Resource
+	index    int
+	resource api.Resource
+	// typeSlug lets the collector tally skipped types without a second client lookup.
+	typeSlug       string
 	name           string
 	username       string
 	uri            string
@@ -90,7 +94,7 @@ func ResourceList(cmd *cobra.Command, args []string) error {
 		}
 
 		// Decrypt all resources in parallel
-		decrypted, err := decryptResourcesParallel(ctx, client, resources, needSecrets)
+		decrypted, skippedTypes, err := decryptResourcesParallel(ctx, client, resources, needSecrets)
 		if err != nil {
 			return err
 		}
@@ -103,15 +107,25 @@ func ResourceList(cmd *cobra.Command, args []string) error {
 			}
 		}
 
+		var printErr error
 		if config.jsonOutput {
-			return printJSONResources(decrypted, config.columnsChanged, config.columns)
+			printErr = printJSONResources(decrypted, config.columnsChanged, config.columns)
+		} else {
+			printErr = printTableResources(decrypted, config.columns)
+		}
+		if printErr != nil {
+			return printErr
 		}
 
-		return printTableResources(decrypted, config.columns)
+		// Last, and on stderr, so it survives a long table and leaves --json machine-readable.
+		fmt.Fprint(os.Stderr, formatSkippedTypes(skippedTypes))
+		return nil
 	})
 }
 
-func decryptResourcesParallel(ctx context.Context, client *api.Client, resources []api.Resource, needSecrets bool) ([]decryptedResource, error) {
+// decryptResourcesParallel decrypts resources with a worker pool, returning the successes plus a
+// per-slug tally of resources skipped for want of a schema.
+func decryptResourcesParallel(ctx context.Context, client *api.Client, resources []api.Resource, needSecrets bool) ([]decryptedResource, map[string]int, error) {
 	// Use parallel decryption with worker pool
 	numWorkers := min(
 		// Limit Worker count to Resource count
@@ -127,7 +141,7 @@ func decryptResourcesParallel(ctx context.Context, client *api.Client, resources
 	}
 
 	if len(validResources) == 0 {
-		return []decryptedResource{}, nil
+		return []decryptedResource{}, nil, nil
 	}
 
 	// Channel for work items and results
@@ -143,21 +157,43 @@ func decryptResourcesParallel(ctx context.Context, client *api.Client, resources
 			for idx := range jobs {
 				resource := validResources[idx]
 
-				// Lookup resource type from cache (single API call for all types)
+				// Lookup resource type from cache (single API call for all types). A type the
+				// server no longer advertises has been disabled or deleted there; its resources
+				// are skipped, tallied under the type ID since no slug is known.
 				rType, err := client.GetResourceTypeCached(ctx, resource.ResourceTypeID)
 				if err != nil {
-					results <- decryptedResource{index: idx, err: fmt.Errorf("get ResourceType: %w", err)}
+					result := decryptedResource{index: idx, resource: resource, err: fmt.Errorf("get ResourceType: %w", err)}
+					if errors.Is(err, api.ErrResourceTypeNotFound) {
+						result.typeSlug = "type " + resource.ResourceTypeID + " (disabled on the server)"
+						result.err = fmt.Errorf("%w: %w", helper.ErrUnsupportedResourceType, err)
+					}
+					results <- result
 					continue
 				}
 
 				// For v4 resources without secret decryption, use plaintext fields directly
 				// This avoids unnecessary function calls for 10k+ resources
 				isV5 := strings.HasPrefix(rType.Slug, "v5-")
+
+				// Skip a type this build has no schema for before decrypting anything. Only v5
+				// metadata and JSON secrets need a schema; a v4 resource's plaintext columns are
+				// readable without one, so those are still served by the fast path below.
+				if (isV5 || needSecrets) && !api.HasResourceSchema(rType.Slug) {
+					results <- decryptedResource{
+						index:    idx,
+						resource: resource,
+						typeSlug: rType.Slug,
+						err:      fmt.Errorf("%w: %s", helper.ErrUnsupportedResourceType, rType.Slug),
+					}
+					continue
+				}
+
 				if !needSecrets && !isV5 {
 					// V4 resource - metadata is plaintext, no decryption needed
 					results <- decryptedResource{
 						index:       idx,
 						resource:    resource,
+						typeSlug:    rType.Slug,
 						name:        resource.Name,
 						username:    resource.Username,
 						uri:         resource.URI,
@@ -189,6 +225,7 @@ func decryptResourcesParallel(ctx context.Context, client *api.Client, resources
 				results <- decryptedResource{
 					index:          idx,
 					resource:       resource,
+					typeSlug:       rType.Slug,
 					name:           helper.GetStringField(metaFields, "name"),
 					username:       helper.GetStringField(metaFields, "username"),
 					uri:            helper.GetStringField(metaFields, "uri"),
@@ -220,41 +257,55 @@ func decryptResourcesParallel(ctx context.Context, client *api.Client, resources
 		allResults[result.index] = result
 	}
 
-	// Process results, skipping unsupported types
+	// Process results. Only a Resource type this build has no schema for, or that the server
+	// has disabled, is skipped: those are whole categories the user can do nothing about from
+	// here. Any other failure, a stored document the schema rejects included, names the resource
+	// and aborts the listing, so bad data is never silently left out.
 	decrypted := make([]decryptedResource, 0, len(validResources))
 	skippedTypes := make(map[string]int)
 
 	for _, result := range allResults {
 		if result.err != nil {
 			if errors.Is(result.err, helper.ErrUnsupportedResourceType) {
-				// Get type slug for warning message
-				rType, _ := client.GetResourceTypeCached(ctx, result.resource.ResourceTypeID)
-				typeSlug := "unknown"
-				if rType != nil {
-					typeSlug = rType.Slug
-				}
-				skippedTypes[typeSlug]++
+				skippedTypes[result.typeSlug]++
 				continue
 			}
-			// Other errors are still fatal
-			return nil, fmt.Errorf("get Resource %w", result.err)
+			return nil, nil, util.ExplainReadError("get Resource "+result.resource.ID, result.typeSlug, result.err)
 		}
 		decrypted = append(decrypted, result)
 	}
 
-	// Print warning summary to stderr
-	if len(skippedTypes) > 0 {
-		total := 0
-		for _, count := range skippedTypes {
-			total += count
-		}
-		fmt.Fprintf(os.Stderr, "Warning: %d resource(s) skipped due to unsupported types:\n", total)
-		for typeSlug, count := range skippedTypes {
-			fmt.Fprintf(os.Stderr, "  - %s: %d\n", typeSlug, count)
-		}
+	// Returned rather than printed so the caller can emit it after the output. The count includes
+	// resources a --filter would have excluded: a skipped resource was never decrypted, so no CEL
+	// expression can be evaluated against it.
+	return decrypted, skippedTypes, nil
+}
+
+// formatSkippedTypes renders the stderr notice for resources whose type this build cannot read,
+// or "" when nothing was skipped. Slugs are sorted so the output is deterministic.
+func formatSkippedTypes(counts map[string]int) string {
+	if len(counts) == 0 {
+		return ""
 	}
 
-	return decrypted, nil
+	total := 0
+	for _, count := range counts {
+		total += count
+	}
+
+	noun := "resources"
+	if total == 1 {
+		noun = "resource"
+	}
+
+	var b strings.Builder
+	fmt.Fprintf(&b, "Warning: %d %s ignored: their Resource type is unknown to this version of "+
+		"go-passbolt-cli or disabled on the server\n", total, noun)
+	for _, slug := range slices.Sorted(maps.Keys(counts)) {
+		fmt.Fprintf(&b, "  - %s: %d\n", slug, counts[slug])
+	}
+	b.WriteString("Update go-passbolt-cli to include the types it does not know yet\n")
+	return b.String()
 }
 
 func printJSONResources(

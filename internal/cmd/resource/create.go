@@ -146,7 +146,7 @@ func ResourceCreate(cmd *cobra.Command, args []string) error {
 		}
 
 		if err != nil {
-			return fmt.Errorf("creating resource: %w", err)
+			return util.ExplainWriteError("creating Resource", resourceType, err)
 		}
 
 		if expiry != "" {
