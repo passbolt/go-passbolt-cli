@@ -16,6 +16,12 @@ import (
 
 var cfgFile string
 
+// cfgPath is where configure and verify write, resolved by initConfig.
+var cfgPath string
+
+// defaultConfigFile is what configure creates when there is no config yet.
+const defaultConfigFile = "go-passbolt-cli.toml"
+
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:          "passbolt",
@@ -58,6 +64,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "Config File")
 
 	rootCmd.PersistentFlags().Bool("debug", false, "Enable Debug Logging")
+	rootCmd.PersistentFlags().BoolP("yes", "y", false, "Assume yes for confirmation prompts, for use in scripts")
 	rootCmd.PersistentFlags().Duration("timeout", time.Minute, "Timeout for the Context")
 	rootCmd.PersistentFlags().String("serverAddress", "", "Passbolt Server Address (https://passbolt.example.com)")
 	rootCmd.PersistentFlags().String("userPrivateKey", "", "Passbolt User Private Key")
@@ -84,6 +91,7 @@ func init() {
 
 	rootCmd.PersistentFlags().Uint("workers", 0, "Number of Concurrent Workers for Expensive Operations. 0 (default) uses the number of CPU cores")
 
+	// yes is unbound: configure writes AllSettings, which would persist "yes = true".
 	viper.BindPFlag("debug", rootCmd.PersistentFlags().Lookup("debug"))
 	viper.BindPFlag("timeout", rootCmd.PersistentFlags().Lookup("timeout"))
 	viper.BindPFlag("serverAddress", rootCmd.PersistentFlags().Lookup("serverAddress"))
@@ -116,8 +124,26 @@ func fileToContent(file, contentFlag string) {
 	viper.Set(contentFlag, string(content))
 }
 
+// hardenConfigFile repairs the default config's mode before the read, or warns for --config.
+func hardenConfigFile() {
+	if cfgFile != "" {
+		util.WarnIfGroupOrWorldAccessible(cfgPath)
+		return
+	}
+	// os.MkdirAll leaves an existing directory alone and is masked by the umask.
+	if err := util.RepairMode(filepath.Dir(cfgPath), 0o700); err != nil {
+		util.Eprintln("Warning: failed to set config directory permissions:", util.Sanitize(err.Error()))
+	}
+	if err := util.RepairMode(cfgPath, 0o600); err != nil {
+		util.Eprintln("Warning: failed to set config file permissions:", util.Sanitize(err.Error()))
+	}
+}
+
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
+	// Where configure writes when the search below finds nothing.
+	newConfigPath := ""
+
 	if cfgFile != "" {
 		// Use config file from the flag.
 		viper.SetConfigFile(cfgFile)
@@ -131,9 +157,9 @@ func initConfig() {
 		}
 
 		confDir = filepath.Join(confDir, "go-passbolt-cli")
-		_ = os.MkdirAll(confDir, 0700)
+		_ = os.MkdirAll(confDir, 0o700)
 
-		viper.SetConfigPermissions(os.FileMode(0600))
+		newConfigPath = filepath.Join(confDir, defaultConfigFile)
 		viper.AddConfigPath(confDir)
 		viper.SetConfigType("toml")
 		viper.SetConfigName("go-passbolt-cli")
@@ -146,11 +172,16 @@ func initConfig() {
 		if viper.GetBool("debug") {
 			util.Eprintln("Using config file:", viper.ConfigFileUsed())
 		}
-		// update Config file Permissions
-		if err := os.Chmod(viper.ConfigFileUsed(), 0600); err != nil {
-			util.Eprintln("Warning: failed to set config file permissions:", err)
-		}
 	}
+
+	// Read first: viper records the file it picked even when parsing it failed, which is
+	// exactly when the mode still needs repairing.
+	cfgPath = viper.ConfigFileUsed()
+	if cfgPath == "" {
+		cfgPath = newConfigPath
+	}
+
+	hardenConfigFile()
 
 	// Read in Private Key from File if userprivatekeyfile is set
 	userprivatekeyfile, err := rootCmd.PersistentFlags().GetString("userPrivateKeyFile")

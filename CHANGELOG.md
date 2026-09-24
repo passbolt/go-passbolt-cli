@@ -5,6 +5,13 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 Releases before this file was introduced are documented in the [GitHub releases](https://github.com/passbolt/go-passbolt-cli/releases).
 
 ## [Unreleased]
+### Security
+- PB-54766: Ensure CLI configuration files are created and kept with 0600 permissions (Medium)
+- PB-54766: Refuse to write the configuration file or the KeePass export to anything but a regular file the caller owns
+- PB-54766: Stop changing the permissions of an unrelated file named with `--config`, warn instead
+- PB-54766: Write the KeePass export with 0600 permissions
+- PB-54766: Ask for confirmation before `--debug` prints stored secrets, and print them to stderr
+
 ### Maintenance
 - PB-54147: Bump go version to 1.27.0 (the minimum supported Go version is now 1.27)
 - PB-54147: Use go 1.27 syntax (the go-passbolt SDK :stays buildable on Go 1.26.7, so this only affects the CLI)
