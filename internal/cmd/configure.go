@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/passbolt/go-passbolt-cli/internal/util"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -27,7 +28,8 @@ this makes using the cli easier as they don't have to be specified all the time.
 			}
 		}
 		if viper.GetBool("debug") {
-			fmt.Printf("Saved: %+v\n", viper.AllSettings())
+			// serverVerifyEncToken is server-supplied and rendered on one line.
+			util.Printf("Saved: %v\n", util.Sanitize(fmt.Sprintf("%+v", viper.AllSettings())))
 		}
 		return nil
 	},

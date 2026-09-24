@@ -76,7 +76,7 @@ func PrintPermissionTable(columns []string, permissions []api.Permission) error 
 		}
 		data = append(data, entry)
 	}
-	pterm.DefaultTable.WithHasHeader().WithData(data).Render()
+	RenderTable(data)
 	return nil
 }
 

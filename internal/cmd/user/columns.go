@@ -4,7 +4,6 @@ import (
 	"strconv"
 	"time"
 
-	"al.essio.dev/pkg/shellescape"
 	"github.com/google/cel-go/cel"
 	"github.com/passbolt/go-passbolt-cli/internal/util"
 	"github.com/passbolt/go-passbolt/api"
@@ -25,7 +24,7 @@ var userColumns = util.NewColumnRegistry("users", []util.ColumnSpec[api.User]{
 		DefaultTable: true,
 		CelType:      cel.StringType,
 		CelValue:     func(u api.User) any { return u.Username },
-		TableValue:   func(u api.User) string { return shellescape.StripUnsafe(u.Username) },
+		TableValue:   func(u api.User) string { return u.Username },
 	},
 	{
 		Name:         "first_name",
@@ -33,7 +32,7 @@ var userColumns = util.NewColumnRegistry("users", []util.ColumnSpec[api.User]{
 		DefaultTable: true,
 		CelType:      cel.StringType,
 		CelValue:     func(u api.User) any { return u.Profile.FirstName },
-		TableValue:   func(u api.User) string { return shellescape.StripUnsafe(u.Profile.FirstName) },
+		TableValue:   func(u api.User) string { return u.Profile.FirstName },
 	},
 	{
 		Name:         "last_name",
@@ -41,7 +40,7 @@ var userColumns = util.NewColumnRegistry("users", []util.ColumnSpec[api.User]{
 		DefaultTable: true,
 		CelType:      cel.StringType,
 		CelValue:     func(u api.User) any { return u.Profile.LastName },
-		TableValue:   func(u api.User) string { return shellescape.StripUnsafe(u.Profile.LastName) },
+		TableValue:   func(u api.User) string { return u.Profile.LastName },
 	},
 	{
 		Name:         "role",
@@ -49,7 +48,7 @@ var userColumns = util.NewColumnRegistry("users", []util.ColumnSpec[api.User]{
 		DefaultTable: true,
 		CelType:      cel.StringType,
 		CelValue:     func(u api.User) any { return u.Role.Name },
-		TableValue:   func(u api.User) string { return shellescape.StripUnsafe(u.Role.Name) },
+		TableValue:   func(u api.User) string { return u.Role.Name },
 	},
 	{
 		Name:         "created_timestamp",

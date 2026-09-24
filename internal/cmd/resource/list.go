@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"maps"
-	"os"
 	"slices"
 	"strings"
 	"sync"
@@ -118,7 +117,7 @@ func ResourceList(cmd *cobra.Command, args []string) error {
 		}
 
 		// Last, and on stderr, so it survives a long table and leaves --json machine-readable.
-		fmt.Fprint(os.Stderr, formatSkippedTypes(skippedTypes))
+		util.Eprint(formatSkippedTypes(skippedTypes))
 		return nil
 	})
 }
@@ -282,7 +281,8 @@ func decryptResourcesParallel(ctx context.Context, client *api.Client, resources
 }
 
 // formatSkippedTypes renders the stderr notice for resources whose type this build cannot read,
-// or "" when nothing was skipped. Slugs are sorted so the output is deterministic.
+// or "" when nothing was skipped. Slugs are sorted so the output is deterministic, and sanitized
+// because a slug is server-controlled: util.Err keeps line breaks, so one could fake a line.
 func formatSkippedTypes(counts map[string]int) string {
 	if len(counts) == 0 {
 		return ""
@@ -299,10 +299,12 @@ func formatSkippedTypes(counts map[string]int) string {
 	}
 
 	var b strings.Builder
+	//nolint:forbidigo // a strings.Builder, not a stream; the caller prints it through util.Err
 	fmt.Fprintf(&b, "Warning: %d %s ignored: their Resource type is unknown to this version of "+
 		"go-passbolt-cli or disabled on the server\n", total, noun)
 	for _, slug := range slices.Sorted(maps.Keys(counts)) {
-		fmt.Fprintf(&b, "  - %s: %d\n", slug, counts[slug])
+		//nolint:forbidigo // same: writes into the builder above
+		fmt.Fprintf(&b, "  - %s: %d\n", util.Sanitize(slug), counts[slug])
 	}
 	b.WriteString("Update go-passbolt-cli to include the types it does not know yet\n")
 	return b.String()

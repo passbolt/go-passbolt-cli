@@ -53,7 +53,7 @@ func FolderCreate(cmd *cobra.Command, args []string) error {
 		if jsonOutput {
 			return util.PrintJSON(map[string]string{"id": id})
 		}
-		fmt.Printf("FolderID: %v\n", id)
+		util.Printf("FolderID: %v\n", util.Sanitize(id))
 		return nil
 	})
 }

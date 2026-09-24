@@ -35,11 +35,11 @@ var verifyCMD = &cobra.Command{
 		if userPassword == "" {
 			pw, err := util.ReadPassword("Enter Password:")
 			if err != nil {
-				fmt.Println()
+				util.Println()
 				return fmt.Errorf("reading Password: %w", err)
 			}
 			userPassword = pw
-			fmt.Println()
+			util.Println()
 		}
 
 		httpClient, err := util.GetHTTPClient()
@@ -71,7 +71,7 @@ var verifyCMD = &cobra.Command{
 				return fmt.Errorf("writing Config: %w", err)
 			}
 		}
-		fmt.Println("Verification Enabled")
+		util.Println("Verification Enabled")
 		return nil
 	},
 }

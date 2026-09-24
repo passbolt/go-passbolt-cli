@@ -2,7 +2,12 @@ package util
 
 import (
 	"bytes"
+	"encoding/json"
+	"strings"
 	"testing"
+	"unicode/utf8"
+
+	"github.com/pterm/pterm"
 )
 
 type sampleItem struct {
@@ -96,6 +101,105 @@ func TestPrintTable_UnknownColumn(t *testing.T) {
 	}
 	if want := `unknown column: "bogus"`; err.Error() != want {
 		t.Errorf("unexpected error: got %q, want %q", err.Error(), want)
+	}
+}
+
+// encoding/json escapes C0 and U+2028 itself, but not C1, bidi overrides or
+// zero-width runes - the same payloads Sanitize replaces on the table path.
+func TestFprintJSONEscapesControlRunes(t *testing.T) {
+	name := "x\u009b2K\x1b[2K\u202egpj.exe\u200b\U000E0001"
+
+	var buf bytes.Buffer
+	if err := FprintJSON(&buf, sampleItem{ID: "1", Name: name}); err != nil {
+		t.Fatalf("FprintJSON: %v", err)
+	}
+
+	for _, r := range buf.String() {
+		if !keepChar(r, utf8.RuneLen(r), true) {
+			t.Errorf("control rune %U reached the stream: %q", r, buf.String())
+		}
+	}
+
+	// Escaping, not stripping: the document still parses into the original value.
+	var back sampleItem
+	if err := json.Unmarshal(buf.Bytes(), &back); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if back.Name != name {
+		t.Errorf("round-trip changed the value:\n got=%q\nwant=%q", back.Name, name)
+	}
+}
+
+func TestEscapeJSONControlsLeavesPrintableUntouched(t *testing.T) {
+	in := []byte("{\n  \"name\": \"Café Ünïcode 密码 \U0001F511\"\n}")
+	if got := escapeJSONControls(in); got != string(in) {
+		t.Errorf("got %q, want %q", got, string(in))
+	}
+}
+
+func TestPrintJSONWritesToOut(t *testing.T) {
+	var got bytes.Buffer
+	orig := Out
+	Out = NewSanitizingWriter(&got)
+	t.Cleanup(func() { Out = orig })
+
+	if err := PrintJSON(sampleItem{ID: "1", Name: "ada"}); err != nil {
+		t.Fatalf("PrintJSON: %v", err)
+	}
+	if !strings.Contains(got.String(), `"name": "ada"`) {
+		t.Errorf("PrintJSON did not reach Out: %q", got.String())
+	}
+}
+
+// --json is lossless: the runes leave as \uXXXX, so nothing is replaced or warned about.
+func TestPrintJSONReplacesNothing(t *testing.T) {
+	var got bytes.Buffer
+	orig := Out
+	Out = NewSanitizingWriter(&got)
+	t.Cleanup(func() { Out = orig; replacedRunes.Store(0) })
+
+	replacedRunes.Store(0)
+	if err := PrintJSON(sampleItem{ID: "1", Name: "x\u009b2K\x1b[2K\u202egpj.exe\u200b"}); err != nil {
+		t.Fatalf("PrintJSON: %v", err)
+	}
+	if n := replacedRunes.Load(); n != 0 {
+		t.Errorf("the JSON path replaced %d runes: %q", n, got.String())
+	}
+}
+
+// A \n survives the stream writer by design, so a cell must be narrowed per value
+// or a name forges a row. The header row is sanitized too: it is flag input.
+func TestRenderTableSanitizesEveryCellAndWritesToOut(t *testing.T) {
+	// The CLI disables styling at startup; do the same so the assertion sees only
+	// the cell content and not pterm's own color escapes.
+	pterm.DisableStyling()
+	t.Cleanup(pterm.EnableStyling)
+
+	var got bytes.Buffer
+	orig := Out
+	Out = NewSanitizingWriter(&got)
+	t.Cleanup(func() { Out = orig })
+
+	header := []string{"Name\x1b[2K", "ID"}
+	data := pterm.TableData{
+		header,
+		{"real\nPermissions: owner", "1"},
+		{"tab\there", "2"},
+	}
+	RenderTable(data)
+
+	out := got.String()
+	if rows := strings.Count(strings.TrimRight(out, "\n"), "\n") + 1; rows != 3 {
+		t.Errorf("a cell forged a row, got %d rows: %q", rows, out)
+	}
+	if strings.ContainsAny(out, "\t\x1b") {
+		t.Errorf("control byte reached the stream: %q", out)
+	}
+	if !strings.Contains(out, "real\uFFFDPermissions: owner") {
+		t.Errorf("cell content lost: %q", out)
+	}
+	if header[0] != "Name\x1b[2K" {
+		t.Errorf("RenderTable mutated the caller's slice: %q", header[0])
 	}
 }
 

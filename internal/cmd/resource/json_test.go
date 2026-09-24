@@ -3,11 +3,10 @@ package resource
 import (
 	"bytes"
 	"encoding/json"
-	"io"
-	"os"
 	"strings"
 	"testing"
 
+	"github.com/passbolt/go-passbolt-cli/internal/util"
 	"github.com/passbolt/go-passbolt/api"
 )
 
@@ -53,7 +52,7 @@ func TestPrintJSONResources_PopulatesFields(t *testing.T) {
 		},
 	}
 
-	out := captureStdout(t, func() {
+	out := captureOutput(t, func() {
 		if err := printJSONResources(decrypted, false, nil); err != nil {
 			t.Fatalf("printJSONResources: %v", err)
 		}
@@ -95,7 +94,7 @@ func TestPrintJSONResources_ColumnFilterRestrictsKeys(t *testing.T) {
 		},
 	}
 
-	out := captureStdout(t, func() {
+	out := captureOutput(t, func() {
 		if err := printJSONResources(decrypted, true, []string{"id", "name"}); err != nil {
 			t.Fatalf("printJSONResources: %v", err)
 		}
@@ -155,7 +154,7 @@ func TestPrintJSONResources_EscapesSpecialChars(t *testing.T) {
 			name:     weird,
 		},
 	}
-	out := captureStdout(t, func() {
+	out := captureOutput(t, func() {
 		if err := printJSONResources(decrypted, false, nil); err != nil {
 			t.Fatalf("printJSONResources: %v", err)
 		}
@@ -172,7 +171,7 @@ func TestPrintJSONResources_EscapesSpecialChars(t *testing.T) {
 // An empty result set must serialize to [] (not null) so array consumers (jq)
 // don't break.
 func TestPrintJSONResources_EmptyListIsArray(t *testing.T) {
-	out := captureStdout(t, func() {
+	out := captureOutput(t, func() {
 		if err := printJSONResources(nil, false, nil); err != nil {
 			t.Fatalf("printJSONResources: %v", err)
 		}
@@ -219,27 +218,17 @@ func assertKeySet(t *testing.T, m map[string]any, want map[string]bool) {
 	}
 }
 
-// captureStdout swaps os.Stdout for a pipe, runs fn, restores stdout, and
-// returns whatever fn wrote. Used to test functions that print directly.
-func captureStdout(t *testing.T, fn func()) string {
+// captureOutput swaps util.Out for a buffer and returns whatever fn wrote to it.
+// It captures util.Out rather than os.Stdout because that is the stream the CLI
+// prints on: util.Out wraps os.Stdout once, at init, so redirecting the file
+// afterwards would miss the writes.
+func captureOutput(t *testing.T, fn func()) string {
 	t.Helper()
-	orig := os.Stdout
-	r, w, err := os.Pipe()
-	if err != nil {
-		t.Fatalf("pipe: %v", err)
-	}
-	os.Stdout = w
-	defer func() { os.Stdout = orig }()
-
-	done := make(chan struct{})
 	var buf bytes.Buffer
-	go func() {
-		_, _ = io.Copy(&buf, r)
-		close(done)
-	}()
+	orig := util.Out
+	util.Out = util.NewSanitizingWriter(&buf)
+	t.Cleanup(func() { util.Out = orig })
 
 	fn()
-	_ = w.Close()
-	<-done
 	return buf.String()
 }

@@ -4,7 +4,6 @@ import (
 	"strconv"
 	"time"
 
-	"al.essio.dev/pkg/shellescape"
 	"github.com/google/cel-go/cel"
 	"github.com/passbolt/go-passbolt-cli/internal/util"
 	"github.com/passbolt/go-passbolt/api"
@@ -33,7 +32,7 @@ var folderColumns = util.NewColumnRegistry("folders", []util.ColumnSpec[api.Fold
 		DefaultTable: true,
 		CelType:      cel.StringType,
 		CelValue:     func(f api.Folder) any { return f.Name },
-		TableValue:   func(f api.Folder) string { return shellescape.StripUnsafe(f.Name) },
+		TableValue:   func(f api.Folder) string { return f.Name },
 	},
 	{
 		Name:         "created_timestamp",
