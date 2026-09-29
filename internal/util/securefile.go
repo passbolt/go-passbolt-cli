@@ -6,16 +6,15 @@ import (
 )
 
 // CreateSecretFile creates or truncates path as a regular file owned by the caller, mode 0600 or its Windows ACL equivalent.
-func CreateSecretFile(path string) (file *os.File, err error) {
+func CreateSecretFile(path string) (_ *os.File, err error) {
 	// No truncation yet: a refusal below must leave the file as it was.
-	file, err = openSecret(path)
+	file, err := openSecret(path)
 	if err != nil {
 		return nil, err
 	}
 	defer func() {
 		if err != nil {
-			file.Close()
-			file = nil
+			_ = file.Close()
 		}
 	}()
 
@@ -31,7 +30,10 @@ func CreateSecretFile(path string) (file *os.File, err error) {
 	if err = tightenIfLoose(file, info); err != nil {
 		return nil, fmt.Errorf("securing %q: %w", path, err)
 	}
-	return file, file.Truncate(0)
+	if err = file.Truncate(0); err != nil {
+		return nil, err
+	}
+	return file, nil
 }
 
 // RepairMode tightens path to mode when anyone but the owner can reach it; a missing path
