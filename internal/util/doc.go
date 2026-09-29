@@ -47,4 +47,5 @@
 //
 // The config file holds secrets in cleartext: CreateSecretFile writes it and the KeePass
 // export at 0600, and RepairMode fixes the default config (a --config path is only reported).
+// On Windows a protected ACL granting only the caller, SYSTEM and Administrators replaces 0600.
 package util

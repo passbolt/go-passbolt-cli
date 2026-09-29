@@ -34,10 +34,21 @@ func foreignFile(t *testing.T) string {
 	}
 	const candidate = "/etc/passwd"
 	info, err := os.Stat(candidate)
-	if err != nil || !info.Mode().IsRegular() || ownedByCaller(info) {
+	if err != nil || !info.Mode().IsRegular() || ownedByCaller(openForStat(t, candidate)) {
 		t.Skip("no foreign-owned regular file to point a symlink at")
 	}
 	return candidate
+}
+
+// openForStat opens path read-only for the ownership check, closing it with the test.
+func openForStat(t *testing.T, path string) *os.File {
+	t.Helper()
+	file, err := os.Open(path)
+	if err != nil {
+		t.Fatalf("open %s: %v", path, err)
+	}
+	t.Cleanup(func() { file.Close() })
+	return file
 }
 
 // TestOwnedByCaller is the ownership predicate CreateSecretFile refuses on.
@@ -48,19 +59,11 @@ func TestOwnedByCaller(t *testing.T) {
 	if err := os.WriteFile(mine, []byte("x"), 0600); err != nil {
 		t.Fatal(err)
 	}
-	info, err := os.Stat(mine)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !ownedByCaller(info) {
+	if !ownedByCaller(openForStat(t, mine)) {
 		t.Error("ownedByCaller on a file we just created = false, want true")
 	}
 
-	foreign, err := os.Stat(foreignFile(t))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if ownedByCaller(foreign) {
+	if ownedByCaller(openForStat(t, foreignFile(t))) {
 		t.Error("ownedByCaller on another user's file = true, want false")
 	}
 }
