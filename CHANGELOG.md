@@ -11,6 +11,9 @@ Releases before this file was introduced are documented in the [GitHub releases]
 - PB-54766: Stop changing the permissions of an unrelated file named with `--config`, warn instead
 - PB-54766: Write the KeePass export with 0600 permissions
 - PB-54766: Ask for confirmation before `--debug` prints stored secrets, and print them to stderr
+- PB-54978: Restrict the configuration file and the KeePass export to their owner on Windows
+- PB-54978: Refuse to write a configuration file whose permissions cannot be tightened
+- PB-54978: Document in SECURITY.md where the configuration file is unsafe to store
 
 ### Maintenance
 - PB-54147: Bump go version to 1.27.0 (the minimum supported Go version is now 1.27)
