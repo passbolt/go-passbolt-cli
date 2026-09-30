@@ -1,6 +1,7 @@
 package util
 
 import (
+	"errors"
 	"fmt"
 	"os"
 )
@@ -35,6 +36,9 @@ func CreateSecretFile(path string) (_ *os.File, err error) {
 	}
 	return file, nil
 }
+
+// errPermissionsIgnored is a tightening that was accepted but did not take effect.
+var errPermissionsIgnored = errors.New("permissions did not change, so others can still read it")
 
 // RepairMode tightens path to mode when anyone but the owner can reach it; a missing path
 // is fine. Only the default config path and its directory reach this.

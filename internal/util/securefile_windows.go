@@ -178,8 +178,18 @@ func tightenIfLoose(file *os.File, info fs.FileInfo) error {
 	if err != nil {
 		return err
 	}
-	return windows.SetSecurityInfo(h, windows.SE_FILE_OBJECT,
-		windows.DACL_SECURITY_INFORMATION|windows.PROTECTED_DACL_SECURITY_INFORMATION, nil, nil, dacl, nil)
+	if err := windows.SetSecurityInfo(h, windows.SE_FILE_OBJECT,
+		windows.DACL_SECURITY_INFORMATION|windows.PROTECTED_DACL_SECURITY_INFORMATION, nil, nil, dacl, nil); err != nil {
+		return err
+	}
+	// Read back: a drive can accept the new DACL and keep reporting the old one.
+	if sd, err = windows.GetSecurityInfo(h, windows.SE_FILE_OBJECT, windows.DACL_SECURITY_INFORMATION); err != nil {
+		return err
+	}
+	if _, loose := looseTrustee(sd); loose {
+		return errPermissionsIgnored
+	}
+	return nil
 }
 
 // repairMode ignores mode: the file or directory ACL follows from what path turns out to be.

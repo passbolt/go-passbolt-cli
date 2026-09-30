@@ -34,12 +34,29 @@ func ownedByCaller(file *os.File) bool {
 	return ok && int(stat.Uid) == os.Getuid()
 }
 
+// fchmod and chmodPath are the two chmods, swappable so a test can play a filesystem that ignores them.
+var (
+	fchmod    = (*os.File).Chmod
+	chmodPath = os.Chmod
+)
+
 // tightenIfLoose drops group and world access; O_CREATE sets the mode only on creation.
 func tightenIfLoose(file *os.File, info fs.FileInfo) error {
 	if !isLoose(info) {
 		return nil
 	}
-	return file.Chmod(secretMode)
+	if err := fchmod(file, secretMode); err != nil {
+		return err
+	}
+	// Read back: some filesystems accept chmod and drop it.
+	after, err := file.Stat()
+	if err != nil {
+		return err
+	}
+	if isLoose(after) {
+		return errPermissionsIgnored
+	}
+	return nil
 }
 
 func repairMode(path string, mode os.FileMode) error {
@@ -50,7 +67,16 @@ func repairMode(path string, mode os.FileMode) error {
 	if err != nil || !isLoose(info) {
 		return err
 	}
-	return os.Chmod(path, mode) // EPERM if the target is not ours, which the caller warns about
+	if err := chmodPath(path, mode); err != nil {
+		return err // EPERM if the target is not ours, which the caller warns about
+	}
+	// By path, like the chmod: opening it could block on a FIFO or fail on a write-only mode.
+	if after, err := os.Stat(path); err != nil {
+		return err
+	} else if isLoose(after) {
+		return errPermissionsIgnored
+	}
+	return nil
 }
 
 // describeLoose reports whether others can reach path, and how.
