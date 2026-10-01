@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/passbolt/go-passbolt-cli/internal/util/securefile"
 	"github.com/spf13/viper"
 )
 
@@ -21,7 +22,7 @@ func WriteViperConfig(path string) error {
 		return err
 	}
 
-	file, err := CreateSecretFile(path)
+	file, err := securefile.Create(path)
 	if err != nil {
 		return err
 	}
@@ -31,4 +32,14 @@ func WriteViperConfig(path string) error {
 		return err
 	}
 	return file.Sync()
+}
+
+// WarnIfGroupOrWorldAccessible reports a config file others can read, without touching it.
+func WarnIfGroupOrWorldAccessible(path string) {
+	detail, fix, exposed := securefile.Exposure(path)
+	if !exposed {
+		return
+	}
+	Eprintf("Warning: %s is accessible to other users (%s).\n", Sanitize(path), Sanitize(detail))
+	Eprintf("If it is a passbolt config it holds your private key and passphrase in cleartext; run: %s\n", Sanitize(fix))
 }

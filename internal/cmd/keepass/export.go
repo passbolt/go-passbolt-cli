@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/passbolt/go-passbolt-cli/internal/util"
+	"github.com/passbolt/go-passbolt-cli/internal/util/securefile"
 	"github.com/passbolt/go-passbolt/api"
 	"github.com/passbolt/go-passbolt/helper"
 	"github.com/pterm/pterm"
@@ -84,7 +85,7 @@ func KeepassExport(cmd *cobra.Command, args []string) error {
 		}
 
 		// os.Create would leave this at 0644: encrypted, but every password the user has.
-		file, err := util.CreateSecretFile(filename)
+		file, err := securefile.Create(filename)
 		if err != nil {
 			return fmt.Errorf("creating File: %w", err)
 		}

@@ -45,9 +45,7 @@
 //
 // # Config and output files
 //
-// The config file holds secrets in cleartext: CreateSecretFile writes it and the KeePass
-// export at 0600, and RepairMode fixes the default config (a --config path is only reported).
-// On Windows a protected ACL granting only the caller, SYSTEM and Administrators replaces 0600.
-// A mode or ACL still loose after tightening is refused rather than written. Where the file
-// is stored is the user's choice; SECURITY.md says which places permissions cannot protect.
+// The config file holds secrets in cleartext; it is written and checked through the
+// securefile subpackage, and WarnIfGroupOrWorldAccessible reports a --config file others
+// can read.
 package util

@@ -1,4 +1,4 @@
-package util
+package winacl
 
 import (
 	"errors"
@@ -9,16 +9,16 @@ import (
 
 // This file has no build tag so its parser is tested on every platform; only Windows calls it.
 
-// sddlACE is one ACE of a DACL in SDDL, as ConvertSecurityDescriptorToStringSecurityDescriptor writes it.
-type sddlACE struct {
+// ACE is one ACE of a DACL in SDDL, as ConvertSecurityDescriptorToStringSecurityDescriptor writes it.
+type ACE struct {
 	Type  string // "A" allow, "D" deny, "OA" object allow, ...
 	Flags string // two-letter codes: "OI", "CI", "IO", "ID", ...
 	Mask  uint32
 	SID   string // "S-1-5-..." or an alias such as "BA", for windows.StringToSid
 }
 
-// inheritOnly reports whether the ACE applies to children only.
-func (a sddlACE) inheritOnly() bool {
+// InheritOnly reports whether the ACE applies to children only.
+func (a ACE) InheritOnly() bool {
 	for i := 0; i+1 < len(a.Flags); i += 2 {
 		if a.Flags[i:i+2] == "IO" {
 			return true
@@ -37,20 +37,20 @@ var sddlRights = map[string]uint32{
 	"NR": 0x2, "NW": 0x1, "NX": 0x4,
 }
 
-var errNoDACL = errors.New("no DACL")
+var ErrNoDACL = errors.New("no DACL")
 
-// parseSDDLDACL returns the entries of a descriptor that holds only a DACL, rendered as
-// "D:<flags>(ace)(ace)...". A NULL DACL, which grants everyone everything, is errNoDACL.
+// ParseDACL returns the entries of a descriptor that holds only a DACL, rendered as
+// "D:<flags>(ace)(ace)...". A NULL DACL, which grants everyone everything, is ErrNoDACL.
 // Anything else it does not expect is an error too, so the caller fails closed: other
 // sections, and conditional ACEs, whose expressions it does not read.
-func parseSDDLDACL(sddl string) ([]sddlACE, error) {
+func ParseDACL(sddl string) ([]ACE, error) {
 	body, ok := strings.CutPrefix(sddl, "D:")
 	if !ok {
 		return nil, fmt.Errorf("%q is not a DACL alone", sddl)
 	}
 	flags, aces, found := strings.Cut(body, "(")
 	if strings.Contains(flags, "NO_ACCESS_CONTROL") {
-		return nil, errNoDACL
+		return nil, ErrNoDACL
 	}
 	if strings.Trim(flags, "PAIR") != "" {
 		return nil, fmt.Errorf("unexpected DACL flags %q", flags)
@@ -62,9 +62,9 @@ func parseSDDLDACL(sddl string) ([]sddlACE, error) {
 	if !ok {
 		return nil, fmt.Errorf("unterminated ACE list %q", sddl)
 	}
-	var out []sddlACE
+	var out []ACE
 	for s := range strings.SplitSeq(aces, ")(") {
-		ace, err := parseSDDLACE(s)
+		ace, err := parseACE(s)
 		if err != nil {
 			return nil, err
 		}
@@ -73,32 +73,32 @@ func parseSDDLDACL(sddl string) ([]sddlACE, error) {
 	return out, nil
 }
 
-// parseSDDLACE parses "type;flags;rights;object;inherited object;sid".
-func parseSDDLACE(s string) (sddlACE, error) {
+// parseACE parses "type;flags;rights;object;inherited object;sid".
+func parseACE(s string) (ACE, error) {
 	if strings.ContainsAny(s, `()"`) {
-		return sddlACE{}, fmt.Errorf("ACE %q is conditional or malformed", s)
+		return ACE{}, fmt.Errorf("ACE %q is conditional or malformed", s)
 	}
 	f := strings.Split(s, ";")
 	if len(f) != 6 {
-		return sddlACE{}, fmt.Errorf("ACE %q has %d fields, want 6", s, len(f))
+		return ACE{}, fmt.Errorf("ACE %q has %d fields, want 6", s, len(f))
 	}
-	ace := sddlACE{Type: f[0], Flags: f[1], SID: f[5]}
+	ace := ACE{Type: f[0], Flags: f[1], SID: f[5]}
 	if ace.Type == "" || ace.SID == "" {
-		return sddlACE{}, fmt.Errorf("ACE %q lacks a type or a SID", s)
+		return ACE{}, fmt.Errorf("ACE %q lacks a type or a SID", s)
 	}
 	if len(ace.Flags)%2 != 0 {
-		return sddlACE{}, fmt.Errorf("ACE %q has malformed flags", s)
+		return ACE{}, fmt.Errorf("ACE %q has malformed flags", s)
 	}
-	mask, err := parseSDDLRights(f[2])
+	mask, err := parseRights(f[2])
 	if err != nil {
-		return sddlACE{}, fmt.Errorf("ACE %q: %w", s, err)
+		return ACE{}, fmt.Errorf("ACE %q: %w", s, err)
 	}
 	ace.Mask = mask
 	return ace, nil
 }
 
-// parseSDDLRights reads a mask written as a number ("0x1200a9") or as two-letter codes ("FRFW").
-func parseSDDLRights(s string) (uint32, error) {
+// parseRights reads a mask written as a number ("0x1200a9") or as two-letter codes ("FRFW").
+func parseRights(s string) (uint32, error) {
 	if s != "" && s[0] >= '0' && s[0] <= '9' {
 		v, err := strconv.ParseUint(s, 0, 32)
 		if err != nil {

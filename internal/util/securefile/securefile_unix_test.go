@@ -1,6 +1,6 @@
 //go:build !windows
 
-package util
+package securefile
 
 import (
 	"errors"
@@ -17,7 +17,7 @@ func ignoreChmod(t *testing.T) {
 	chmodPath = func(string, os.FileMode) error { return nil }
 }
 
-func TestCreateSecretFile_RefusesWhenChmodIgnored(t *testing.T) {
+func TestCreate_RefusesWhenChmodIgnored(t *testing.T) {
 	ignoreChmod(t)
 	path := filepath.Join(t.TempDir(), "config.toml")
 	if err := os.WriteFile(path, []byte("old\n"), 0600); err != nil {
@@ -27,10 +27,10 @@ func TestCreateSecretFile_RefusesWhenChmodIgnored(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	file, err := CreateSecretFile(path)
+	file, err := Create(path)
 	if err == nil {
 		file.Close()
-		t.Fatal("CreateSecretFile wrote a file that is still 0644, want error")
+		t.Fatal("Create wrote a file that is still 0644, want error")
 	}
 	if !errors.Is(err, errPermissionsIgnored) {
 		t.Errorf("err = %v, want errPermissionsIgnored", err)

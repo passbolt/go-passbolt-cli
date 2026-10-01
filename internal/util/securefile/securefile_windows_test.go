@@ -1,6 +1,6 @@
 //go:build windows
 
-package util
+package securefile
 
 import (
 	"bytes"
@@ -11,6 +11,8 @@ import (
 	"testing"
 
 	"golang.org/x/sys/windows"
+
+	"github.com/passbolt/go-passbolt-cli/internal/util/securefile/winacl"
 )
 
 // hostsFile is a system file this process should not own, even elevated.
@@ -49,14 +51,14 @@ func setDACL(t *testing.T, path, sddl string) {
 
 func callerSID(t *testing.T) *windows.SID {
 	t.Helper()
-	user, _, err := callerSIDs()
+	user, _, err := winacl.CallerSIDs()
 	if err != nil {
 		t.Fatal(err)
 	}
 	return user
 }
 
-// assertPrivate checks path has a protected DACL of exactly privateSD's three entries.
+// assertPrivate checks path has a protected DACL of exactly winacl.PrivateSD's three entries.
 func assertPrivate(t *testing.T, path string, dir bool) {
 	t.Helper()
 	sd := securityOf(t, path)
@@ -67,7 +69,7 @@ func assertPrivate(t *testing.T, path string, dir bool) {
 	if control&windows.SE_DACL_PROTECTED == 0 {
 		t.Errorf("%s: DACL not protected, it still inherits: %s", path, sd)
 	}
-	if sid, loose := looseTrustee(sd); loose {
+	if sid, loose := winacl.LooseTrustee(sd); loose {
 		t.Errorf("%s: DACL exposes it to %v: %s", path, sid, sd)
 	}
 	dacl, _, err := sd.DACL()
@@ -95,53 +97,53 @@ func TestOwnedByCaller_Windows(t *testing.T) {
 	}
 }
 
-func TestCreateSecretFile_Windows_CreatesPrivate(t *testing.T) {
+func TestCreate_Windows_CreatesPrivate(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "config.toml")
-	file, err := CreateSecretFile(path)
+	file, err := Create(path)
 	if err != nil {
-		t.Fatalf("CreateSecretFile: %v", err)
+		t.Fatalf("Create: %v", err)
 	}
 	file.Close()
 	assertPrivate(t, path, false)
 }
 
-// TestCreateSecretFile_Windows_TightensInheritedAccess is a --config under a shared directory.
-func TestCreateSecretFile_Windows_TightensInheritedAccess(t *testing.T) {
+// TestCreate_Windows_TightensInheritedAccess is a --config under a shared directory.
+func TestCreate_Windows_TightensInheritedAccess(t *testing.T) {
 	shared := t.TempDir()
 	setDACL(t, shared, fmt.Sprintf("D:P(A;OICI;FA;;;%s)(A;OICI;FR;;;BU)", callerSID(t)))
 	path := filepath.Join(shared, "config.toml")
 	if err := os.WriteFile(path, []byte("old\n"), 0600); err != nil {
 		t.Fatal(err)
 	}
-	if _, loose := looseTrustee(securityOf(t, path)); !loose {
+	if _, loose := winacl.LooseTrustee(securityOf(t, path)); !loose {
 		t.Fatal("setup: the file did not inherit BUILTIN\\Users read")
 	}
 
-	file, err := CreateSecretFile(path)
+	file, err := Create(path)
 	if err != nil {
-		t.Fatalf("CreateSecretFile: %v", err)
+		t.Fatalf("Create: %v", err)
 	}
 	file.Close()
 	assertPrivate(t, path, false)
 }
 
-func TestCreateSecretFile_Windows_TightensExplicitGrant(t *testing.T) {
+func TestCreate_Windows_TightensExplicitGrant(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "config.toml")
 	if err := os.WriteFile(path, []byte("old\n"), 0600); err != nil {
 		t.Fatal(err)
 	}
 	setDACL(t, path, fmt.Sprintf("D:(A;;FA;;;%s)(A;;FR;;;WD)", callerSID(t)))
 
-	file, err := CreateSecretFile(path)
+	file, err := Create(path)
 	if err != nil {
-		t.Fatalf("CreateSecretFile: %v", err)
+		t.Fatalf("Create: %v", err)
 	}
 	file.Close()
 	assertPrivate(t, path, false)
 }
 
-// TestCreateSecretFile_Windows_RefusesForeignFile covers both a direct path and a planted link.
-func TestCreateSecretFile_Windows_RefusesForeignFile(t *testing.T) {
+// TestCreate_Windows_RefusesForeignFile covers both a direct path and a planted link.
+func TestCreate_Windows_RefusesForeignFile(t *testing.T) {
 	before, err := os.ReadFile(hostsFile)
 	if err != nil {
 		t.Skipf("reading %s: %v", hostsFile, err)
@@ -158,10 +160,10 @@ func TestCreateSecretFile_Windows_RefusesForeignFile(t *testing.T) {
 	}
 
 	for _, target := range targets {
-		file, err := CreateSecretFile(target)
+		file, err := Create(target)
 		if err == nil {
 			file.Close()
-			t.Errorf("CreateSecretFile(%s) succeeded onto a file we do not own, want error", target)
+			t.Errorf("Create(%s) succeeded onto a file we do not own, want error", target)
 		}
 	}
 	after, err := os.ReadFile(hostsFile)
@@ -173,11 +175,11 @@ func TestCreateSecretFile_Windows_RefusesForeignFile(t *testing.T) {
 	}
 }
 
-func TestCreateSecretFile_Windows_RefusesDevice(t *testing.T) {
-	file, err := CreateSecretFile("NUL")
+func TestCreate_Windows_RefusesDevice(t *testing.T) {
+	file, err := Create("NUL")
 	if err == nil {
 		file.Close()
-		t.Fatal("CreateSecretFile(NUL) succeeded, want error")
+		t.Fatal("Create(NUL) succeeded, want error")
 	}
 }
 
@@ -199,7 +201,7 @@ func TestRepairMode_Windows(t *testing.T) {
 		if err := os.WriteFile(child, []byte("x"), 0600); err != nil {
 			t.Fatal(err)
 		}
-		if sid, loose := looseTrustee(securityOf(t, child)); loose {
+		if sid, loose := winacl.LooseTrustee(securityOf(t, child)); loose {
 			t.Errorf("new file in the repaired directory is exposed to %v", sid)
 		}
 	})
@@ -237,19 +239,8 @@ func TestRepairMode_Windows(t *testing.T) {
 	})
 }
 
-func TestWarnIfGroupOrWorldAccessible_Windows(t *testing.T) {
-	capture := func(t *testing.T, path string) string {
-		t.Helper()
-		var buf bytes.Buffer
-		orig := Err
-		Err = NewSanitizingWriter(&buf)
-		t.Cleanup(func() { Err = orig })
-		WarnIfGroupOrWorldAccessible(path)
-		FlushOutputs()
-		return buf.String()
-	}
-
-	t.Run("warns and changes nothing", func(t *testing.T) {
+func TestExposure_Windows(t *testing.T) {
+	t.Run("reports and changes nothing", func(t *testing.T) {
 		path := filepath.Join(t.TempDir(), "shared-data.toml")
 		if err := os.WriteFile(path, []byte("key = \"value\"\n"), 0600); err != nil {
 			t.Fatal(err)
@@ -262,31 +253,31 @@ func TestWarnIfGroupOrWorldAccessible_Windows(t *testing.T) {
 			t.Fatal(err)
 		}
 		// Looked up rather than spelled out: account names are localized.
-		name := accountName(everyone)
-		got := capture(t, path)
-		if !strings.Contains(got, "icacls") || !strings.Contains(got, name) {
-			t.Errorf("warning = %q, want it to name %s and suggest icacls", got, name)
+		name := winacl.AccountName(everyone)
+		detail, fix, exposed := Exposure(path)
+		if !exposed || !strings.Contains(detail, name) || !strings.Contains(fix, "icacls") {
+			t.Errorf("Exposure = (%q, %q, %v), want it to name %s and suggest icacls", detail, fix, exposed, name)
 		}
 		if after := securityOf(t, path).String(); after != before {
 			t.Errorf("DACL changed from %s to %s, want it untouched", before, after)
 		}
 	})
 
-	t.Run("silent on a private file", func(t *testing.T) {
+	t.Run("not exposed: private file", func(t *testing.T) {
 		path := filepath.Join(t.TempDir(), "config.toml")
-		file, err := CreateSecretFile(path)
+		file, err := Create(path)
 		if err != nil {
 			t.Fatal(err)
 		}
 		file.Close()
-		if got := capture(t, path); got != "" {
-			t.Errorf("warning = %q, want none", got)
+		if _, _, exposed := Exposure(path); exposed {
+			t.Error("Exposure reported a private file")
 		}
 	})
 
-	t.Run("silent on a missing file", func(t *testing.T) {
-		if got := capture(t, filepath.Join(t.TempDir(), "absent.toml")); got != "" {
-			t.Errorf("warning = %q, want none", got)
+	t.Run("not exposed: missing file", func(t *testing.T) {
+		if _, _, exposed := Exposure(filepath.Join(t.TempDir(), "absent.toml")); exposed {
+			t.Error("Exposure reported a missing file")
 		}
 	})
 }

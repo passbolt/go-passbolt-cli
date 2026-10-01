@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/passbolt/go-passbolt-cli/internal/util"
+	"github.com/passbolt/go-passbolt-cli/internal/util/securefile"
 	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
 
@@ -131,10 +132,10 @@ func hardenConfigFile() {
 		return
 	}
 	// os.MkdirAll leaves an existing directory alone and is masked by the umask.
-	if err := util.RepairMode(filepath.Dir(cfgPath), 0o700); err != nil {
+	if err := securefile.RepairMode(filepath.Dir(cfgPath), 0o700); err != nil {
 		util.Eprintln("Warning: failed to set config directory permissions:", util.Sanitize(err.Error()))
 	}
-	if err := util.RepairMode(cfgPath, 0o600); err != nil {
+	if err := securefile.RepairMode(cfgPath, 0o600); err != nil {
 		util.Eprintln("Warning: failed to set config file permissions:", util.Sanitize(err.Error()))
 	}
 }

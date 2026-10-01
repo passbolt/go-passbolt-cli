@@ -1,4 +1,4 @@
-package util
+package securefile
 
 import (
 	"bytes"
@@ -51,7 +51,7 @@ func openForStat(t *testing.T, path string) *os.File {
 	return file
 }
 
-// TestOwnedByCaller is the ownership predicate CreateSecretFile refuses on.
+// TestOwnedByCaller is the ownership predicate Create refuses on.
 func TestOwnedByCaller(t *testing.T) {
 	skipWithoutPOSIXModes(t)
 
@@ -68,13 +68,13 @@ func TestOwnedByCaller(t *testing.T) {
 	}
 }
 
-func TestCreateSecretFile_CreatesOwnerOnly(t *testing.T) {
+func TestCreate_CreatesOwnerOnly(t *testing.T) {
 	skipWithoutPOSIXModes(t)
 
 	path := filepath.Join(t.TempDir(), "config.toml")
-	file, err := CreateSecretFile(path)
+	file, err := Create(path)
 	if err != nil {
-		t.Fatalf("CreateSecretFile: %v", err)
+		t.Fatalf("Create: %v", err)
 	}
 	if _, err := file.WriteString("secret\n"); err != nil {
 		t.Fatalf("write: %v", err)
@@ -86,7 +86,7 @@ func TestCreateSecretFile_CreatesOwnerOnly(t *testing.T) {
 	}
 }
 
-func TestCreateSecretFile_TightensExistingFile(t *testing.T) {
+func TestCreate_TightensExistingFile(t *testing.T) {
 	skipWithoutPOSIXModes(t)
 
 	path := filepath.Join(t.TempDir(), "config.toml")
@@ -97,9 +97,9 @@ func TestCreateSecretFile_TightensExistingFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	file, err := CreateSecretFile(path)
+	file, err := Create(path)
 	if err != nil {
-		t.Fatalf("CreateSecretFile: %v", err)
+		t.Fatalf("Create: %v", err)
 	}
 	file.Close()
 
@@ -108,15 +108,15 @@ func TestCreateSecretFile_TightensExistingFile(t *testing.T) {
 	}
 }
 
-func TestCreateSecretFile_TruncatesExistingContent(t *testing.T) {
+func TestCreate_TruncatesExistingContent(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "config.toml")
 	if err := os.WriteFile(path, []byte("a very long previous config\n"), 0600); err != nil {
 		t.Fatal(err)
 	}
 
-	file, err := CreateSecretFile(path)
+	file, err := Create(path)
 	if err != nil {
-		t.Fatalf("CreateSecretFile: %v", err)
+		t.Fatalf("Create: %v", err)
 	}
 	if _, err := file.WriteString("new\n"); err != nil {
 		t.Fatal(err)
@@ -132,8 +132,8 @@ func TestCreateSecretFile_TruncatesExistingContent(t *testing.T) {
 	}
 }
 
-// TestCreateSecretFile_FollowsSymlinkToOwnFile: a dotfiles config is a link like this.
-func TestCreateSecretFile_FollowsSymlinkToOwnFile(t *testing.T) {
+// TestCreate_FollowsSymlinkToOwnFile: a dotfiles config is a link like this.
+func TestCreate_FollowsSymlinkToOwnFile(t *testing.T) {
 	skipWithoutPOSIXModes(t)
 
 	dir := t.TempDir()
@@ -149,9 +149,9 @@ func TestCreateSecretFile_FollowsSymlinkToOwnFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	file, err := CreateSecretFile(link)
+	file, err := Create(link)
 	if err != nil {
-		t.Fatalf("CreateSecretFile: %v", err)
+		t.Fatalf("Create: %v", err)
 	}
 	if _, err := file.WriteString("new\n"); err != nil {
 		t.Fatal(err)
@@ -178,8 +178,8 @@ func TestCreateSecretFile_FollowsSymlinkToOwnFile(t *testing.T) {
 	}
 }
 
-// TestCreateSecretFile_RefusesSymlinkToAnotherUsersFile is the planted-link attack.
-func TestCreateSecretFile_RefusesSymlinkToAnotherUsersFile(t *testing.T) {
+// TestCreate_RefusesSymlinkToAnotherUsersFile is the planted-link attack.
+func TestCreate_RefusesSymlinkToAnotherUsersFile(t *testing.T) {
 	skipWithoutPOSIXModes(t)
 
 	target := foreignFile(t)
@@ -192,10 +192,10 @@ func TestCreateSecretFile_RefusesSymlinkToAnotherUsersFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	file, err := CreateSecretFile(link)
+	file, err := Create(link)
 	if err == nil {
 		file.Close()
-		t.Fatal("CreateSecretFile succeeded through a foreign symlink, want error")
+		t.Fatal("Create succeeded through a foreign symlink, want error")
 	}
 	after, err := os.ReadFile(target)
 	if err != nil {
@@ -206,8 +206,8 @@ func TestCreateSecretFile_RefusesSymlinkToAnotherUsersFile(t *testing.T) {
 	}
 }
 
-// TestCreateSecretFile_RefusesDevice: ownership says nothing about /dev/null.
-func TestCreateSecretFile_RefusesDevice(t *testing.T) {
+// TestCreate_RefusesDevice: ownership says nothing about /dev/null.
+func TestCreate_RefusesDevice(t *testing.T) {
 	skipWithoutPOSIXModes(t)
 
 	link := filepath.Join(t.TempDir(), "config.toml")
@@ -215,19 +215,19 @@ func TestCreateSecretFile_RefusesDevice(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	file, err := CreateSecretFile(link)
+	file, err := Create(link)
 	if err == nil {
 		file.Close()
-		t.Fatal("CreateSecretFile succeeded onto a device, want error")
+		t.Fatal("Create succeeded onto a device, want error")
 	}
 	if !strings.Contains(err.Error(), "not a regular file you own") {
 		t.Errorf("error = %v, want it to name the regular-file rule", err)
 	}
 }
 
-func TestCreateSecretFile_RefusesDirectory(t *testing.T) {
-	if _, err := CreateSecretFile(t.TempDir()); err == nil {
-		t.Fatal("CreateSecretFile on a directory succeeded, want error")
+func TestCreate_RefusesDirectory(t *testing.T) {
+	if _, err := Create(t.TempDir()); err == nil {
+		t.Fatal("Create on a directory succeeded, want error")
 	}
 }
 
@@ -270,21 +270,10 @@ func TestRepairMode(t *testing.T) {
 	})
 }
 
-func TestWarnIfGroupOrWorldAccessible(t *testing.T) {
+func TestExposure(t *testing.T) {
 	skipWithoutPOSIXModes(t)
 
-	capture := func(t *testing.T, path string) string {
-		t.Helper()
-		var buf bytes.Buffer
-		orig := Err
-		Err = NewSanitizingWriter(&buf)
-		t.Cleanup(func() { Err = orig })
-		WarnIfGroupOrWorldAccessible(path)
-		FlushOutputs()
-		return buf.String()
-	}
-
-	t.Run("warns and changes nothing", func(t *testing.T) {
+	t.Run("reports and changes nothing", func(t *testing.T) {
 		path := filepath.Join(t.TempDir(), "shared-data.toml")
 		if err := os.WriteFile(path, []byte("key = \"value\"\n"), 0600); err != nil {
 			t.Fatal(err)
@@ -293,28 +282,28 @@ func TestWarnIfGroupOrWorldAccessible(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		got := capture(t, path)
-		if !strings.Contains(got, "chmod 600") {
-			t.Errorf("warning = %q, want it to suggest chmod 600", got)
+		detail, fix, exposed := Exposure(path)
+		if !exposed || detail != "mode 0644" || !strings.Contains(fix, "chmod 600") {
+			t.Errorf("Exposure = (%q, %q, %v), want mode 0644 and a chmod 600 fix", detail, fix, exposed)
 		}
 		if got := modeOf(t, path); got != 0644 {
 			t.Errorf("mode = %04o, want it left at 0644", got)
 		}
 	})
 
-	t.Run("silent on an owner-only file", func(t *testing.T) {
+	t.Run("not exposed: owner-only file", func(t *testing.T) {
 		path := filepath.Join(t.TempDir(), "config.toml")
 		if err := os.WriteFile(path, []byte("x"), 0600); err != nil {
 			t.Fatal(err)
 		}
-		if got := capture(t, path); got != "" {
-			t.Errorf("warning = %q, want none", got)
+		if _, _, exposed := Exposure(path); exposed {
+			t.Error("Exposure reported an owner-only file")
 		}
 	})
 
-	t.Run("silent on a missing file", func(t *testing.T) {
-		if got := capture(t, filepath.Join(t.TempDir(), "absent.toml")); got != "" {
-			t.Errorf("warning = %q, want none", got)
+	t.Run("not exposed: missing file", func(t *testing.T) {
+		if _, _, exposed := Exposure(filepath.Join(t.TempDir(), "absent.toml")); exposed {
+			t.Error("Exposure reported a missing file")
 		}
 	})
 }

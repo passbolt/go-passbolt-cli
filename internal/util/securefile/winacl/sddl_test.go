@@ -1,4 +1,4 @@
-package util
+package winacl
 
 import (
 	"errors"
@@ -6,16 +6,16 @@ import (
 	"testing"
 )
 
-func TestParseSDDLDACL(t *testing.T) {
+func TestParseDACL(t *testing.T) {
 	tests := []struct {
 		name string
 		sddl string
-		want []sddlACE
+		want []ACE
 	}{
 		{
-			name: "privateSD for a directory",
+			name: "PrivateSD for a directory",
 			sddl: "D:P(A;OICI;FA;;;S-1-5-21-1-2-3-1001)(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)",
-			want: []sddlACE{
+			want: []ACE{
 				{Type: "A", Flags: "OICI", Mask: 0x1F01FF, SID: "S-1-5-21-1-2-3-1001"},
 				{Type: "A", Flags: "OICI", Mask: 0x1F01FF, SID: "SY"},
 				{Type: "A", Flags: "OICI", Mask: 0x1F01FF, SID: "BA"},
@@ -24,7 +24,7 @@ func TestParseSDDLDACL(t *testing.T) {
 		{
 			name: "hex mask, inherited",
 			sddl: "D:AI(A;ID;0x1200a9;;;BU)(D;;FW;;;WD)",
-			want: []sddlACE{
+			want: []ACE{
 				{Type: "A", Flags: "ID", Mask: 0x1200A9, SID: "BU"},
 				{Type: "D", Mask: 0x120116, SID: "WD"},
 			},
@@ -32,36 +32,36 @@ func TestParseSDDLDACL(t *testing.T) {
 		{
 			name: "decomposed rights",
 			sddl: "D:(A;;CCDCRC;;;WD)",
-			want: []sddlACE{{Type: "A", Mask: 0x1 | 0x2 | 0x20000, SID: "WD"}},
+			want: []ACE{{Type: "A", Mask: 0x1 | 0x2 | 0x20000, SID: "WD"}},
 		},
 		{name: "empty DACL", sddl: "D:P", want: nil},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := parseSDDLDACL(tt.sddl)
+			got, err := ParseDACL(tt.sddl)
 			if err != nil {
-				t.Fatalf("parseSDDLDACL(%q) = %v", tt.sddl, err)
+				t.Fatalf("ParseDACL(%q) = %v", tt.sddl, err)
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("parseSDDLDACL(%q)\n got %+v\nwant %+v", tt.sddl, got, tt.want)
+				t.Errorf("ParseDACL(%q)\n got %+v\nwant %+v", tt.sddl, got, tt.want)
 			}
 		})
 	}
 }
 
-func TestParseSDDLDACL_InheritOnly(t *testing.T) {
-	aces, err := parseSDDLDACL("D:(A;CIOI;FA;;;WD)(A;OICIIO;FA;;;WD)")
+func TestParseDACL_InheritOnly(t *testing.T) {
+	aces, err := ParseDACL("D:(A;CIOI;FA;;;WD)(A;OICIIO;FA;;;WD)")
 	if err != nil {
 		t.Fatal(err)
 	}
 	// "CIOI" contains "IO" across a code boundary; only the second ACE is inherit-only.
-	if aces[0].inheritOnly() || !aces[1].inheritOnly() {
-		t.Errorf("inheritOnly = %v, %v; want false, true", aces[0].inheritOnly(), aces[1].inheritOnly())
+	if aces[0].InheritOnly() || !aces[1].InheritOnly() {
+		t.Errorf("InheritOnly = %v, %v; want false, true", aces[0].InheritOnly(), aces[1].InheritOnly())
 	}
 }
 
-// TestParseSDDLDACL_FailsClosed: looseTrustee treats every error here as "exposed".
-func TestParseSDDLDACL_FailsClosed(t *testing.T) {
+// TestParseDACL_FailsClosed: LooseTrustee treats every error here as "exposed".
+func TestParseDACL_FailsClosed(t *testing.T) {
 	for _, sddl := range []string{
 		"",                       // what SECURITY_DESCRIPTOR.String returns on failure
 		"O:BAG:SY",               // no DACL
@@ -82,11 +82,11 @@ func TestParseSDDLDACL_FailsClosed(t *testing.T) {
 		"D:(A;CIO;FA;;;WD)",       // odd-length flags
 		"D:(;;FA;;;WD)",           // no type
 	} {
-		if aces, err := parseSDDLDACL(sddl); err == nil {
-			t.Errorf("parseSDDLDACL(%q) = %+v, want an error", sddl, aces)
+		if aces, err := ParseDACL(sddl); err == nil {
+			t.Errorf("ParseDACL(%q) = %+v, want an error", sddl, aces)
 		}
 	}
-	if _, err := parseSDDLDACL("D:NO_ACCESS_CONTROL"); !errors.Is(err, errNoDACL) {
-		t.Errorf("NULL DACL: err = %v, want errNoDACL", err)
+	if _, err := ParseDACL("D:NO_ACCESS_CONTROL"); !errors.Is(err, ErrNoDACL) {
+		t.Errorf("NULL DACL: err = %v, want ErrNoDACL", err)
 	}
 }

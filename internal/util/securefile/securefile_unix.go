@@ -1,6 +1,6 @@
 //go:build !windows
 
-package util
+package securefile
 
 import (
 	"errors"
@@ -8,20 +8,16 @@ import (
 	"io/fs"
 	"os"
 	"syscall"
-)
 
-// secretMode is the mode for files holding credentials in cleartext.
-const secretMode os.FileMode = 0o600
+	"github.com/passbolt/go-passbolt-cli/internal/util/securefile/posixmode"
+)
 
 // hasPOSIXModes reports whether permission bits mean anything here.
 const hasPOSIXModes = true
 
-// isLoose reports whether anyone but the owner can reach the file.
-func isLoose(info fs.FileInfo) bool { return info.Mode().Perm()&0o077 != 0 }
-
 // openSecret opens path for writing, creating it 0600; O_NONBLOCK so a named pipe cannot hang the open.
 func openSecret(path string) (*os.File, error) {
-	return os.OpenFile(path, os.O_WRONLY|os.O_CREATE|syscall.O_NONBLOCK, secretMode)
+	return os.OpenFile(path, os.O_WRONLY|os.O_CREATE|syscall.O_NONBLOCK, posixmode.SecretMode)
 }
 
 // ownedByCaller reports whether the open file belongs to the user running this process.
@@ -35,6 +31,7 @@ func ownedByCaller(file *os.File) bool {
 }
 
 // fchmod and chmodPath are the two chmods, swappable so a test can play a filesystem that ignores them.
+// They are test seams, not part of the platform contract.
 var (
 	fchmod    = (*os.File).Chmod
 	chmodPath = os.Chmod
@@ -42,10 +39,10 @@ var (
 
 // tightenIfLoose drops group and world access; O_CREATE sets the mode only on creation.
 func tightenIfLoose(file *os.File, info fs.FileInfo) error {
-	if !isLoose(info) {
+	if !posixmode.IsLoose(info) {
 		return nil
 	}
-	if err := fchmod(file, secretMode); err != nil {
+	if err := fchmod(file, posixmode.SecretMode); err != nil {
 		return err
 	}
 	// Read back: some filesystems accept chmod and drop it.
@@ -53,7 +50,7 @@ func tightenIfLoose(file *os.File, info fs.FileInfo) error {
 	if err != nil {
 		return err
 	}
-	if isLoose(after) {
+	if posixmode.IsLoose(after) {
 		return errPermissionsIgnored
 	}
 	return nil
@@ -64,7 +61,7 @@ func repairMode(path string, mode os.FileMode) error {
 	if errors.Is(err, fs.ErrNotExist) {
 		return nil
 	}
-	if err != nil || !isLoose(info) {
+	if err != nil || !posixmode.IsLoose(info) {
 		return err
 	}
 	if err := chmodPath(path, mode); err != nil {
@@ -73,7 +70,7 @@ func repairMode(path string, mode os.FileMode) error {
 	// By path, like the chmod: opening it could block on a FIFO or fail on a write-only mode.
 	if after, err := os.Stat(path); err != nil {
 		return err
-	} else if isLoose(after) {
+	} else if posixmode.IsLoose(after) {
 		return errPermissionsIgnored
 	}
 	return nil
@@ -82,7 +79,7 @@ func repairMode(path string, mode os.FileMode) error {
 // describeLoose reports whether others can reach path, and how.
 func describeLoose(path string) (string, bool) {
 	info, err := os.Stat(path)
-	if err != nil || !isLoose(info) {
+	if err != nil || !posixmode.IsLoose(info) {
 		return "", false
 	}
 	return fmt.Sprintf("mode %04o", info.Mode().Perm()), true
