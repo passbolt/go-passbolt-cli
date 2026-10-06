@@ -9,6 +9,8 @@ import (
 	"testing"
 
 	"github.com/spf13/viper"
+
+	"github.com/passbolt/go-passbolt-cli/internal/util/securefile"
 )
 
 // skipWithoutPOSIXModes skips a test whose whole point is a permission bit.
@@ -78,7 +80,7 @@ func TestWriteViperConfig_WritesOwnerOnly(t *testing.T) {
 	}
 }
 
-func TestWarnIfGroupOrWorldAccessible(t *testing.T) {
+func TestWarnIfExposed(t *testing.T) {
 	skipWithoutPOSIXModes(t)
 
 	capture := func(t *testing.T, path string) string {
@@ -87,7 +89,7 @@ func TestWarnIfGroupOrWorldAccessible(t *testing.T) {
 		orig := Err
 		Err = NewSanitizingWriter(&buf)
 		t.Cleanup(func() { Err = orig })
-		WarnIfGroupOrWorldAccessible(path)
+		WarnIfExposed(path, ConfigExposure)
 		FlushOutputs()
 		return buf.String()
 	}
@@ -112,6 +114,35 @@ func TestWarnIfGroupOrWorldAccessible(t *testing.T) {
 		}
 		if got := capture(t, path); got != "" {
 			t.Errorf("warning = %q, want none", got)
+		}
+	})
+
+	t.Run("warns once per path", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "shared-data.toml")
+		if err := os.WriteFile(path, []byte("x"), 0600); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Chmod(path, 0644); err != nil {
+			t.Fatal(err)
+		}
+		if got := capture(t, path); got == "" {
+			t.Fatal("first call printed nothing, want a warning")
+		}
+		if got := capture(t, path); got != "" {
+			t.Errorf("second call = %q, want nothing", got)
+		}
+	})
+
+	t.Run("warns on a file another user owns", func(t *testing.T) {
+		const path = "/etc/passwd"
+		if os.Getuid() == 0 {
+			t.Skip("running as root, which owns everything")
+		}
+		if _, fix, exposed := securefile.Exposure(path); !exposed || fix != "" {
+			t.Skip("no foreign-owned file to check")
+		}
+		if got := capture(t, path); !strings.Contains(got, "not you") || strings.Count(got, "\n") != 2 {
+			t.Errorf("warning = %q, want two lines saying the file is not yours", got)
 		}
 	})
 }

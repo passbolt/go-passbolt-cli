@@ -78,7 +78,7 @@ Notes:
 
 **It stores what you give it in cleartext** — your private key, its passphrase, your MFA seed and the server verification tokens. Anyone who can read the file can log in as you and decrypt every password you can see, so it is written readable and writable by you alone (mode `0600`), in a `0700` directory. The CLI repairs those permissions on the default file if it finds them loosened, and warns about a `--config` file it cannot vouch for rather than changing it. Permissions cannot protect the file everywhere, such as on a USB stick, a network share or a synced folder: see [SECURITY.md](SECURITY.md) for where to keep it.
 
-A symlink to one of your own files works, so dotfiles setups can keep the real file in a repository and link it into place; a link to another user's file, or to a device or pipe, is refused before anything is written.
+A symlink to one of your own files works, so dotfiles setups can keep the real file in a repository and link it into place; a link to a device or pipe is refused before anything is written, and a file another user owns is written with a warning on stderr.
 
 If you would rather not keep the secrets on disk, store only `serverAddress` and supply the rest through environment variables or flags; with no `userPassword` saved the CLI prompts for it each time.
 

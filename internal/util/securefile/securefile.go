@@ -12,7 +12,7 @@ import (
 // on that platform; make vet builds both.
 var (
 	_ func(string) (*os.File, error)    = openSecret
-	_ func(*os.File) bool               = ownedByCaller
+	_ func(string) (string, bool)       = describeForeignOwner
 	_ func(*os.File, fs.FileInfo) error = tightenIfLoose
 	_ func(string, os.FileMode) error   = repairMode
 	_ func(string) (string, bool)       = describeLoose
@@ -38,13 +38,13 @@ func Create(path string) (_ *os.File, err error) {
 	if err != nil {
 		return nil, err
 	}
-	if !info.Mode().IsRegular() || !ownedByCaller(file) {
-		return nil, fmt.Errorf("refusing to write %q: not a regular file you own", path)
+	// A file someone else owns is written anyway, like a loose one; the caller warns via Exposure.
+	if !info.Mode().IsRegular() {
+		return nil, fmt.Errorf("refusing to write %q: not a regular file", path)
 	}
 	// Creation alone secures only a new file, so an existing loose one is tightened here.
-	if err = tightenIfLoose(file, info); err != nil {
-		return nil, fmt.Errorf("securing %q: %w", path, err)
-	}
+	// Best effort: where it stays loose is the user's choice, and the caller warns via Exposure.
+	_ = tightenIfLoose(file, info)
 	if err = file.Truncate(0); err != nil {
 		return nil, err
 	}
@@ -59,8 +59,12 @@ var errPermissionsIgnored = errors.New("permissions did not change, so others ca
 func RepairMode(path string, mode os.FileMode) error { return repairMode(path, mode) }
 
 // Exposure reports whether others can reach path, how, and the command that fixes it,
-// without touching it. A missing path is not exposed.
+// without touching it. A missing path is not exposed. A file someone else owns has no fix
+// command, since its owner can always undo one: it is reported as "owned by NAME", fix "".
 func Exposure(path string) (detail, fix string, exposed bool) {
+	if owner, foreign := describeForeignOwner(path); foreign {
+		return "owned by " + owner, "", true
+	}
 	detail, exposed = describeLoose(path)
 	if !exposed {
 		return "", "", false

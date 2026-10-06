@@ -17,10 +17,12 @@ func ignoreChmod(t *testing.T) {
 	chmodPath = func(string, os.FileMode) error { return nil }
 }
 
-func TestCreate_RefusesWhenChmodIgnored(t *testing.T) {
+// TestCreate_WritesWhenChmodIgnored: a disk that keeps no permissions is the user's choice, so
+// Create writes anyway and Exposure still reports it for the caller's warning.
+func TestCreate_WritesWhenChmodIgnored(t *testing.T) {
 	ignoreChmod(t)
 	path := filepath.Join(t.TempDir(), "config.toml")
-	if err := os.WriteFile(path, []byte("old\n"), 0600); err != nil {
+	if err := os.WriteFile(path, []byte("a longer old config\n"), 0600); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.Chmod(path, 0644); err != nil {
@@ -28,22 +30,26 @@ func TestCreate_RefusesWhenChmodIgnored(t *testing.T) {
 	}
 
 	file, err := Create(path)
-	if err == nil {
-		file.Close()
-		t.Fatal("Create wrote a file that is still 0644, want error")
+	if err != nil {
+		t.Fatalf("Create: %v, want it to write despite the loose mode", err)
 	}
-	if !errors.Is(err, errPermissionsIgnored) {
-		t.Errorf("err = %v, want errPermissionsIgnored", err)
+	if _, err := file.WriteString("new\n"); err != nil {
+		t.Fatal(err)
 	}
+	file.Close()
+
 	got, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if string(got) != "old\n" {
-		t.Errorf("content = %q, want it untouched", got)
+	if string(got) != "new\n" {
+		t.Errorf("content = %q, want %q", got, "new\n")
 	}
 	if mode := modeOf(t, path); mode != 0644 {
 		t.Errorf("mode = %04o, want 0644", mode)
+	}
+	if _, _, exposed := Exposure(path); !exposed {
+		t.Error("Exposure did not report the loose file, so nobody would be warned")
 	}
 }
 

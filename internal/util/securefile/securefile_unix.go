@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"os/user"
+	"strconv"
 	"syscall"
 
 	"github.com/passbolt/go-passbolt-cli/internal/util/securefile/posixmode"
@@ -20,14 +22,21 @@ func openSecret(path string) (*os.File, error) {
 	return os.OpenFile(path, os.O_WRONLY|os.O_CREATE|syscall.O_NONBLOCK, posixmode.SecretMode)
 }
 
-// ownedByCaller reports whether the open file belongs to the user running this process.
-func ownedByCaller(file *os.File) bool {
-	info, err := file.Stat()
+// describeForeignOwner reports whether path belongs to a user other than the one running this process, and which.
+func describeForeignOwner(path string) (string, bool) {
+	info, err := os.Stat(path) // follows a dotfiles symlink to its target
 	if err != nil {
-		return false
+		return "", false
 	}
 	stat, ok := info.Sys().(*syscall.Stat_t)
-	return ok && int(stat.Uid) == os.Getuid()
+	if !ok || int(stat.Uid) == os.Getuid() {
+		return "", false
+	}
+	uid := strconv.FormatUint(uint64(stat.Uid), 10)
+	if u, err := user.LookupId(uid); err == nil {
+		return u.Username, true
+	}
+	return "uid " + uid, true
 }
 
 // fchmod and chmodPath are the two chmods, swappable so a test can play a filesystem that ignores them.

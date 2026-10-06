@@ -14,7 +14,8 @@ The config file holds your private key, its passphrase and your MFA seed in clea
 
 - It creates the config file and the KeePass export readable by you alone: mode `0600`, or on Windows an ACL granting only you, SYSTEM and Administrators[^windows-acl].
 - It tightens a file whose permissions are too loose, then checks that the change took effect.
-- It refuses to write to a file that stays loose, that is not yours, or that is not a regular file.
+- If the permissions stay loose (on a disk that keeps none, for instance), or the file belongs to another user (as a network or VM shared drive often reports), it writes the file anyway and prints a warning to stderr, so output on stdout is unaffected.
+- It refuses to write to something that is not a regular file, such as a device or a pipe.
 
 [^windows-acl]: SYSTEM is Windows itself, and an administrator can take ownership of any file whatever its ACL, so leaving them out would protect nothing. It is also the default ACL of your profile folder.
 

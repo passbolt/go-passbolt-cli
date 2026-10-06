@@ -36,18 +36,22 @@ func openSecret(path string) (*os.File, error) {
 	return os.NewFile(uintptr(h), path), nil
 }
 
-// ownedByCaller reports whether the open file's owner SID is one winacl.CallerSIDs says the caller can stamp.
-func ownedByCaller(file *os.File) bool {
-	sd, err := windows.GetSecurityInfo(windows.Handle(file.Fd()), windows.SE_FILE_OBJECT, windows.OWNER_SECURITY_INFORMATION)
+// describeForeignOwner reports whether path's owner SID is not one winacl.CallerSIDs says the caller can
+// stamp, and which. A network or VM shared drive often reports the server's account here.
+func describeForeignOwner(path string) (string, bool) {
+	sd, err := windows.GetNamedSecurityInfo(path, windows.SE_FILE_OBJECT, windows.OWNER_SECURITY_INFORMATION)
 	if err != nil {
-		return false
+		return "", false
 	}
 	owner, _, err := sd.Owner()
 	if err != nil || owner == nil {
-		return false
+		return "", false
 	}
 	_, owners, err := winacl.CallerSIDs()
-	return err == nil && winacl.ContainsSID(owners, owner)
+	if err != nil || winacl.ContainsSID(owners, owner) {
+		return "", false
+	}
+	return winacl.AccountName(owner), true
 }
 
 // tightenIfLoose replaces a DACL that exposes the file with winacl.PrivateSD's; CreateFile sets it only on creation.

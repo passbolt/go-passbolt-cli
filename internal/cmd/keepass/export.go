@@ -90,6 +90,7 @@ func KeepassExport(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("creating File: %w", err)
 		}
 		defer file.Close()
+		util.WarnIfExposed(filename, "It is a KeePass export of every password you can read")
 
 		rootGroup := gokeepasslib.NewGroup()
 		rootGroup.Name = "root"

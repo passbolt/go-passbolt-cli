@@ -128,7 +128,7 @@ func fileToContent(file, contentFlag string) {
 // hardenConfigFile repairs the default config's mode before the read, or warns for --config.
 func hardenConfigFile() {
 	if cfgFile != "" {
-		util.WarnIfGroupOrWorldAccessible(cfgPath)
+		util.WarnIfExposed(cfgPath, util.ConfigExposure)
 		return
 	}
 	// os.MkdirAll leaves an existing directory alone and is masked by the umask.

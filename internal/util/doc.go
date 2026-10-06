@@ -46,6 +46,6 @@
 // # Config and output files
 //
 // The config file holds secrets in cleartext; it is written and checked through the
-// securefile subpackage, and WarnIfGroupOrWorldAccessible reports a --config file others
-// can read.
+// securefile subpackage, and WarnIfExposed warns on stderr about a secret
+// file someone else owns or others can still read.
 package util

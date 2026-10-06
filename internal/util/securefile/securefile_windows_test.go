@@ -84,16 +84,16 @@ func assertPrivate(t *testing.T, path string, dir bool) {
 	}
 }
 
-func TestOwnedByCaller_Windows(t *testing.T) {
+func TestExposure_Windows_ForeignOwner(t *testing.T) {
 	mine := filepath.Join(t.TempDir(), "mine")
 	if err := os.WriteFile(mine, []byte("x"), 0600); err != nil {
 		t.Fatal(err)
 	}
-	if !ownedByCaller(openForStat(t, mine)) {
-		t.Error("ownedByCaller on a file we just created = false, want true")
+	if isForeign(mine) {
+		t.Error("a file we just created reported as foreign")
 	}
-	if ownedByCaller(openForStat(t, hostsFile)) {
-		t.Errorf("ownedByCaller on %s = true, want false", hostsFile)
+	if detail, fix, exposed := Exposure(hostsFile); !exposed || fix != "" || !strings.HasPrefix(detail, "owned by ") {
+		t.Errorf("Exposure on %s = (%q, %q, %v), want its owner and no fix", hostsFile, detail, fix, exposed)
 	}
 }
 
@@ -142,14 +142,17 @@ func TestCreate_Windows_TightensExplicitGrant(t *testing.T) {
 	assertPrivate(t, path, false)
 }
 
-// TestCreate_Windows_RefusesForeignFile covers both a direct path and a planted link.
-func TestCreate_Windows_RefusesForeignFile(t *testing.T) {
+// TestCreate_Windows_FailsOnUnwritableForeignFile covers both a direct path and a planted link.
+// Ownership only warns now, so what stops the write is that the open needs write access.
+func TestCreate_Windows_FailsOnUnwritableForeignFile(t *testing.T) {
 	before, err := os.ReadFile(hostsFile)
 	if err != nil {
 		t.Skipf("reading %s: %v", hostsFile, err)
 	}
-	if ownedByCaller(openForStat(t, hostsFile)) {
-		t.Skipf("this process owns %s", hostsFile)
+	// Opened without truncation, so probing changes nothing. Elevated, Create would really write it.
+	if probe, err := os.OpenFile(hostsFile, os.O_WRONLY, 0); err == nil {
+		probe.Close()
+		t.Skipf("this process can write %s", hostsFile)
 	}
 	targets := []string{hostsFile}
 	link := filepath.Join(t.TempDir(), "config.toml")

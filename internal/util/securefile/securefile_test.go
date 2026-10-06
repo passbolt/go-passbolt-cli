@@ -34,37 +34,34 @@ func foreignFile(t *testing.T) string {
 	}
 	const candidate = "/etc/passwd"
 	info, err := os.Stat(candidate)
-	if err != nil || !info.Mode().IsRegular() || ownedByCaller(openForStat(t, candidate)) {
+	if err != nil || !info.Mode().IsRegular() || !isForeign(candidate) {
 		t.Skip("no foreign-owned regular file to point a symlink at")
 	}
 	return candidate
 }
 
-// openForStat opens path read-only for the ownership check, closing it with the test.
-func openForStat(t *testing.T, path string) *os.File {
-	t.Helper()
-	file, err := os.Open(path)
-	if err != nil {
-		t.Fatalf("open %s: %v", path, err)
-	}
-	t.Cleanup(func() { file.Close() })
-	return file
+// isForeign reports whether Exposure flags path as someone else's: exposed, with no fix.
+func isForeign(path string) bool {
+	_, fix, exposed := Exposure(path)
+	return exposed && fix == ""
 }
 
-// TestOwnedByCaller is the ownership predicate Create refuses on.
-func TestOwnedByCaller(t *testing.T) {
+// TestExposure_ForeignOwner is the ownership check callers warn on.
+func TestExposure_ForeignOwner(t *testing.T) {
 	skipWithoutPOSIXModes(t)
 
 	mine := filepath.Join(t.TempDir(), "mine")
 	if err := os.WriteFile(mine, []byte("x"), 0600); err != nil {
 		t.Fatal(err)
 	}
-	if !ownedByCaller(openForStat(t, mine)) {
-		t.Error("ownedByCaller on a file we just created = false, want true")
+	if isForeign(mine) {
+		t.Error("a file we just created reported as foreign")
 	}
-
-	if ownedByCaller(openForStat(t, foreignFile(t))) {
-		t.Error("ownedByCaller on another user's file = true, want false")
+	if detail, fix, exposed := Exposure(foreignFile(t)); !exposed || fix != "" || !strings.HasPrefix(detail, "owned by ") {
+		t.Errorf("Exposure on another user's file = (%q, %q, %v), want its owner and no fix", detail, fix, exposed)
+	}
+	if isForeign(filepath.Join(t.TempDir(), "absent")) {
+		t.Error("a missing file reported as foreign")
 	}
 }
 
@@ -178,8 +175,9 @@ func TestCreate_FollowsSymlinkToOwnFile(t *testing.T) {
 	}
 }
 
-// TestCreate_RefusesSymlinkToAnotherUsersFile is the planted-link attack.
-func TestCreate_RefusesSymlinkToAnotherUsersFile(t *testing.T) {
+// TestCreate_FailsOnUnwritableForeignFile is the planted-link attack: ownership only warns now,
+// so what stops it is that the open needs write access to the target.
+func TestCreate_FailsOnUnwritableForeignFile(t *testing.T) {
 	skipWithoutPOSIXModes(t)
 
 	target := foreignFile(t)
@@ -220,7 +218,7 @@ func TestCreate_RefusesDevice(t *testing.T) {
 		file.Close()
 		t.Fatal("Create succeeded onto a device, want error")
 	}
-	if !strings.Contains(err.Error(), "not a regular file you own") {
+	if !strings.Contains(err.Error(), "not a regular file") {
 		t.Errorf("error = %v, want it to name the regular-file rule", err)
 	}
 }

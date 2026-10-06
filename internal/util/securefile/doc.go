@@ -3,9 +3,10 @@
 //
 // Create writes them at 0600 and RepairMode fixes the default config (a --config path is
 // only reported, through Exposure). On Windows a protected ACL granting only the caller,
-// SYSTEM and Administrators replaces 0600. A mode or ACL still loose after tightening is
-// refused rather than written. Where the file is stored is the user's choice; SECURITY.md
-// says which places permissions cannot protect.
+// SYSTEM and Administrators replaces 0600. A mode or ACL still loose after tightening, or a
+// file someone else owns, is written anyway and the caller warns through Exposure; only a
+// target that is not a regular file is refused. Where the file is stored is the user's
+// choice; SECURITY.md says which places permissions cannot protect.
 //
 // securefile_unix.go and securefile_windows.go implement the same platform functions, listed
 // in securefile.go; their helpers live in posixmode and winacl.
