@@ -1,8 +1,4 @@
-# Lifecycle / status fields (active, deleted, disabled on User; deleted +
-# resource_type_id on Resource; personal on Folder; deleted + user_count on
-# Group) reach JSON output and are usable as CEL filter predicates. These
-# fields existed on the Passbolt API but were silently dropped by the CLI
-# before this change — see passbolt/go-passbolt-cli#129 (secondary ask).
+# Status fields such as active and deleted appear in JSON and work in filters (#129).
 
 # ---- User --------------------------------------------------------------
 
@@ -12,7 +8,7 @@ jsoneq user.json [username=ada@passbolt.com].active true
 jsoneq user.json [username=ada@passbolt.com].deleted false
 jsoneq user.json [username=ada@passbolt.com].disabled false
 
-# Filter by canonical bool — should return ada (and any other active user).
+# Filter on a bool.
 pb list user --filter 'active == true' --json
 stdout ada@passbolt.com
 
@@ -29,7 +25,7 @@ jsoneq res.json [id=$RID].name test-lifecycle
 jsoneq res.json [id=$RID].deleted false
 jsonexists res.json [id=$RID].resource_type_id
 
-# Filter by deleted false — non-deleted resources include our test resource.
+# Filter on a bool.
 pb list resource --filter 'deleted == false' --json
 stdout test-lifecycle
 

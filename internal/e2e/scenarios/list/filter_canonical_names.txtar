@@ -1,30 +1,27 @@
-# CEL --filter accepts canonical snake_case variable names (matching JSON
-# output) alongside the legacy PascalCase variables that existing scripts use.
-# Part of #129's "same attribute names everywhere" goal.
+# --filter accepts snake_case and legacy PascalCase variables (#129).
 
 pb create resource --type v5-default --name test-cel-naming --username cel-naming-user --uri https://cel-naming.example.com --password cel-naming-pass --json
 cp stdout create.json
 jsonget create.json id RID
 defer pb delete resource --id $RID
 
-# Canonical snake_case CEL variable (the new behavior).
+# snake_case.
 pb list resource --filter 'name == "test-cel-naming"' --json
 stdout $RID
 
-# Legacy PascalCase CEL variable still works (back-compat).
+# PascalCase.
 pb list resource --filter 'Name == "test-cel-naming"' --json
 stdout $RID
 
-# folder_parent_id (multi-word) canonical form.
+# Multi-word name.
 pb list resource --filter 'folder_parent_id == ""' --json
 stdout test-cel-naming
 
-# FolderParentID PascalCase alias still works.
+# Multi-word PascalCase.
 pb list resource --filter 'FolderParentID == ""' --json
 stdout test-cel-naming
 
-# Filter on a secret-bearing field via canonical name — must still trigger
-# secret decryption (resourceSecretCelNames covers both canonical and alias).
+# A secret field still triggers decryption.
 pb list resource --filter 'password == "cel-naming-pass"' --json
 stdout $RID
 
@@ -34,10 +31,10 @@ cp stdout folder.json
 jsonget folder.json id FID
 defer pb delete folder --id $FID
 
-# Canonical snake_case CEL variable on folder.
+# Folder: snake_case.
 pb list folder --filter 'name == "test-cel-folder-naming"' --json
 stdout $FID
 
-# Legacy PascalCase CEL variable on folder.
+# Folder: PascalCase.
 pb list folder --filter 'Name == "test-cel-folder-naming"' --json
 stdout $FID

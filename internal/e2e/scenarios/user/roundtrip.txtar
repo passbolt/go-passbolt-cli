@@ -1,7 +1,4 @@
-# User CRUD round-trip exercised entirely through the CLI. User create/update/
-# delete are admin-only on the default Passbolt policy, so we drive the lifecycle
-# as admin via `pba`. This is the only coverage of the user get/create/update/
-# delete commands; the other suites create users via the server admin tooling.
+# User create, get, update and delete. Needs admin, so this runs as pba.
 
 [!env:HAS_ADMIN] skip 'admin config not available; user create requires admin'
 

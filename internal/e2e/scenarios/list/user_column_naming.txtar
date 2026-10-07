@@ -1,35 +1,30 @@
-# `passbolt list user --column ...` is the exact command path from
-# passbolt/go-passbolt-cli#129. Verifies that snake_case canonical columns and
-# legacy PascalCase / lowercased-concat aliases all work in both table and
-# JSON modes against an existing user (ada, seeded by TestMain).
+# list user --column accepts snake_case and legacy aliases (#129).
 
-# JSON mode: canonical snake_case columns appear keyed by their canonical names.
+# JSON mode: snake_case.
 pb list user --column id --column first_name --column last_name --json
 cp stdout snake.json
 jsoneq snake.json [first_name=Ada].last_name Lovelace
 
-# JSON mode: PascalCase aliases normalize to canonical — JSON keys remain
-# snake_case (previously, FirstName silently dropped because the
-# strings.ToLower lookup hit "firstname", which doesn't exist as a JSON tag).
+# JSON mode: PascalCase gives snake_case keys.
 pb list user --column ID --column FirstName --column LastName --json
 cp stdout pascal.json
 jsoneq pascal.json [first_name=Ada].last_name Lovelace
 
-# JSON mode: legacy lowercased-concat alias.
+# JSON mode: lowercase alias.
 pb list user --column firstname --column lastname --json
 cp stdout legacy.json
 jsoneq legacy.json [first_name=Ada].last_name Lovelace
 
-# Table mode: canonical snake_case (previously errored — no matching case).
+# Table mode: snake_case.
 pb list user --column id --column first_name --column last_name
 stdout Ada
 stdout Lovelace
 
-# Table mode: PascalCase alias still works.
+# Table mode: PascalCase.
 pb list user --column ID --column FirstName --column LastName
 stdout Ada
 
-# Table mode: legacy lowercased-concat still works.
+# Table mode: lowercase alias.
 pb list user --column id --column firstname --column lastname
 stdout Lovelace
 

@@ -1,5 +1,4 @@
-# List resources of mixed v4/v5 types. Default list (no Password column) must
-# return entries by name (table + json) but must NOT include decrypted secrets.
+# List v4 and v5 resources together, without decrypting secrets.
 
 uuid CF1
 uuid CF2
@@ -24,8 +23,7 @@ pb list resource
 stdout test-list-v4
 stdout test-list-v5
 stdout test-list-cf
-# Every type this server ships must have a bundled schema. If a schema ever drifts such that
-# resources are silently ignored, this catches it here rather than as missing rows downstream.
+# Every server type has a bundled schema.
 ! stderr 'resources? ignored'
 
 # JSON output must contain all three.

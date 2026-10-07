@@ -1,6 +1,6 @@
 //go:build integration
 
-package main_test
+package e2e
 
 import (
 	"fmt"
@@ -11,18 +11,19 @@ import (
 	"github.com/rogpeppe/go-internal/testscript"
 )
 
-// BenchmarkCLI runs every .txtar scenario as a sub-benchmark, one row per script. Each `pb`
-// line re-execs the CLI, so a row is real end-to-end cost and cannot be CPU-profiled.
+// BenchmarkCLI runs each scenario as a sub-benchmark. `pb` re-execs the CLI,
+// so rows measure end-to-end cost.
 func BenchmarkCLI(b *testing.B) {
 	p := cliParams(b)
-	files, err := filepath.Glob(filepath.Join(p.Dir, "*.txtar"))
+	files, err := filepath.Glob("scenarios/*/*.txtar")
 	if err != nil {
 		b.Fatal(err)
 	}
 	for _, f := range files {
-		b.Run(strings.TrimSuffix(filepath.Base(f), ".txtar"), func(b *testing.B) {
+		name := strings.TrimSuffix(strings.TrimPrefix(filepath.ToSlash(f), "scenarios/"), ".txtar")
+		b.Run(name, func(b *testing.B) {
 			fp := p
-			fp.Dir, fp.Files = "", []string{f}
+			fp.Files = []string{f}
 			for b.Loop() {
 				testscript.RunT(benchT{b, &strings.Builder{}}, fp)
 			}
@@ -30,12 +31,8 @@ func BenchmarkCLI(b *testing.B) {
 	}
 }
 
-// benchT adapts *testing.B to testscript.T. Run executes the script inline so
-// the whole run stays inside b.Loop, and Parallel is a no-op for the same
-// reason. A script whose [env:...] condition is false calls Skip, which skips
-// that sub-benchmark rather than failing it. testscript logs every script's
-// transcript; that is held back and printed only if the script fails, so the
-// benchmark output stays one row per scenario.
+// benchT adapts *testing.B to testscript.T. Scripts run inline, not in
+// parallel, and their log is printed only on failure.
 type benchT struct {
 	*testing.B
 	log *strings.Builder
