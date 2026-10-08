@@ -1,19 +1,10 @@
-# Terminal escape sequence injection regression test.
-#
-# The server stores ESC/BEL verbatim, so only the CLI can neutralize them. The
-# payload is an OSC 52 clipboard write plus a CSI erase-line. Every `! stdout
-# '\x1b'` is paired with a positive assertion, so the text must survive inert
-# rather than vanish: each control byte is replaced by U+FFFD, and the run ends
-# with one warning on stderr saying so.
+# Control bytes in server data are printed as U+FFFD, with one warning on stderr.
+# The payload is an OSC 52 clipboard write plus a CSI erase-line.
 
 payload ESC_NAME "test-esc-name\x1b]52;c;cGFzc2JvbHQtcG9j\x07\x1b[2Kmarker"
 
 # -- 1. V5 custom field label --------------------------------------------------
-# Field labels are attacker-controlled too, not just values. Strict schema
-# validation rejects an undeclared metadata property (45_schema_write_strict),
-# so the label travels where the type actually declares one: custom_fields[].
-# The payload is spelled with JSON escapes rather than $ESC_KEY because a raw
-# ESC byte inside a JSON string is not valid JSON, and --field parses the value.
+# Labels are sanitized too. JSON escapes, since --field must parse as JSON.
 
 uuid CF1
 
@@ -28,7 +19,7 @@ pb get resource --id $MKID
 stdout 'metadata_key:esc\x{fffd}\]52;c;cGFzc2JvbHQtcG9j\x{fffd}key'
 stderr -count=1 'Warning: replaced \d+ unprintable characters? with U\+FFFD'
 
-# JSON output stays lossless: escaped as , never a raw byte.
+# JSON output is escaped, not replaced.
 pb get resource --id $MKID --json
 ! stdout '\x1b'
 stdout 'u001b'
@@ -48,7 +39,7 @@ pb get resource --id $V5ID
 stdout 'Name: test-esc-name\x{fffd}\]52;c;cGFzc2JvbHQtcG9j\x{fffd}\x{fffd}\[2Kmarker'
 
 # -- 3. V4 resource name -------------------------------------------------------
-# Plaintext server column, and it stores control bytes as-is.
+# Stored in plaintext on the server.
 
 pb create resource --type password-and-description --name $ESC_NAME --username u --uri https://esc.example.com --password p --description d --json
 cp stdout create-v4.json
@@ -65,23 +56,20 @@ pb list resource --column id --column name
 stdout '\x{fffd}'
 stderr -count=1 'Warning: replaced'
 
-# The keepass export path. Its skip branch also prints a name, but that needs a
-# decrypt failure this harness cannot arrange.
+# KeePass export.
 pb create resource --type v5-totp-standalone --name $ESC_NAME --uri https://esc-totp.example.com --secret-field totp={"secret_key":"HXDMVJECJJWSRB3HWIZR4IFUGFTMXBOZ","algorithm":"SHA256","digits":8,"period":60} --json
 cp stdout create-totp.json
 jsonget create-totp.json id TOTPID
 defer pb delete resource --id $TOTPID
 
-# pterm emits its own CSI cursor sequences here, so match ESC "]" instead, which
-# only the payload produces.
+# pterm prints its own CSI sequences, so match ESC ] only.
 pb export keepass --file $WORK/esc.kdbx --password test-kdbx-pass
 ! stdout '\x1b\]'
 ! stdout '\x07'
 exists $WORK/esc.kdbx
 
 # -- 4. Newline line-injection -------------------------------------------------
-# A newline in a single-line field would forge output lines, so it is replaced
-# too. Only description keeps its newlines.
+# Newlines are replaced too, except in descriptions.
 
 payload NL_NAME '"test-esc-nl\nPermissions: owner"'
 
@@ -98,7 +86,7 @@ pb list resource --column id --column name
 ! stdout '^\s*\|\s*Permissions: owner'
 
 # -- 5. Group name -------------------------------------------------------------
-# Admin-only, as in 30_group_roundtrip.
+# Admin-only, as in group/roundtrip.
 
 [!env:HAS_ADMIN] skip 'admin config not available; group create requires admin'
 
@@ -124,7 +112,7 @@ pba list group --column id --column name
 ! stdout '\x1b'
 
 # -- 6. Server-supplied error text ---------------------------------------------
-# The duplicate-name error echoes the name back; stderr is sanitized too.
+# The duplicate-name error echoes the name on stderr.
 
 ! pba create group --name $ESC_NAME --manager $ADA_ID --json
 ! stderr '\x1b'

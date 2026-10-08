@@ -1,6 +1,5 @@
-# Strict write validation: the CLI must refuse to encrypt a document carrying a property the
-# Resource type does not declare, and the message must name both possible causes: a wrong field
-# name (much the commoner case) or a bundled schema older than the server.
+# Fields the resource type does not declare are rejected, and the error names
+# both causes: a typo or an outdated CLI.
 
 # An undeclared metadata field is rejected.
 ! pb create resource --type v5-default --name test-strict-meta --password secret --field bogus=nope
@@ -14,8 +13,7 @@ stderr 'update go-passbolt-cli'
 stderr 'bundled schema'
 stderr 'check the field names'
 
-# A declared field on the same type still works, so the rejection above is about the field name
-# and not about --field being broken.
+# A declared field still works.
 pb create resource --type v5-default --name test-strict-ok --password secret --field username=alice --json
 cp stdout ok.json
 jsonget ok.json id OK_ID

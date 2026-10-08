@@ -1,7 +1,5 @@
-# `passbolt list group` parity with the resource/folder/user column-naming
-# fixes from #129. Group create is admin-only on this server, so the lifecycle
-# runs via `pba`; listing then exercises canonical / PascalCase / lowercased-
-# concat column aliases and a CEL filter on the canonical `name` variable.
+# list group accepts snake_case and legacy column and filter names (#129).
+# Groups need admin, so this runs as pba.
 
 [!env:HAS_ADMIN] skip 'admin config not available; group create requires admin'
 
@@ -14,31 +12,31 @@ cp stdout create.json
 jsonget create.json id GID
 defer pba delete group --id $GID
 
-# JSON mode: canonical snake_case column names appear in the output.
+# JSON mode: snake_case.
 pba list group --column id --column name --column created_timestamp --json
 cp stdout snake.json
 jsoneq snake.json [id=$GID].name test-group-col-naming
 jsonexists snake.json [id=$GID].created_timestamp
 
-# JSON mode: PascalCase aliases normalize to canonical keys (the #129 bug).
+# JSON mode: PascalCase gives snake_case keys.
 pba list group --column ID --column Name --column CreatedTimestamp --json
 cp stdout pascal.json
 jsoneq pascal.json [id=$GID].name test-group-col-naming
 jsonexists pascal.json [id=$GID].created_timestamp
 
-# Table mode: canonical snake_case (previously errored — no matching case).
+# Table mode: snake_case.
 pba list group --column id --column name --column created_timestamp
 stdout test-group-col-naming
 
-# CEL filter: canonical snake_case variable.
+# Filter: snake_case.
 pba list group --filter 'name == "test-group-col-naming"' --json
 stdout $GID
 
-# CEL filter: legacy PascalCase variable still works.
+# Filter: PascalCase.
 pba list group --filter 'Name == "test-group-col-naming"' --json
 stdout $GID
 
-# Unknown column errors consistently in both modes.
+# Unknown columns fail in both modes.
 ! pba list group --column nope
 stderr 'unknown column'
 ! pba list group --column nope --json

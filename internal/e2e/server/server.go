@@ -1,16 +1,7 @@
-// Package testenv provisions an ephemeral Passbolt + MariaDB stack via
-// testcontainers-go so integration tests can talk to a fully-functional
-// server without any external setup.
+// Package server runs a throwaway Passbolt in Docker for integration tests.
 //
-// Sync note: this file is a copy of go-passbolt/internal/testenv/passbolt.go.
-// The
-// duplication is intentional so the CLI's standalone CI can compile its
-// integration tests without depending on an unreleased SDK package. When
-// changing one copy, mirror the change in the other and verify with:
-//
-//	diff <repo>/go-passbolt/internal/testenv/passbolt.go \
-//	     <repo>/go-passbolt-cli/internal/testenv/passbolt.go
-package testenv
+// Keep identical to internal/e2e/server/server.go in go-passbolt.
+package server
 
 import (
 	"context"
@@ -22,7 +13,6 @@ import (
 	"regexp"
 	"slices"
 	"strings"
-	"testing"
 	"time"
 
 	"github.com/ProtonMail/gopenpgp/v3/crypto"
@@ -32,28 +22,16 @@ import (
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
-// Pinned by tag AND digest so every CI run and every developer machine pulls
-// byte-identical images. Bumping the tag without bumping the digest (or vice
-// versa) is a deliberate, reviewable change. Refresh both together when moving
-// to a new Passbolt release.
+// Images are pinned by tag and digest. Update both together.
 const (
-	mariadbImage = "mariadb:10.11@sha256:8acd4a5561e8897cfc8a99480f25bcecb10b726fa17b1ec7381c6ef36fa00a79"
-
-	// defaultPassboltImage is what every normal run uses.
+	mariadbImage         = "mariadb:10.11@sha256:8acd4a5561e8897cfc8a99480f25bcecb10b726fa17b1ec7381c6ef36fa00a79"
 	defaultPassboltImage = "passbolt/passbolt:5.14.3-1-ce@sha256:9f97ab2a854019737b4fc30a7fdb598f80a547769d4480a76e6f4b6d0bfbd431"
 
-	// PassboltImageEnv names the environment variable that overrides
-	// defaultPassboltImage, so the same suite can be replayed against several
-	// Passbolt releases (see scripts/test-matrix.sh). An override is
-	// deliberately tag-only: pinning a digest per version would mean tracking
-	// ~15 digests by hand. MariaDB stays pinned either way — it is not the
-	// variable under test.
+	// PassboltImageEnv overrides the Passbolt image, to test another release.
 	PassboltImageEnv = "PASSBOLT_TEST_IMAGE"
 )
 
-// PassboltImage reports the Passbolt image the next Start will use: the
-// PASSBOLT_TEST_IMAGE override when set and non-blank, otherwise the pinned
-// default.
+// PassboltImage returns the Passbolt image Start will use.
 func PassboltImage() string {
 	if img := strings.TrimSpace(os.Getenv(PassboltImageEnv)); img != "" {
 		return img
@@ -61,24 +39,22 @@ func PassboltImage() string {
 	return defaultPassboltImage
 }
 
-// Credentials is everything a test needs to authenticate as a Passbolt user.
+// Credentials of a Passbolt user.
 type Credentials struct {
 	UserID     string
 	Email      string
 	Password   string
-	PrivateKey string // ASCII-armored, locked with Password.
+	PrivateKey string // armored, locked with Password
 }
 
-// Passbolt is a running Passbolt instance.
+// Passbolt is a running Passbolt server.
 type Passbolt struct {
 	BaseURL   string
 	container testcontainers.Container
 	teardown  []func(context.Context) error
 }
 
-// Close terminates every container/network the stack owns. Safe to call more
-// than once. Errors are joined so that one failed teardown doesn't mask the
-// others.
+// Close stops the containers and network. Safe to call more than once.
 func (p *Passbolt) Close(ctx context.Context) error {
 	var errs []error
 	for _, teardown := range slices.Backward(p.teardown) {
@@ -90,10 +66,7 @@ func (p *Passbolt) Close(ctx context.Context) error {
 	return errors.Join(errs...)
 }
 
-// Start brings up MariaDB + Passbolt on a shared Docker network. The caller
-// owns teardown via (*Passbolt).Close. Use StartT from a test function if you
-// want automatic t.Cleanup wiring. Cold start is ~30-60s once images are
-// cached.
+// Start runs MariaDB and Passbolt in Docker. The caller must Close it.
 func Start(ctx context.Context) (*Passbolt, error) {
 	p := &Passbolt{}
 	rollback := func(err error) (*Passbolt, error) {
@@ -118,10 +91,7 @@ func Start(ctx context.Context) (*Passbolt, error) {
 				"MYSQL_USER":          "passbolt",
 				"MYSQL_PASSWORD":      "passbolt",
 			},
-			// MariaDB logs "ready for connections" twice: once during
-			// init, again after the post-init restart. Wait for the
-			// second occurrence so subsequent connections aren't racing
-			// the restart.
+			// MariaDB restarts once after init, so wait for the second log.
 			WaitingFor: wait.ForLog("ready for connections").
 				WithOccurrence(2).
 				WithStartupTimeout(2 * time.Minute),
@@ -144,10 +114,7 @@ func Start(ctx context.Context) (*Passbolt, error) {
 				"DATASOURCES_DEFAULT_USERNAME": "passbolt",
 				"DATASOURCES_DEFAULT_PASSWORD": "passbolt",
 				"DATASOURCES_DEFAULT_DATABASE": "passbolt",
-				// Port-agnostic base URL: register_user prints links
-				// with this hostname but we hit the API via the mapped
-				// host port. Passbolt CE does not enforce a Host-header
-				// match by default.
+				// Tests use the mapped port; Passbolt does not check the Host header.
 				"APP_FULL_BASE_URL":  "http://localhost",
 				"PASSBOLT_SSL_FORCE": "false",
 			},
@@ -177,30 +144,13 @@ func Start(ctx context.Context) (*Passbolt, error) {
 	return p, nil
 }
 
-// StartT is the *testing.T-bound convenience: starts the stack, registers
-// teardown via t.Cleanup, and fatals on error.
-func StartT(t *testing.T) *Passbolt {
-	t.Helper()
-	pb, err := Start(t.Context())
-	if err != nil {
-		t.Fatalf("testenv start: %v", err)
-	}
-	t.Cleanup(func() { _ = pb.Close(context.Background()) })
-	return pb
-}
-
-// setupURLRegex matches the one-time setup link printed by `cake passbolt
-// register_user`. Passbolt emits this under /setup/start/<userID>/<token> in
-// current versions and historically used /setup/install/...; both forms
-// carry the same userID/token pair that the SetupInstall API accepts.
+// setupURLRegex matches the setup link printed by register_user.
 var setupURLRegex = regexp.MustCompile(`https?://\S+/setup/[A-Za-z]+/[A-Za-z0-9-]+/[A-Za-z0-9-]+`)
 
-// RegisterUser invites a user via `cake passbolt register_user` and returns
-// the userID and one-time setup token parsed from the printed URL. role must
-// be "user" or "admin".
+// RegisterUser invites a user and returns their ID and setup token. role is
+// "user" or "admin".
 func (p *Passbolt) RegisterUser(ctx context.Context, email, first, last, role string) (userID, token string, err error) {
-	// register_user must run as the www-data user so the file Passbolt
-	// writes (its registration audit log) has the right ownership.
+	// Run as www-data so the files Passbolt writes have the right owner.
 	cmd := []string{
 		"su", "-m", "-c",
 		fmt.Sprintf("bin/cake passbolt register_user -u %s -f %s -l %s -r %s",
@@ -226,10 +176,7 @@ func (p *Passbolt) RegisterUser(ctx context.Context, email, first, last, role st
 	return uid, tok, nil
 }
 
-// parseInviteURL splits "<scheme>://<host>/setup/install/<userID>/<token>"
-// (with an optional ".json" suffix) into its two trailing components. Mirrors
-// helper.ParseInviteURL but lives here so testenv can avoid importing helper,
-// which itself imports testenv via the integration test main.
+// parseInviteURL returns the last two path segments of a setup link.
 func parseInviteURL(url string) (userID, token string, err error) {
 	parts := strings.Split(url, "/")
 	if len(parts) < 4 {
@@ -238,15 +185,9 @@ func parseInviteURL(url string) (userID, token string, err error) {
 	return parts[len(parts)-2], strings.TrimSuffix(parts[len(parts)-1], ".json"), nil
 }
 
-// EnableV5Resources flips the server-side metadata-type and metadata-key
-// settings so V5 resources can be created. A fresh Passbolt defaults to
-// v4-only (see getV4DefaultMetadataTypeSettings in the api package); without
-// this call, every CreateResource for a v5-* type rejects with
-// "creation of V5 passwords is disabled on this server".
-//
-// admin must be a user with the "admin" role; the call opens a short-lived
-// admin session and discards it, so caller-side clients still need to be
-// (re-)logged-in after this returns to see the new settings in their cache.
+// EnableV5Resources creates a shared metadata key and allows V5 resources,
+// which a new server does not. Call it before other clients log in, since
+// clients cache these settings at login. admin must have the admin role.
 func (p *Passbolt) EnableV5Resources(ctx context.Context, admin Credentials) error {
 	c, err := api.NewClient(nil, "go-passbolt-testenv-bootstrap", p.BaseURL, admin.PrivateKey, admin.Password)
 	if err != nil {
@@ -257,10 +198,7 @@ func (p *Passbolt) EnableV5Resources(ctx context.Context, admin Credentials) err
 	}
 	defer func() { _ = c.Logout(ctx) }()
 
-	// Passbolt refuses to save type settings while no active shared metadata
-	// key exists ("An active metadata key could not be found, create a key
-	// first"). Bootstrapping one here is the entire reason this method must
-	// run before any test client logs in.
+	// The type settings below are refused until a metadata key exists.
 	if err := p.createSharedMetadataKey(ctx, c); err != nil {
 		return fmt.Errorf("create shared metadata key: %w", err)
 	}
@@ -285,8 +223,6 @@ func (p *Passbolt) EnableV5Resources(ctx context.Context, admin Credentials) err
 		return fmt.Errorf("post metadata type settings: %w", err)
 	}
 
-	// Personal-key mode means each user can act as their own metadata key
-	// authority — no shared metadata key bootstrap needed for the test.
 	keys := api.MetadataKeySettings{
 		AllowUsageOfPersonalKeys:   true,
 		AllowZeroKnowledgeKeyShare: false,
@@ -297,9 +233,7 @@ func (p *Passbolt) EnableV5Resources(ctx context.Context, admin Credentials) err
 	return nil
 }
 
-// CreateUser invites the user and completes account setup, returning
-// ready-to-use credentials. The returned PrivateKey is ASCII-armored and
-// locked with the supplied password.
+// CreateUser registers a user and completes their account setup.
 func (p *Passbolt) CreateUser(ctx context.Context, email, first, last, role, password string) (Credentials, error) {
 	userID, token, err := p.RegisterUser(ctx, email, first, last, role)
 	if err != nil {
@@ -322,11 +256,8 @@ func (p *Passbolt) CreateUser(ctx context.Context, email, first, last, role, pas
 	}, nil
 }
 
-// createSharedMetadataKey generates a fresh PGP keypair for the server's
-// shared metadata-key role, encrypts the private half for the supplied admin
-// (signed by the admin so the SDK's first-fetch trust path auto-accepts it),
-// and POSTs it to /metadata/keys.json. Required before /metadata/types/settings
-// will accept any V5-enabling change.
+// createSharedMetadataKey generates a shared metadata key and gives admin a
+// copy of the private key.
 func (p *Passbolt) createSharedMetadataKey(ctx context.Context, admin *api.Client) error {
 	me, err := admin.GetMe(ctx)
 	if err != nil {
@@ -354,18 +285,11 @@ func (p *Passbolt) createSharedMetadataKey(ctx context.Context, admin *api.Clien
 	if err != nil {
 		return fmt.Errorf("armor metadata private key: %w", err)
 	}
-	// gopenpgp returns lowercase hex; Passbolt's IsValidFingerprintValidationRule
-	// requires uppercase. Mismatch produces a generic 400 "Could not validate
-	// the metadata key data".
+	// Passbolt requires an uppercase fingerprint.
 	fingerprint := strings.ToUpper(key.GetFingerprint())
 
-	// "passphrase must be Empty for Server Keys" per the SDK's
-	// MetadataPrivateKeyData comments.
-	//
-	// Signed must be set: api.Time always marshals (omitempty doesn't apply to struct
-	// fields), so leaving it zero-value sends "0001-01-01T00:00:00Z". The Go SDK never
-	// validates this field, so that goes unnoticed here, but the browser extension's
-	// MetadataPrivateKeyDataEntity does validate it and rejects the record outright.
+	// Server keys have no passphrase. Signed must be set: the browser
+	// extension rejects a zero time.
 	payload, err := json.Marshal(api.MetadataPrivateKeyData{
 		ObjectType:  "PASSBOLT_METADATA_PRIVATE_KEY",
 		Domain:      p.BaseURL,
@@ -402,22 +326,16 @@ func (p *Passbolt) createSharedMetadataKey(ctx context.Context, admin *api.Clien
 	return nil
 }
 
-// stripScheme returns the host portion of a URL ("http://localhost:1234" →
-// "localhost:1234"). Used to build a plausible email-shaped identity for the
-// metadata key's PGP user-id, which Passbolt validates loosely.
+// stripScheme turns "http://localhost:1234" into "localhost:1234".
 func stripScheme(url string) string {
-	for _, sep := range []string{"://"} {
-		if _, after, ok := strings.Cut(url, sep); ok {
-			return after
-		}
+	if _, after, ok := strings.Cut(url, "://"); ok {
+		return after
 	}
 	return url
 }
 
-// completeSetup runs the GPG-based "setup/complete" flow that turns a
-// registration token into a usable, password-locked private key. Mirrors
-// helper.SetupAccount; kept here so testenv can stay free of an import on
-// helper (which itself depends on testenv from its integration test main).
+// completeSetup generates the user's key, locked with password, and completes
+// account setup. It returns the armored private key.
 func completeSetup(ctx context.Context, c *api.Client, userID, token, password string) (string, error) {
 	install, err := c.SetupInstall(ctx, userID, token)
 	if err != nil {

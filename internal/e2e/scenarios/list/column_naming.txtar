@@ -1,0 +1,42 @@
+# --column accepts snake_case and legacy aliases in table and JSON modes (#129).
+
+pb create resource --type v5-default --name test-col-naming --username col-user --uri https://col.example.com --password col-pass --json
+cp stdout create.json
+jsonget create.json id ID
+defer pb delete resource --id $ID
+
+# JSON mode: snake_case.
+pb list resource --column id --column name --column created_timestamp --json
+cp stdout snake.json
+jsoneq snake.json [id=$ID].name test-col-naming
+jsonexists snake.json [id=$ID].created_timestamp
+# Columns not asked for are absent.
+! jsonexists snake.json [id=$ID].username
+
+# JSON mode: PascalCase gives snake_case keys.
+pb list resource --column ID --column Name --column CreatedTimestamp --json
+cp stdout pascal.json
+jsoneq pascal.json [id=$ID].name test-col-naming
+jsonexists pascal.json [id=$ID].created_timestamp
+! jsonexists pascal.json [id=$ID].username
+
+# JSON mode: lowercase alias.
+pb list resource --column id --column name --column createdtimestamp --json
+cp stdout legacy.json
+jsoneq legacy.json [id=$ID].name test-col-naming
+jsonexists legacy.json [id=$ID].created_timestamp
+! jsonexists legacy.json [id=$ID].username
+
+# Table mode: snake_case.
+pb list resource --column id --column folder_parent_id --column name
+stdout test-col-naming
+
+# Table mode: PascalCase.
+pb list resource --column ID --column FolderParentID --column Name
+stdout test-col-naming
+
+# Unknown columns fail in both modes.
+! pb list resource --column nope
+stderr 'unknown column'
+! pb list resource --column nope --json
+stderr 'unknown column'

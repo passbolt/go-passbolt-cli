@@ -1,6 +1,6 @@
 # v5-pin-code arrived in Passbolt 5.12, so this is gated on the server advertising it: on an
 # older release the client correctly refuses the type, which is not a failure. The marker is set
-# per advertised slug in cli_integration_test.go.
+# per advertised slug in e2e_test.go.
 
 [!env:HAS_TYPE_V5_PIN_CODE] skip 'server does not advertise v5-pin-code (added in 5.12)'
 
