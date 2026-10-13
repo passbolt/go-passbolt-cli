@@ -7,10 +7,10 @@
 #   - fresh key, user was never given a private-key copy ("no Metadata Private
 #     key for our user")
 #
-# Either is fine for locking in "share blocked without trust-callback CLI
-# support". When the CLI plumbs a --trustNewMetadataKey flag (or equivalent),
-# the share will start succeeding and the negative assertion will fail,
-# prompting a rewrite into a proper share roundtrip.
+# --metadataKeyFingerprint and --trustNewMetadataKey unblock the first state.
+# They cannot unblock the second one, which is the one this environment
+# produces: there is no private key copy to decrypt, so there is nothing to
+# trust. Hence the assertion stays negative.
 
 pb list user --json
 cp stdout users.json
