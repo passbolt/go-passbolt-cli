@@ -45,6 +45,7 @@
 //
 // # Config and output files
 //
-// The config file holds secrets in cleartext: CreateSecretFile writes it and the KeePass
-// export at 0600, and RepairMode fixes the default config (a --config path is only reported).
+// The config file holds secrets in cleartext; it is written and checked through the
+// securefile subpackage, and WarnIfExposed warns on stderr about a secret
+// file someone else owns or others can still read.
 package util
