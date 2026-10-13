@@ -47,6 +47,8 @@ func init() {
 	rootCmd.PersistentFlags().String("userPrivateKey", "", "Passbolt User Private Key")
 	rootCmd.PersistentFlags().String("userPrivateKeyFile", "", "Passbolt User Private Key File, if set then the userPrivateKey will be Overwritten with the File Content")
 	rootCmd.PersistentFlags().String("userPassword", "", "Passbolt User Password")
+	rootCmd.PersistentFlags().String("metadataKeyFingerprint", "", "Fingerprint of the Shared Metadata Key to Trust")
+	rootCmd.PersistentFlags().Bool("trustNewMetadataKey", false, "Trust the Shared Metadata Key the Server offers, only used when metadataKeyFingerprint is not set")
 	rootCmd.PersistentFlags().String("mfaMode", "interactive-totp", "How to Handle MFA, the following Modes exist: none, interactive-totp and noninteractive-totp")
 
 	rootCmd.PersistentFlags().String("totpToken", "", "Token to generate TOTP's, only used in nointeractive-totp mode")
@@ -73,6 +75,8 @@ func init() {
 	viper.BindPFlag("serverAddress", rootCmd.PersistentFlags().Lookup("serverAddress"))
 	viper.BindPFlag("userPrivateKey", rootCmd.PersistentFlags().Lookup("userPrivateKey"))
 	viper.BindPFlag("userPassword", rootCmd.PersistentFlags().Lookup("userPassword"))
+	viper.BindPFlag("metadataKeyFingerprint", rootCmd.PersistentFlags().Lookup("metadataKeyFingerprint"))
+	viper.BindPFlag("trustNewMetadataKey", rootCmd.PersistentFlags().Lookup("trustNewMetadataKey"))
 	viper.BindPFlag("mfaMode", rootCmd.PersistentFlags().Lookup("mfaMode"))
 	viper.BindPFlag("totpToken", rootCmd.PersistentFlags().Lookup("totpToken"))
 	viper.BindPFlag("mfaTotpToken", rootCmd.PersistentFlags().Lookup("mfaTotpToken"))

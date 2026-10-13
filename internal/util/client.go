@@ -110,6 +110,19 @@ func GetClient(ctx context.Context) (*api.Client, error) {
 
 	client.Debug = viper.GetBool("debug")
 
+	// The SDK only trusts a Shared Metadata Key whose private key copy is signed
+	// by our own key. A copy shared by somebody else, such as an administrator,
+	// is not, so without one of these the user cannot write v5 metadata.
+	if fingerprint := viper.GetString("metadataKeyFingerprint"); fingerprint != "" {
+		// Fingerprints are usually pasted with spaces and in upper case.
+		fingerprint = strings.ToLower(strings.ReplaceAll(fingerprint, " ", ""))
+		client.SetTrustedMetadatakeyFingerprint(fingerprint, time.Time{})
+	} else if viper.GetBool("trustNewMetadataKey") {
+		client.MetadataKeyUpdatedCallback = func(ctx context.Context, trusted bool, fingerprint string, signTime time.Time) error {
+			return nil
+		}
+	}
+
 	token := viper.GetString("serverVerifyToken")
 	encToken := viper.GetString("serverVerifyEncToken")
 
