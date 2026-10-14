@@ -14,9 +14,10 @@ Releases before this file was introduced are documented in the [GitHub releases]
 - PB-54978: Restrict the configuration file and the KeePass export to their owner on Windows
 - PB-54978: Refuse to write a configuration file whose permissions cannot be tightened
 - PB-54978: Document in SECURITY.md where the configuration file is unsafe to store
+- PB-55389: Bump go version to 1.27.2 (security fixes in crypto/tls, net/http, net/textproto and os)
 
 ### Maintenance
-- PB-54147: Bump go version to 1.27.2 (the minimum supported Go version is now 1.27)
+- PB-55389: Bump go version to 1.27.2 (the minimum supported Go version is now 1.27)
 - PB-54147: Use go 1.27 syntax (the go-passbolt SDK :stays buildable on Go 1.26.9, so this only affects the CLI)
 
 ### Changed
