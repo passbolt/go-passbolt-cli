@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/google/cel-go/cel"
+	"cel.dev/cel-go/cel"
 	"github.com/passbolt/go-passbolt-cli/internal/util"
 )
 
