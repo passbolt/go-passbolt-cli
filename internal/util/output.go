@@ -111,7 +111,7 @@ func RenderTable(data pterm.TableData) {
 			clean[i][j] = Sanitize(cell)
 		}
 	}
-	pterm.DefaultTable.WithHasHeader().WithData(clean).WithWriter(Out).Render() //nolint:forbidigo // the one sanitized render path
+	pterm.DefaultTable.WithHasHeader().WithSeparator(" | ").WithHeaderRowSeparator("").WithData(clean).WithWriter(Out).Render() //nolint:forbidigo // the one sanitized render path
 }
 
 // PrintTable renders a header row of column names followed by one row per item.
