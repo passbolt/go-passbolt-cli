@@ -20,6 +20,9 @@ Releases before this file was introduced are documented in the [GitHub releases]
 ### Maintenance
 - PB-55389: Bump go version to 1.27.2 (the minimum supported Go version is now 1.27)
 - PB-54147: Use go 1.27 syntax (the go-passbolt SDK :stays buildable on Go 1.26.10, so this only affects the CLI)
+- PB-55888: Update dependencies in SDK and CLI
+- PB-55888: Switch cel-go to its new `cel.dev/cel-go` module path
+- PB-55888: Keep the existing table layout after the pterm upgrade
 
 ### Changed
 - PB-54610: `list resource` skips Resources whose type is unknown to this build or disabled on the server and reports how many were ignored, and `create`, `update`, `share` and `get` explain schema validation failures (Go SDK PB-54610)
