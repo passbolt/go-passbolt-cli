@@ -15,7 +15,7 @@ Releases before this file was introduced are documented in the [GitHub releases]
 - PB-54147: Propagate the real error when interactive TOTP is exhausted
 
 ### Security
-- PB-54765: Sanitize terminal output in every command to prevent escape sequence injection
+- PB-54765: Sanitize terminal output in every command to prevent escape sequence injection (Medium)
 - PB-54765: Escape non-BMP characters as `\uXXXX` in JSON output
 - PB-54766: Write the CLI config through a hardened file descriptor (Medium)
 - PB-54766: Repair default config permissions and warn on custom paths

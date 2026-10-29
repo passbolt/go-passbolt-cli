@@ -1,12 +1,11 @@
-go-passbolt-cli v0.5.3 is a security-focused release. It protects the terminal against escape sequence injection, hardens how the configuration file and the KeePass export are written on every platform, and brings schema-aware Resource commands from the Go SDK v0.8.4.
+go-passbolt-cli v0.5.3 fixes two medium-severity vulnerabilities, a terminal escape sequence injection and insecure configuration file permissions, and brings schema-aware Resource commands from the Go SDK v0.8.4.
 
-## Terminal output sanitizing
-Resource names, usernames, URIs and other server-provided values were printed to the terminal as they were. A value containing escape sequences could rewrite what the user saw or send commands to the terminal emulator. Every command now sanitizes what it prints, and the `--json` output escapes non-BMP characters as `\uXXXX`.
+## Security improvements
+Security researcher Nitin Gavhane reported the following two vulnerabilities, both affecting versions before 0.5.3.
 
-## Configuration file and export hardening
-The configuration file holds the private key and its passphrase in cleartext. It is now created and kept with owner-only permissions: 0600 on Unix, and on Windows a protected ACL granting only the caller, SYSTEM and Administrators. The KeePass export gets the same treatment. The CLI refuses to write either one to anything but a regular file, and warns when the file stays readable by others or belongs to someone else. The default configuration file is repaired when its permissions are loose. SECURITY.md documents where the configuration file is unsafe to store.
+Some output paths printed server-controlled values, such as metadata field names and group names, without filtering terminal control characters, so a crafted Resource or group could forge the CLI output (CVSS 5.1). All terminal output is now sanitized.
 
-`configure --debug` now asks for confirmation before it prints the saved settings, secrets included, and prints them to stderr so they stay out of a piped output.
+The configuration file, which holds the private key, passphrase and MFA seed, could be readable by other local users, notably with a custom `--config` path (CVSS 6.8). It is now kept owner-only (0600, or an owner-only ACL on Windows), as is the KeePass export, and `configure --debug` asks before printing secrets.
 
 ## Schema-aware Resource commands
 With the Go SDK v0.8.4, Resources are validated against schemas bundled with the SDK. `list resource` skips Resources whose type is unknown to this build or disabled on the server and reports how many were ignored, while `create`, `update`, `share` and `get` explain why a Resource failed validation.
@@ -26,7 +25,7 @@ Many thanks to everyone who provided feedback, reported bugs, and contributed to
 - PB-54147 Propagate the real error when interactive TOTP is exhausted
 
 ### Security
-- PB-54765 Sanitize terminal output in every command to prevent escape sequence injection
+- PB-54765 Sanitize terminal output in every command to prevent escape sequence injection (Medium)
 - PB-54765 Escape non-BMP characters as `\uXXXX` in JSON output
 - PB-54766 Write the CLI config through a hardened file descriptor (Medium)
 - PB-54766 Repair default config permissions and warn on custom paths
