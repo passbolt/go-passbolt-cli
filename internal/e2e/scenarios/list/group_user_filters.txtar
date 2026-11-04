@@ -1,0 +1,40 @@
+# list group --user/--manager and list user --group (go-passbolt#81).
+
+[!env:HAS_ADMIN] skip 'admin config not available; group create requires admin'
+
+pba list user --json
+cp stdout users.json
+jsonget users.json [username=ada@passbolt.com].id ADA_ID
+jsonget users.json [username=adele@passbolt.com].id ADELE_ID
+
+# g1: ada manages, adele is a member. g2: adele manages.
+pba create group --name test-group-filter-1 --manager $ADA_ID --user $ADELE_ID --json
+cp stdout g1.json
+jsonget g1.json id G1
+defer pba delete group --id $G1
+
+pba create group --name test-group-filter-2 --manager $ADELE_ID --json
+cp stdout g2.json
+jsonget g2.json id G2
+defer pba delete group --id $G2
+
+pba list group --user $ADA_ID --json
+cp stdout by_user.json
+jsonexists by_user.json [id=$G1].id
+! jsonexists by_user.json [id=$G2].id
+
+pba list group --manager $ADELE_ID --json
+cp stdout by_manager.json
+jsonexists by_manager.json [id=$G2].id
+! jsonexists by_manager.json [id=$G1].id
+
+# No group has both managers.
+pba list group --manager $ADA_ID --manager $ADELE_ID --json
+cp stdout by_managers.json
+! jsonexists by_managers.json [id=$G1].id
+! jsonexists by_managers.json [id=$G2].id
+
+pba list user --group $G2 --json
+cp stdout by_group.json
+jsonexists by_group.json [id=$ADELE_ID].id
+! jsonexists by_group.json [id=$ADA_ID].id

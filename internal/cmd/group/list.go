@@ -21,8 +21,8 @@ var GroupListCmd = &cobra.Command{
 
 func init() {
 	flags := GroupListCmd.Flags()
-	flags.StringArrayP("user", "u", []string{}, "Groups that are shared with group")
-	flags.StringArrayP("manager", "m", []string{}, "Groups that are in folder")
+	flags.StringArrayP("user", "u", []string{}, "Groups that have all of these users as members")
+	flags.StringArrayP("manager", "m", []string{}, "Groups that have all of these users as managers")
 	flags.StringArrayP("column", "c", groupColumns.DefaultTableColumns(), "Columns to return (default list only for table format; JSON format includes all fields by default).\nPossible Columns: "+strings.Join(groupColumns.Resolver().Canonical(), ", ")+"\nLegacy PascalCase column names (ID, Name, CreatedTimestamp, ...) remain accepted for backwards compatibility.")
 }
 

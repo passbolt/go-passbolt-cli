@@ -13,6 +13,8 @@ Releases before this file was introduced are documented in the [GitHub releases]
 
 ### Fixed
 - PB-54147: Propagate the real error when interactive TOTP is exhausted
+- PB-56059: Fix the `--user` and `--manager` filters of `list group` and the `--group` filter of `list user`
+- PB-56059: Fix the help text of the `list group` and `list user` filters
 
 ### Security
 - PB-54765: Sanitize terminal output in every command to prevent escape sequence injection (Medium)
@@ -45,6 +47,7 @@ Releases before this file was introduced are documented in the [GitHub releases]
 - PB-55888: Update Go dependencies
 - PB-55888: Migrate cel-go to the cel.dev/cel-go module path
 - PB-55888: Keep the previous table style after the pterm upgrade
+- PB-56059: Add integration tests for the list filters
 - Renovate: Update goreleaser/goreleaser-action action to v7.3.0
 - Renovate: Update actions/upload-artifact action to v7.0.2
 
