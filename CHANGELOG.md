@@ -6,7 +6,7 @@ Releases before this file was introduced are documented in the [GitHub releases]
 
 ## [Unreleased]
 
-## [0.5.3] - 2026-10-29
+## [0.5.3] - 2026-11-05
 ### Added
 - PB-54610: Skip Resources this build cannot read in `list resource`
 - PB-54610: Explain schema validation errors in `create`, `update`, `share` and `get`
