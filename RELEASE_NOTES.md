@@ -10,6 +10,9 @@ The configuration file, which holds the private key, passphrase and MFA seed, co
 ## Schema-aware Resource commands
 With the Go SDK v0.8.4, Resources are validated against schemas bundled with the SDK. `list resource` skips Resources whose type is unknown to this build or disabled on the server and reports how many were ignored, while `create`, `update`, `share` and `get` explain why a Resource failed validation.
 
+## List filter fixes
+`list group --user`, `list group --manager` and `list user --group` returned all groups or users. They now filter as expected.
+
 ## Go version and dependencies
 The CLI is built with Go 1.27.3, which includes the Go security fixes in crypto/tls, net/http, net/textproto, os and crypto/x509. Dependencies are updated, and cel-go moves to its new `cel.dev/cel-go` module path. Table output keeps its previous layout after the pterm upgrade.
 
@@ -23,6 +26,8 @@ Many thanks to everyone who provided feedback, reported bugs, and contributed to
 
 ### Fixed
 - PB-54147 Propagate the real error when interactive TOTP is exhausted
+- PB-56059 Fix the `--user` and `--manager` filters of `list group` and the `--group` filter of `list user`
+- PB-56059 Fix the help text of the `list group` and `list user` filters
 
 ### Security
 - PB-54765 Sanitize terminal output in every command to prevent escape sequence injection (Medium)
@@ -55,5 +60,6 @@ Many thanks to everyone who provided feedback, reported bugs, and contributed to
 - PB-55888 Update Go dependencies
 - PB-55888 Migrate cel-go to the cel.dev/cel-go module path
 - PB-55888 Keep the previous table style after the pterm upgrade
+- PB-56059 Add integration tests for the list filters
 - Renovate: Update goreleaser/goreleaser-action action to v7.3.0
 - Renovate: Update actions/upload-artifact action to v7.0.2
