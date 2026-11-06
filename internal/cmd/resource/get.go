@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"al.essio.dev/pkg/shellescape"
 	"github.com/passbolt/go-passbolt-cli/internal/util"
 	"github.com/passbolt/go-passbolt/api"
 	"github.com/passbolt/go-passbolt/helper"
@@ -67,7 +66,7 @@ func ResourceGet(cmd *cobra.Command, args []string) error {
 		folderParentID, metadata, secretFields, err :=
 			helper.GetResourceFieldMaps(client, *resource, *secret, *rType, true)
 		if err != nil {
-			return fmt.Errorf("decrypting resource: %w", err)
+			return util.ExplainReadError("decrypting Resource", rType.Slug, err)
 		}
 
 		name := helper.GetStringField(metadata, "name")
@@ -95,19 +94,20 @@ func ResourceGet(cmd *cobra.Command, args []string) error {
 			return util.PrintJSON(output)
 		}
 
-		fmt.Printf("FolderParentID: %v\n", folderParentID)
-		fmt.Printf("Name: %v\n", shellescape.StripUnsafe(name))
-		fmt.Printf("Username: %v\n", shellescape.StripUnsafe(username))
-		fmt.Printf("URI: %v\n", shellescape.StripUnsafe(uri))
-		fmt.Printf("Password: %v\n", shellescape.StripUnsafe(password))
-		fmt.Printf("Description: %v\n", shellescape.StripUnsafe(description))
+		util.Printf("FolderParentID: %v\n", util.Sanitize(folderParentID))
+		util.Printf("Name: %v\n", util.Sanitize(name))
+		util.Printf("Username: %v\n", util.Sanitize(username))
+		util.Printf("URI: %v\n", util.Sanitize(uri))
+		util.Printf("Password: %v\n", util.Sanitize(password))
+		// No Sanitize: a description may span several lines, and the writer cleans it.
+		util.Printf("Description: %v\n", description)
 
 		for k, v := range metadata {
 			switch k {
 			case "name", "username", "uri", "uris", "description", "object_type", "resource_type_id":
 				continue
 			default:
-				fmt.Printf("%s: %v\n", k, shellescape.StripUnsafe(fmt.Sprint(v)))
+				util.Printf("%s: %v\n", util.Sanitize(k), util.Sanitize(fmt.Sprint(v)))
 			}
 		}
 		return nil

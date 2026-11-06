@@ -2,7 +2,6 @@ package resource
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/passbolt/go-passbolt-cli/internal/util"
 	"github.com/passbolt/go-passbolt/api"
@@ -55,7 +54,7 @@ func ResourceShare(cmd *cobra.Command, args []string) error {
 			groups,
 			pType,
 		); err != nil {
-			return fmt.Errorf("sharing Resource: %w", err)
+			return util.ExplainWriteError("sharing Resource", "", err)
 		}
 		return nil
 	})

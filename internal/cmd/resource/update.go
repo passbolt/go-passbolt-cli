@@ -115,7 +115,8 @@ func ResourceUpdate(cmd *cobra.Command, args []string) error {
 		}
 
 		if err != nil {
-			return fmt.Errorf("updating resource: %w", err)
+			// No slug: update only takes an --id, so the type is never resolved here.
+			return util.ExplainWriteError("updating Resource", "", err)
 		}
 
 		if expiry != "" {

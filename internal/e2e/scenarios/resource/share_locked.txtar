@@ -1,0 +1,14 @@
+# Sharing fails until the CLI can trust a new metadata key. Once it can,
+# turn this into a share round-trip.
+
+pb list user --json
+cp stdout users.json
+jsonget users.json [username=adele@passbolt.com].id ADELE_ID
+
+pb create resource --type v5-default --name test-share-locked --password p --json
+cp stdout resource.json
+jsonget resource.json id RID
+defer pb delete resource --id $RID
+
+! pb share resource --id $RID --type 1 --user $ADELE_ID
+stderr '(metadata Key has changed|no Metadata Private key)'

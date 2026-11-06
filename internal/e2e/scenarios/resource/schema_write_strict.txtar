@@ -1,0 +1,20 @@
+# Fields the resource type does not declare are rejected, and the error names
+# both causes: a typo or an outdated CLI.
+
+# An undeclared metadata field is rejected.
+! pb create resource --type v5-default --name test-strict-meta --password secret --field bogus=nope
+stderr 'bundled schema'
+stderr 'v5-default'
+stderr 'check the field names'
+stderr 'update go-passbolt-cli'
+
+# The same on the secret side.
+! pb create resource --type v5-default --name test-strict-secret --password secret --secret-field bogus=nope
+stderr 'bundled schema'
+stderr 'check the field names'
+
+# A declared field still works.
+pb create resource --type v5-default --name test-strict-ok --password secret --field username=alice --json
+cp stdout ok.json
+jsonget ok.json id OK_ID
+defer pb delete resource --id $OK_ID

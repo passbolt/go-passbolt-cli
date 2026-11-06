@@ -22,8 +22,8 @@ import (
 func ReadPassword(prompt string) (string, error) {
 	fd := int(os.Stdin.Fd())
 	var pass string
-	if term.IsTerminal(fd) {
-		fmt.Fprint(os.Stderr, prompt)
+	if IsInteractive() {
+		Eprint(prompt)
 
 		inputPass, err := term.ReadPassword(fd)
 		if err != nil {
@@ -50,9 +50,9 @@ func SaveSessionKeysAndLogout(ctx context.Context, client *api.Client) {
 		saved, err := client.SavePendingSessionKeys(ctx)
 		if err != nil {
 			// Log but don't fail - session keys can be re-discovered on next access
-			fmt.Fprintf(os.Stderr, "Warning: failed to save session keys: %v\n", err)
+			Eprintf("Warning: failed to save session keys: %v\n", err)
 		} else if saved > 0 {
-			fmt.Fprintf(os.Stderr, "Saved %d session keys to server\n", saved)
+			Eprintf("Saved %d session keys to server\n", saved)
 		}
 	}
 	client.Logout(ctx)
@@ -91,12 +91,12 @@ func GetClient(ctx context.Context) (*api.Client, error) {
 	if userPassword == "" {
 		cliPassword, err := ReadPassword("Enter Password:")
 		if err != nil {
-			fmt.Println()
+			Println()
 			return nil, fmt.Errorf("reading Password: %w", err)
 		}
 
 		userPassword = cliPassword
-		fmt.Println()
+		Println()
 	}
 
 	httpClient, err := GetHTTPClient()
@@ -133,23 +133,22 @@ func GetClient(ctx context.Context) (*api.Client, error) {
 			}
 			for range 3 {
 				var code string
-				code, err := ReadPassword("Enter TOTP:")
+				code, err = ReadPassword("Enter TOTP:")
 				if err != nil {
-					fmt.Printf("\n")
+					Printf("\n")
 					return http.Cookie{}, fmt.Errorf("reading TOTP: %w", err)
 				}
-				fmt.Printf("\n")
+				Printf("\n")
 				req := api.MFAChallengeResponse{
 					TOTP: code,
 				}
 				var raw *http.Response
 				raw, _, err = c.DoCustomRequestAndReturnRawResponseV5(ctx, "POST", "mfa/verify/totp.json", req, nil)
 				if err != nil {
-					var apiErr *api.APIError
-					if !errors.As(err, &apiErr) {
+					if _, ok := errors.AsType[*api.APIError](err); !ok {
 						return http.Cookie{}, fmt.Errorf("doing MFA Challenge Response: %w", err)
 					}
-					fmt.Println("TOTP Verification Failed")
+					Println("TOTP Verification Failed")
 				} else {
 					// MFA worked so lets find the cookie and return it
 					for _, cookie := range raw.Cookies() {
@@ -191,8 +190,7 @@ func GetClient(ctx context.Context) (*api.Client, error) {
 // code so users get actionable guidance instead of a bare status. The original
 // error chain is preserved for errors.Is / errors.As.
 func ExplainAPIError(op string, err error) error {
-	var apiErr *api.APIError
-	if errors.As(err, &apiErr) {
+	if apiErr, ok := errors.AsType[*api.APIError](err); ok {
 		if hint := apiStatusHint(apiErr.StatusCode); hint != "" {
 			return fmt.Errorf("%s: %s: %w", op, hint, err)
 		}

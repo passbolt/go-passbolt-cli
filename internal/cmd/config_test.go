@@ -17,12 +17,12 @@ import (
 func TestInitConfig_LoadsTOMLFile(t *testing.T) {
 	viper.Reset()
 	dir := t.TempDir()
-	cfgPath := filepath.Join(dir, "go-passbolt-cli.toml")
+	tomlPath := filepath.Join(dir, "go-passbolt-cli.toml")
 	content := "serverAddress = \"https://file.example.com\"\nmfaMode = \"none\"\ntimeout = \"45s\"\n"
-	if err := os.WriteFile(cfgPath, []byte(content), 0600); err != nil {
+	if err := os.WriteFile(tomlPath, []byte(content), 0600); err != nil {
 		t.Fatal(err)
 	}
-	cfgFile = cfgPath
+	cfgFile = tomlPath
 	defer func() { cfgFile = "" }()
 
 	initConfig()
@@ -43,12 +43,10 @@ func TestInitConfig_LoadsTOMLFile(t *testing.T) {
 }
 
 func TestInitConfig_ReadsEnvVars(t *testing.T) {
-	viper.Reset()
-	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	useDefaultConfig(t)
 	// No SetEnvPrefix / key replacer is configured, so viper maps the key
 	// "serverAddress" to the env var SERVERADDRESS (uppercased, no separators).
 	t.Setenv("SERVERADDRESS", "https://env.example.com")
-	cfgFile = ""
 
 	initConfig()
 
@@ -58,9 +56,7 @@ func TestInitConfig_ReadsEnvVars(t *testing.T) {
 }
 
 func TestInitConfig_LoadsPrivateKeyFromFile(t *testing.T) {
-	viper.Reset()
-	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
-	cfgFile = ""
+	useDefaultConfig(t)
 
 	keyPath := filepath.Join(t.TempDir(), "key.asc")
 	if err := os.WriteFile(keyPath, []byte("PRIVATE-KEY-CONTENT"), 0600); err != nil {
@@ -79,9 +75,7 @@ func TestInitConfig_LoadsPrivateKeyFromFile(t *testing.T) {
 }
 
 func TestInitConfig_LoadsTLSFilesFromFile(t *testing.T) {
-	viper.Reset()
-	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
-	cfgFile = ""
+	useDefaultConfig(t)
 
 	dir := t.TempDir()
 	certPath := filepath.Join(dir, "client.crt")
@@ -117,11 +111,11 @@ func TestInitConfig_LoadsTLSFilesFromFile(t *testing.T) {
 func TestConfigPrecedence_FlagOverridesEnvOverridesFile(t *testing.T) {
 	viper.Reset()
 	dir := t.TempDir()
-	cfgPath := filepath.Join(dir, "go-passbolt-cli.toml")
-	if err := os.WriteFile(cfgPath, []byte("serverAddress = \"fileval\"\n"), 0600); err != nil {
+	tomlPath := filepath.Join(dir, "go-passbolt-cli.toml")
+	if err := os.WriteFile(tomlPath, []byte("serverAddress = \"fileval\"\n"), 0600); err != nil {
 		t.Fatal(err)
 	}
-	cfgFile = cfgPath
+	cfgFile = tomlPath
 	defer func() { cfgFile = "" }()
 	t.Setenv("SERVERADDRESS", "envval")
 

@@ -4,8 +4,7 @@ import (
 	"strconv"
 	"time"
 
-	"al.essio.dev/pkg/shellescape"
-	"github.com/google/cel-go/cel"
+	"cel.dev/cel-go/cel"
 	"github.com/passbolt/go-passbolt-cli/internal/util"
 	"github.com/passbolt/go-passbolt/api"
 )
@@ -25,7 +24,7 @@ var groupColumns = util.NewColumnRegistry("groups", []util.ColumnSpec[api.Group]
 		DefaultTable: true,
 		CelType:      cel.StringType,
 		CelValue:     func(g api.Group) any { return g.Name },
-		TableValue:   func(g api.Group) string { return shellescape.StripUnsafe(g.Name) },
+		TableValue:   func(g api.Group) string { return g.Name },
 	},
 	{
 		Name:         "created_timestamp",

@@ -1,0 +1,60 @@
+# Status fields such as active and deleted appear in JSON and work in filters (#129).
+
+# ---- User --------------------------------------------------------------
+
+pb list user --column id --column username --column active --column deleted --column disabled --json
+cp stdout user.json
+jsoneq user.json [username=ada@passbolt.com].active true
+jsoneq user.json [username=ada@passbolt.com].deleted false
+jsoneq user.json [username=ada@passbolt.com].disabled false
+
+# Filter on a bool.
+pb list user --filter 'active == true' --json
+stdout ada@passbolt.com
+
+# ---- Resource ----------------------------------------------------------
+
+pb create resource --type v5-default --name test-lifecycle --password p --json
+cp stdout create.json
+jsonget create.json id RID
+defer pb delete resource --id $RID
+
+pb list resource --column id --column name --column deleted --column resource_type_id --json
+cp stdout res.json
+jsoneq res.json [id=$RID].name test-lifecycle
+jsoneq res.json [id=$RID].deleted false
+jsonexists res.json [id=$RID].resource_type_id
+
+# Filter on a bool.
+pb list resource --filter 'deleted == false' --json
+stdout test-lifecycle
+
+# ---- Folder ------------------------------------------------------------
+
+pb create folder --name test-lifecycle-folder --json
+cp stdout folder.json
+jsonget folder.json id FID
+defer pb delete folder --id $FID
+
+pb list folder --column id --column name --column personal --json
+cp stdout folder.json
+jsoneq folder.json [id=$FID].name test-lifecycle-folder
+jsonexists folder.json [id=$FID].personal
+
+# ---- Group (admin-only) -----------------------------------------------
+
+[!env:HAS_ADMIN] skip 'admin config not available; group create requires admin'
+
+pba list user --json
+cp stdout users.json
+jsonget users.json [username=ada@passbolt.com].id ADA_ID
+
+pba create group --name test-lifecycle-group --manager $ADA_ID --json
+cp stdout group.json
+jsonget group.json id GID
+defer pba delete group --id $GID
+
+pba list group --column id --column name --column deleted --column user_count --json
+cp stdout grp.json
+jsoneq grp.json [id=$GID].deleted false
+jsonexists grp.json [id=$GID].user_count

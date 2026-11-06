@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/google/cel-go/cel"
+	"cel.dev/cel-go/cel"
 )
 
 // benchFilterSizes spans the realistic range: a small vault (100), a large team

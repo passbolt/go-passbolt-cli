@@ -74,7 +74,7 @@ func GroupCreate(cmd *cobra.Command, args []string) error {
 		if jsonOutput {
 			return util.PrintJSON(map[string]string{"id": id})
 		}
-		fmt.Printf("GroupID: %v\n", id)
+		util.Printf("GroupID: %v\n", util.Sanitize(id))
 		return nil
 	})
 }

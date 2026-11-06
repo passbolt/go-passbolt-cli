@@ -53,15 +53,16 @@ PowerShell:
 	ValidArgs:             []string{"bash", "zsh", "fish", "powershell"},
 	Args:                  cobra.MatchAll(cobra.ExactArgs(1), cobra.OnlyValidArgs),
 	Run: func(cmd *cobra.Command, args []string) {
+		// Shell script, not human-facing text: sanitizing it would corrupt it.
 		switch args[0] {
 		case "bash":
-			cmd.Root().GenBashCompletion(os.Stdout)
+			cmd.Root().GenBashCompletion(os.Stdout) //nolint:forbidigo // raw stdout
 		case "zsh":
-			cmd.Root().GenZshCompletion(os.Stdout)
+			cmd.Root().GenZshCompletion(os.Stdout) //nolint:forbidigo // raw stdout
 		case "fish":
-			cmd.Root().GenFishCompletion(os.Stdout, true)
+			cmd.Root().GenFishCompletion(os.Stdout, true) //nolint:forbidigo // raw stdout
 		case "powershell":
-			cmd.Root().GenPowerShellCompletionWithDesc(os.Stdout)
+			cmd.Root().GenPowerShellCompletionWithDesc(os.Stdout) //nolint:forbidigo // raw stdout
 		}
 	},
 }

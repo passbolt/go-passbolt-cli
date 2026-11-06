@@ -6,6 +6,51 @@ Releases before this file was introduced are documented in the [GitHub releases]
 
 ## [Unreleased]
 
+## [0.5.3] - 2026-11-05
+### Added
+- PB-54610: Skip Resources this build cannot read in `list resource`
+- PB-54610: Explain schema validation errors in `create`, `update`, `share` and `get`
+
+### Fixed
+- PB-54147: Propagate the real error when interactive TOTP is exhausted
+- PB-56059: Fix the `--user` and `--manager` filters of `list group` and the `--group` filter of `list user`
+- PB-56059: Fix the help text of the `list group` and `list user` filters
+
+### Security
+- PB-54765: Sanitize terminal output in every command to prevent escape sequence injection (Medium)
+- PB-54765: Escape non-BMP characters as `\uXXXX` in JSON output
+- PB-54766: Write the CLI config through a hardened file descriptor (Medium)
+- PB-54766: Repair default config permissions and warn on custom paths
+- PB-54766: Create the KeePass export with owner-only permissions
+- PB-54766: Ask for confirmation before `configure --debug` prints the saved settings, and print them to stderr
+- PB-54766: Document cleartext credential storage in the config file
+- PB-54978: Restrict the config file and the KeePass export to their owner on Windows
+- PB-54978: Document where the config file is unsafe to store
+- PB-54987: Warn instead of refusing when a secret file stays readable by others or belongs to someone else
+- PB-54147: Move to the Go 1.27.1 security patch
+- PB-55389: Update Go to 1.27.2 (security fixes in crypto/tls, net/http, net/textproto and os)
+- PB-55610: Bump Go version to 1.27.3 (security fixes in crypto/x509)
+
+### Maintenance
+- PB-54610: Bump the Go SDK to v0.8.4
+- PB-54147: Bump Go to 1.27 (the Go SDK stays buildable on Go 1.26.10)
+- PB-54147: Pin the omitempty semantics the `--json` output relies on
+- PB-54765: Forbid direct fmt printing in golangci-lint
+- PB-54765: Add integration tests to avoid terminal escape regression
+- PB-54766: Add regression tests for config file permissions
+- PB-54978: Move the secure-file code into util/securefile
+- PB-54610: Run the txtar scenarios as benchmarks
+- PB-54610: Cover every bundled resource type end to end
+- PB-54610: Reorganize integration test runner
+- PB-55287: Reorganize e2e test files in CLI and SDK
+- PB-54998: Update GitHub Actions to stable versions
+- PB-55888: Update Go dependencies
+- PB-55888: Migrate cel-go to the cel.dev/cel-go module path
+- PB-55888: Keep the previous table style after the pterm upgrade
+- PB-56059: Add integration tests for the list filters
+- Renovate: Update goreleaser/goreleaser-action action to v7.3.0
+- Renovate: Update actions/upload-artifact action to v7.0.2
+
 ## [0.5.2] - 2026-08-28
 ### Fixed
 - PB-53937: Sign shared v5 metadata with both the user key and the metadata key (Go SDK v0.8.3)

@@ -1,0 +1,118 @@
+# Control bytes in server data are printed as U+FFFD, with one warning on stderr.
+# The payload is an OSC 52 clipboard write plus a CSI erase-line.
+
+payload ESC_NAME "test-esc-name\x1b]52;c;cGFzc2JvbHQtcG9j\x07\x1b[2Kmarker"
+
+# -- 1. V5 custom field label --------------------------------------------------
+# Labels are sanitized too. JSON escapes, since --field must parse as JSON.
+
+uuid CF1
+
+pb create resource --type v5-custom-fields --name test-esc-metakey --field custom_fields=[{"id":"$CF1","type":"text","metadata_key":"esc\u001b]52;c;cGFzc2JvbHQtcG9j\u0007key"}] --secret-field custom_fields=[{"id":"$CF1","type":"text","secret_value":"x"}] --json
+cp stdout create-mk.json
+jsonget create-mk.json id MKID
+defer pb delete resource --id $MKID
+
+pb get resource --id $MKID
+! stdout '\x1b'
+! stdout '\x07'
+stdout 'metadata_key:esc\x{fffd}\]52;c;cGFzc2JvbHQtcG9j\x{fffd}key'
+stderr -count=1 'Warning: replaced \d+ unprintable characters? with U\+FFFD'
+
+# JSON output is escaped, not replaced.
+pb get resource --id $MKID --json
+! stdout '\x1b'
+stdout 'u001b'
+
+# -- 2. V5 resource name -------------------------------------------------------
+# Encrypted metadata name, decrypted client-side.
+
+pb create resource --type v5-default --name $ESC_NAME --username u --uri https://esc.example.com --password p --description d --json
+# --json is lossless, so nothing is replaced and nothing is warned about.
+! stderr 'Warning: replaced'
+cp stdout create-v5.json
+jsonget create-v5.json id V5ID
+defer pb delete resource --id $V5ID
+
+pb get resource --id $V5ID
+! stdout '\x1b'
+stdout 'Name: test-esc-name\x{fffd}\]52;c;cGFzc2JvbHQtcG9j\x{fffd}\x{fffd}\[2Kmarker'
+
+# -- 3. V4 resource name -------------------------------------------------------
+# Stored in plaintext on the server.
+
+pb create resource --type password-and-description --name $ESC_NAME --username u --uri https://esc.example.com --password p --description d --json
+cp stdout create-v4.json
+jsonget create-v4.json id V4ID
+defer pb delete resource --id $V4ID
+
+pb get resource --id $V4ID
+! stdout '\x1b'
+stdout 'Name: test-esc-name\x{fffd}\]52;c;cGFzc2JvbHQtcG9j\x{fffd}\x{fffd}\[2Kmarker'
+
+# One warning for the whole table, not one per row.
+pb list resource --column id --column name
+! stdout '\x1b'
+stdout '\x{fffd}'
+stderr -count=1 'Warning: replaced'
+
+# KeePass export.
+pb create resource --type v5-totp-standalone --name $ESC_NAME --uri https://esc-totp.example.com --secret-field totp={"secret_key":"HXDMVJECJJWSRB3HWIZR4IFUGFTMXBOZ","algorithm":"SHA256","digits":8,"period":60} --json
+cp stdout create-totp.json
+jsonget create-totp.json id TOTPID
+defer pb delete resource --id $TOTPID
+
+# pterm prints its own CSI sequences, so match ESC ] only.
+pb export keepass --file $WORK/esc.kdbx --password test-kdbx-pass
+! stdout '\x1b\]'
+! stdout '\x07'
+exists $WORK/esc.kdbx
+
+# -- 4. Newline line-injection -------------------------------------------------
+# Newlines are replaced too, except in descriptions.
+
+payload NL_NAME '"test-esc-nl\nPermissions: owner"'
+
+pb create resource --type v5-default --name $NL_NAME --username u --password p --description 'first\nsecond' --json
+cp stdout create-nl.json
+jsonget create-nl.json id NLID
+defer pb delete resource --id $NLID
+
+pb get resource --id $NLID
+! stdout '^Permissions: owner'
+stdout 'Name: test-esc-nl\x{fffd}Permissions: owner'
+
+pb list resource --column id --column name
+! stdout '^\s*\|\s*Permissions: owner'
+
+# -- 5. Group name -------------------------------------------------------------
+# Admin-only, as in group/roundtrip.
+
+[!env:HAS_ADMIN] skip 'admin config not available; group create requires admin'
+
+pba list user --json
+cp stdout users.json
+jsonget users.json [username=ada@passbolt.com].id ADA_ID
+
+pba create group --name $ESC_NAME --manager $ADA_ID --json
+cp stdout create-grp.json
+jsonget create-grp.json id GID
+defer pba delete group --id $GID
+
+pba get group --id $GID --column userid
+! stdout '\x1b'
+! stdout '\x07'
+stdout 'Name: test-esc-name\x{fffd}\]52;c;cGFzc2JvbHQtcG9j\x{fffd}\x{fffd}\[2Kmarker'
+
+pba get group --id $GID --json
+! stdout '\x1b'
+stdout 'u001b'
+
+pba list group --column id --column name
+! stdout '\x1b'
+
+# -- 6. Server-supplied error text ---------------------------------------------
+# The duplicate-name error echoes the name on stderr.
+
+! pba create group --name $ESC_NAME --manager $ADA_ID --json
+! stderr '\x1b'

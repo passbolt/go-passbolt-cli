@@ -21,7 +21,7 @@ var UserListCmd = &cobra.Command{
 
 func init() {
 	flags := UserListCmd.Flags()
-	flags.StringArrayP("group", "g", []string{}, "Users that are members of groups")
+	flags.StringArrayP("group", "g", []string{}, "Users that are members of all of these groups")
 	flags.StringArrayP("resource", "r", []string{}, "Users that have access to resources")
 	flags.StringP("search", "s", "", "Search for Users")
 	flags.BoolP("admin", "a", false, "Only show Admins")

@@ -13,7 +13,9 @@ import (
 var verifyCMD = &cobra.Command{
 	Use:   "verify",
 	Short: "Verify Setup the Server Verification",
-	Long:  `Verify Setup the Server Verification. You need to run this once after that the Server will always be verified if the same config is used`,
+	Long: `Verify Setup the Server Verification. You need to run this once after that the Server will always be verified if the same config is used
+
+The verification tokens are written to the config file (mode 0600).`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx, cancel := util.GetContext()
 		defer cancel()
@@ -35,11 +37,11 @@ var verifyCMD = &cobra.Command{
 		if userPassword == "" {
 			pw, err := util.ReadPassword("Enter Password:")
 			if err != nil {
-				fmt.Println()
+				util.Println()
 				return fmt.Errorf("reading Password: %w", err)
 			}
 			userPassword = pw
-			fmt.Println()
+			util.Println()
 		}
 
 		httpClient, err := util.GetHTTPClient()
@@ -60,18 +62,10 @@ var verifyCMD = &cobra.Command{
 		viper.Set("serverVerifyToken", token)
 		viper.Set("serverVerifyEncToken", enctoken)
 
-		if viper.ConfigFileUsed() == "" {
-			err := viper.SafeWriteConfig()
-			if err != nil {
-				return fmt.Errorf("writing Config: %w", err)
-			}
-		} else {
-			err := viper.WriteConfig()
-			if err != nil {
-				return fmt.Errorf("writing Config: %w", err)
-			}
+		if err := util.WriteViperConfig(cfgPath); err != nil {
+			return fmt.Errorf("writing Config: %w", err)
 		}
-		fmt.Println("Verification Enabled")
+		util.Println("Verification Enabled")
 		return nil
 	},
 }

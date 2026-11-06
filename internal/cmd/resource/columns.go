@@ -5,8 +5,7 @@ import (
 	"strconv"
 	"time"
 
-	"al.essio.dev/pkg/shellescape"
-	"github.com/google/cel-go/cel"
+	"cel.dev/cel-go/cel"
 	"github.com/passbolt/go-passbolt-cli/internal/util"
 )
 
@@ -48,7 +47,7 @@ var resourceColumns = util.NewColumnRegistry("resources", []util.ColumnSpec[decr
 		DefaultTable: true,
 		CelType:      cel.StringType,
 		CelValue:     func(d decryptedResource) any { return d.name },
-		TableValue:   func(d decryptedResource) string { return shellescape.StripUnsafe(d.name) },
+		TableValue:   func(d decryptedResource) string { return d.name },
 	},
 	{
 		Name:         "username",
@@ -56,7 +55,7 @@ var resourceColumns = util.NewColumnRegistry("resources", []util.ColumnSpec[decr
 		DefaultTable: true,
 		CelType:      cel.StringType,
 		CelValue:     func(d decryptedResource) any { return d.username },
-		TableValue:   func(d decryptedResource) string { return shellescape.StripUnsafe(d.username) },
+		TableValue:   func(d decryptedResource) string { return d.username },
 	},
 	{
 		Name:         "uri",
@@ -64,7 +63,7 @@ var resourceColumns = util.NewColumnRegistry("resources", []util.ColumnSpec[decr
 		DefaultTable: true,
 		CelType:      cel.StringType,
 		CelValue:     func(d decryptedResource) any { return d.uri },
-		TableValue:   func(d decryptedResource) string { return shellescape.StripUnsafe(d.uri) },
+		TableValue:   func(d decryptedResource) string { return d.uri },
 	},
 	{
 		Name:            "password",
@@ -73,7 +72,7 @@ var resourceColumns = util.NewColumnRegistry("resources", []util.ColumnSpec[decr
 		RequiresSecrets: true,
 		CelType:         cel.StringType,
 		CelValue:        func(d decryptedResource) any { return d.password },
-		TableValue:      func(d decryptedResource) string { return shellescape.StripUnsafe(d.password) },
+		TableValue:      func(d decryptedResource) string { return d.password },
 	},
 	{
 		Name:            "description",
@@ -82,7 +81,7 @@ var resourceColumns = util.NewColumnRegistry("resources", []util.ColumnSpec[decr
 		RequiresSecrets: true,
 		CelType:         cel.StringType,
 		CelValue:        func(d decryptedResource) any { return d.description },
-		TableValue:      func(d decryptedResource) string { return shellescape.StripUnsafe(d.description) },
+		TableValue:      func(d decryptedResource) string { return d.description },
 	},
 	{
 		Name:         "created_timestamp",

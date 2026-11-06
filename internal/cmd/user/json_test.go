@@ -3,11 +3,10 @@ package user
 import (
 	"bytes"
 	"encoding/json"
-	"io"
-	"os"
 	"strings"
 	"testing"
 
+	"github.com/passbolt/go-passbolt-cli/internal/util"
 	"github.com/passbolt/go-passbolt/api"
 )
 
@@ -63,7 +62,7 @@ func TestPrintJSONUsers_PopulatesLifecycleFields(t *testing.T) {
 		},
 	}
 
-	out := captureStdout(t, func() {
+	out := captureOutput(t, func() {
 		if err := printJSONUsers(users, false, nil); err != nil {
 			t.Fatalf("printJSONUsers: %v", err)
 		}
@@ -146,7 +145,7 @@ func TestPrintJSONUsers_EscapesSpecialChars(t *testing.T) {
 			Modified: &api.Time{},
 		},
 	}
-	out := captureStdout(t, func() {
+	out := captureOutput(t, func() {
 		if err := printJSONUsers(users, false, nil); err != nil {
 			t.Fatalf("printJSONUsers: %v", err)
 		}
@@ -161,7 +160,7 @@ func TestPrintJSONUsers_EscapesSpecialChars(t *testing.T) {
 }
 
 func TestPrintJSONUsers_EmptyListIsArray(t *testing.T) {
-	out := captureStdout(t, func() {
+	out := captureOutput(t, func() {
 		if err := printJSONUsers(nil, false, nil); err != nil {
 			t.Fatalf("printJSONUsers: %v", err)
 		}
@@ -205,28 +204,17 @@ func assertKeySet(t *testing.T, m map[string]any, want map[string]bool) {
 	}
 }
 
-// captureStdout swaps os.Stdout for a pipe, runs fn, restores stdout, and
-// returns whatever fn wrote. Used to test functions that print directly
-// rather than returning an io.Writer-bound result.
-func captureStdout(t *testing.T, fn func()) string {
+// captureOutput swaps util.Out for a buffer and returns whatever fn wrote to it.
+// It captures util.Out rather than os.Stdout because that is the stream the CLI
+// prints on: util.Out wraps os.Stdout once, at init, so redirecting the file
+// afterwards would miss the writes.
+func captureOutput(t *testing.T, fn func()) string {
 	t.Helper()
-	orig := os.Stdout
-	r, w, err := os.Pipe()
-	if err != nil {
-		t.Fatalf("pipe: %v", err)
-	}
-	os.Stdout = w
-	defer func() { os.Stdout = orig }()
-
-	done := make(chan struct{})
 	var buf bytes.Buffer
-	go func() {
-		_, _ = io.Copy(&buf, r)
-		close(done)
-	}()
+	orig := util.Out
+	util.Out = util.NewSanitizingWriter(&buf)
+	t.Cleanup(func() { util.Out = orig })
 
 	fn()
-	_ = w.Close()
-	<-done
 	return buf.String()
 }

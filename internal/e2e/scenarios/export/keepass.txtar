@@ -1,0 +1,8 @@
+# export keepass produces a .kdbx file at the requested path.
+
+pb export keepass --file $WORK/export.kdbx --password test-kdbx-pass
+
+exists $WORK/export.kdbx
+
+# Encrypted, but still every password the user can read (PB-54766).
+perm $WORK/export.kdbx 600

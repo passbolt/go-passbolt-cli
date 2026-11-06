@@ -67,7 +67,7 @@ func UserCreate(cmd *cobra.Command, args []string) error {
 		if jsonOutput {
 			return util.PrintJSON(map[string]string{"id": id})
 		}
-		fmt.Printf("UserID: %v\n", id)
+		util.Printf("UserID: %v\n", util.Sanitize(id))
 		return nil
 	})
 }

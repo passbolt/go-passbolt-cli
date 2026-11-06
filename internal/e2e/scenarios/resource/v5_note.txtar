@@ -1,0 +1,20 @@
+# v5-note keeps its body in the encrypted secret's "description" while the metadata declares a
+# description of its own, so this pins that a secret-side description is not routed away
+# (both sections declare it, so helper.routeFieldBySchema must leave it alone).
+
+pb create resource --type v5-note --name test-v5-note --secret-field description=the-note-body --json
+cp stdout create.json
+jsonget create.json id ID
+defer pb delete resource --id $ID
+
+pb get resource --id $ID --json
+cp stdout get.json
+jsoneq get.json name test-v5-note
+stdout the-note-body
+
+# v5 update decrypts, merges and re-encrypts the metadata, then validates it strictly.
+pb update resource --id $ID --field name=test-v5-note-renamed
+pb get resource --id $ID --json
+cp stdout renamed.json
+jsoneq renamed.json name test-v5-note-renamed
+stdout the-note-body

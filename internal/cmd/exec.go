@@ -57,8 +57,9 @@ func execAction(_ *cobra.Command, args []string) error {
 
 	subCmd := exec.Command(args[0], args[1:]...)
 	subCmd.Stdin = os.Stdin
-	subCmd.Stdout = os.Stdout
-	subCmd.Stderr = os.Stderr
+	// The child owns these streams; an io.Writer wrapper would cost it its tty.
+	subCmd.Stdout = os.Stdout //nolint:forbidigo // raw fd passthrough
+	subCmd.Stderr = os.Stderr //nolint:forbidigo // raw fd passthrough
 	subCmd.Env = envVars
 
 	if err = subCmd.Run(); err != nil {
@@ -93,7 +94,7 @@ func resolveEnvironmentSecrets(ctx context.Context, client *api.Client) ([]strin
 		envVars[i] = key + "=" + secret
 
 		if viper.GetBool("debug") {
-			fmt.Printf("%v env var populated with resource id %v\n", key, resourceID)
+			util.Printf("%v env var populated with resource id %v\n", key, resourceID)
 		}
 	}
 

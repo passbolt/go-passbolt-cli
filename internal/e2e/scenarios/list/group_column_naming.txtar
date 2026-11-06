@@ -1,0 +1,43 @@
+# list group accepts snake_case and legacy column and filter names (#129).
+# Groups need admin, so this runs as pba.
+
+[!env:HAS_ADMIN] skip 'admin config not available; group create requires admin'
+
+pba list user --json
+cp stdout users.json
+jsonget users.json [username=ada@passbolt.com].id ADA_ID
+
+pba create group --name test-group-col-naming --manager $ADA_ID --json
+cp stdout create.json
+jsonget create.json id GID
+defer pba delete group --id $GID
+
+# JSON mode: snake_case.
+pba list group --column id --column name --column created_timestamp --json
+cp stdout snake.json
+jsoneq snake.json [id=$GID].name test-group-col-naming
+jsonexists snake.json [id=$GID].created_timestamp
+
+# JSON mode: PascalCase gives snake_case keys.
+pba list group --column ID --column Name --column CreatedTimestamp --json
+cp stdout pascal.json
+jsoneq pascal.json [id=$GID].name test-group-col-naming
+jsonexists pascal.json [id=$GID].created_timestamp
+
+# Table mode: snake_case.
+pba list group --column id --column name --column created_timestamp
+stdout test-group-col-naming
+
+# Filter: snake_case.
+pba list group --filter 'name == "test-group-col-naming"' --json
+stdout $GID
+
+# Filter: PascalCase.
+pba list group --filter 'Name == "test-group-col-naming"' --json
+stdout $GID
+
+# Unknown columns fail in both modes.
+! pba list group --column nope
+stderr 'unknown column'
+! pba list group --column nope --json
+stderr 'unknown column'

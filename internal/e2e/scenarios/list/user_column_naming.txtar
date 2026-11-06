@@ -1,0 +1,35 @@
+# list user --column accepts snake_case and legacy aliases (#129).
+
+# JSON mode: snake_case.
+pb list user --column id --column first_name --column last_name --json
+cp stdout snake.json
+jsoneq snake.json [first_name=Ada].last_name Lovelace
+
+# JSON mode: PascalCase gives snake_case keys.
+pb list user --column ID --column FirstName --column LastName --json
+cp stdout pascal.json
+jsoneq pascal.json [first_name=Ada].last_name Lovelace
+
+# JSON mode: lowercase alias.
+pb list user --column firstname --column lastname --json
+cp stdout legacy.json
+jsoneq legacy.json [first_name=Ada].last_name Lovelace
+
+# Table mode: snake_case.
+pb list user --column id --column first_name --column last_name
+stdout Ada
+stdout Lovelace
+
+# Table mode: PascalCase.
+pb list user --column ID --column FirstName --column LastName
+stdout Ada
+
+# Table mode: lowercase alias.
+pb list user --column id --column firstname --column lastname
+stdout Lovelace
+
+# Unknown column errors in both modes.
+! pb list user --column nope
+stderr 'unknown column'
+! pb list user --column nope --json
+stderr 'unknown column'

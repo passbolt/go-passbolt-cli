@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 	"net/url"
-	"os"
 	"sort"
 	"strconv"
 	"strings"
 
 	"github.com/passbolt/go-passbolt-cli/internal/util"
+	"github.com/passbolt/go-passbolt-cli/internal/util/securefile"
 	"github.com/passbolt/go-passbolt/api"
 	"github.com/passbolt/go-passbolt/helper"
 	"github.com/pterm/pterm"
@@ -67,14 +67,14 @@ func KeepassExport(cmd *cobra.Command, args []string) error {
 		if keepassPassword == "" {
 			pw, err := util.ReadPassword("Enter KeePass Password:")
 			if err != nil {
-				fmt.Println()
+				util.Println()
 				return fmt.Errorf("reading KeePass Password: %w", err)
 			}
 			keepassPassword = pw
-			fmt.Println()
+			util.Println()
 		}
 
-		fmt.Println("Getting Resources...")
+		util.Println("Getting Resources...")
 		resources, err := client.GetResources(ctx, &api.GetResourcesOptions{
 			ContainSecret:       true,
 			ContainResourceType: true,
@@ -84,17 +84,20 @@ func KeepassExport(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("getting Resources: %w", err)
 		}
 
-		file, err := os.Create(filename)
+		// os.Create would leave this at 0644: encrypted, but every password the user has.
+		file, err := securefile.Create(filename)
 		if err != nil {
 			return fmt.Errorf("creating File: %w", err)
 		}
 		defer file.Close()
+		util.WarnIfExposed(filename, "It is a KeePass export of every password you can read")
 
 		rootGroup := gokeepasslib.NewGroup()
 		rootGroup.Name = "root"
 
 		pterm.EnableStyling()
 		pterm.DisableColor()
+		defer pterm.DisableStyling()
 		progressbar, err := pterm.DefaultProgressbar.WithTitle("Decryping Resources").WithTotal(len(resources)).Start()
 		if err != nil {
 			return fmt.Errorf("progress: %w", err)
@@ -103,7 +106,7 @@ func KeepassExport(cmd *cobra.Command, args []string) error {
 		for _, resource := range resources {
 			entry, err := getKeepassEntry(client, resource, resource.Secrets[0], resource.ResourceType)
 			if err != nil {
-				fmt.Printf("\nSkipping Export of Resource %v %v Because of: %v\n", resource.ID, resource.Name, err)
+				util.Printf("\nSkipping Export of Resource %v %v Because of: %v\n", util.Sanitize(resource.ID), util.Sanitize(resource.Name), util.Sanitize(err.Error()))
 				progressbar.Increment()
 				continue
 			}
@@ -131,7 +134,7 @@ func KeepassExport(cmd *cobra.Command, args []string) error {
 		if err := keepassEncoder.Encode(db); err != nil {
 			return fmt.Errorf("encodeing kdbx: %w", err)
 		}
-		fmt.Println("Done")
+		util.Println("Done")
 
 		return nil
 	})
