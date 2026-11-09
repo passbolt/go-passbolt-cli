@@ -15,8 +15,10 @@ import (
 // Out and Err wrap stdout and stderr, so anything printed to the terminal is cleaned
 // on the way out. Raw output (--json, completions, subprocess stdio) skips them.
 var (
-	Out io.Writer = NewSanitizingWriter(os.Stdout)
-	Err io.Writer = NewSanitizingWriter(os.Stderr)
+	// DataOut carries validated machine protocols without terminal sanitization.
+	DataOut io.Writer = os.Stdout
+	Out     io.Writer = NewSanitizingWriter(os.Stdout)
+	Err     io.Writer = NewSanitizingWriter(os.Stderr)
 )
 
 // Removing characters hid the change: "ad\u200bmin" rendered as "admin".

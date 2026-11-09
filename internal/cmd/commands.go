@@ -41,6 +41,7 @@ func newCommandTree() *cobra.Command {
 	configureList()
 	configureMove()
 	configureRoot()
+	rootCmd.AddCommand(newGitCredentialCommand())
 	configureShare()
 	configureUpdate()
 	configureVerify()

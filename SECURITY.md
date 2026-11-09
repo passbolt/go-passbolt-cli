@@ -69,3 +69,17 @@ The first implementation serializes commands. A stalled command can delay other
 requests and expiry cleanup until it finishes; connection cancellation and request
 timeouts cancel its network operations. A lost connection is never automatically
 retried because a server write may already have completed.
+
+## Read-only credential helper
+
+The `git-credential` command intentionally releases the selected resource's
+password to its requesting client. Use a trusted helper consumer and an explicit
+resource UUID. The credential URL's host is an identifier, not an authorization
+boundary or a replacement for the configured Passbolt server. This command does
+not perform URI discovery or create, update, or delete resources.
+
+Lookup validates its input before authentication. Credential output bypasses
+terminal sanitization to preserve the original value, with newline, carriage
+return and NUL rejected before any response is written. Authentication progress
+and API error details are suppressed; errors are generic. Agent approval remains
+mandatory for every lookup, while `store` and `erase` do not use the agent.

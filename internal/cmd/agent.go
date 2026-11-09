@@ -52,13 +52,15 @@ func authenticatedCommand(cmd *cobra.Command) bool {
 		cmd = cmd.Parent()
 	}
 	switch cmd.Name() {
+	case "git-credential":
+		return true
 	case "get", "list", "create", "update", "delete", "move", "share", "export", "exec":
 		return true
 	}
 	return false
 }
 func routeAgent(cmd *cobra.Command, _ []string) error {
-	if inAgent || !viper.GetBool("agent") || !authenticatedCommand(cmd) {
+	if inAgent || cmd.Name() == "git-credential" || !viper.GetBool("agent") || !authenticatedCommand(cmd) {
 		return nil
 	}
 	// Preserve Cobra's argument and required-flag validation before the remote call.
@@ -105,7 +107,7 @@ func callAgent(cmd *cobra.Command, action string) error {
 		}
 		return err
 	}
-	result, err := agent.Exchange(ctx, conn, req, os.Stdin, os.Stdout, os.Stderr) //nolint:forbidigo // Relay already-sanitized agent output without altering JSON/binary bytes.
+	result, err := agent.Exchange(ctx, conn, req, cmd.InOrStdin(), os.Stdout, os.Stderr) //nolint:forbidigo // Relay already-sanitized agent output without altering JSON/binary bytes.
 	if err != nil {
 		return err
 	}
@@ -228,6 +230,7 @@ func (a *commandAgent) Run(ctx context.Context, req agent.Request, in io.Reader,
 		util.ConfirmationPrompt = nil
 		util.InvocationContext = context.Background()
 		util.ProxyEnvironment = nil
+		util.DataOut = io.Discard
 		util.Out = io.Discard
 		util.Err = io.Discard
 		invocationEnvironment = nil
@@ -297,8 +300,10 @@ func (a *commandAgent) Run(ctx context.Context, req agent.Request, in io.Reader,
 			runErr = fmt.Errorf("restoring agent directory: %w", err)
 		}
 	}()
+	util.DataOut = out
 	util.Out = util.NewSanitizingWriter(out)
 	util.Err = util.NewSanitizingWriter(errOut)
+	root.SetIn(in)
 	root.SetOut(util.Out)
 	root.SetErr(util.Err)
 	util.InvocationContext = ctx

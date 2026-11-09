@@ -128,6 +128,47 @@ The agent never writes cached authentication to disk or a credential store.
 After upgrading the CLI, stop an older running agent before using the new binary.
 See [SECURITY.md](SECURITY.md) for the local security boundary.
 
+## Git credential protocol and hcloud
+
+`passbolt git-credential get` is a read-only credential helper. It reads Git
+credential fields from stdin, selects the Passbolt resource whose UUID is in
+`path`, and returns its `username` (when present) and `password`. The scheme and
+host identify the consumer; Passbolt's server and account still come from its own
+configuration. This mode does not search resource URIs or resolve ordinary Git
+remote URLs. `store` and `erase` succeed without changing any resource.
+
+For hcloud versions with credential-helper support, replace the Python adapter
+with the CLI directly:
+
+```sh
+hcloud context create production \
+  --credential-helper passbolt \
+  --credential-helper-arg=--agent \
+  --credential-helper-arg=git-credential \
+  --credential-url=https://api.hetzner.cloud/01234567-89ab-cdef-0123-456789abcdef
+```
+
+This requires the credential-helper feature proposed in
+[hetznercloud/cli#1531](https://github.com/hetznercloud/cli/pull/1531).
+The selected resource's password field contains the API token. hcloud appends
+`get` to the helper arguments, so it runs `passbolt --agent git-credential get`.
+To select another Passbolt configuration, add
+`--credential-helper-arg=--config=/absolute/path/to/passbolt.toml` before the
+`git-credential` argument. The context stores only the helper arguments and lookup
+URL; authentication and token retrieval happen when hcloud needs the token.
+
+The helper validates the UUID before authentication or agent startup, and agent
+mode retains the usual per-command approval. Dialogs use the desktop or controlling
+terminal, independently of protocol stdin/stdout. Without the agent, authentication
+runs afresh and any required prompts still use a separate dialog. `--debug` is
+rejected for lookups. Progress and raw API error text are suppressed so stdout
+contains only the credential response and failures cannot echo server secrets.
+
+Credential values are returned byte-for-byte, with CR, LF and NUL rejected to
+prevent protocol injection. A supplied username must agree with a nonempty
+resource username; otherwise lookup fails without returning a password. For a
+resource without a username, the requested username is retained when supplied.
+
 # Usage
 
 Generally, the structure of commands are like this:
