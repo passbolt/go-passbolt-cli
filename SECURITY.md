@@ -44,6 +44,10 @@ The agent is disabled by default. Enabling it keeps an unlocked account key and
 Passbolt session/MFA cookies in a background process until its one-hour idle
 lease expires or you lock/stop it. Each authenticated CLI invocation requires a
 separate approval; status queries and rejected requests do not extend the lease.
+Resource reads via `get resource`, `exec` environment substitution, and credential helpers additionally require
+approval of the resource name and UUID before fetching its secret. Requester
+executable names and parent PIDs are best-effort UI context, not an authorization
+boundary. Command-line arguments are never inspected for display.
 A valid server session may expire sooner and server MFA requirements remain in
 force. A command already approved may finish after its lease deadline.
 

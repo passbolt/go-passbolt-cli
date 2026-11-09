@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/passbolt/go-passbolt-cli/internal/credential"
 	"github.com/passbolt/go-passbolt-cli/internal/util"
 	"github.com/passbolt/go-passbolt/api"
 	"github.com/passbolt/go-passbolt/helper"
@@ -99,11 +100,12 @@ func resolveEnvironmentSecrets(ctx context.Context, client *api.Client) ([]strin
 		}
 
 		resourceID := strings.TrimPrefix(value, PassboltPrefix)
-		_, _, _, _, secret, _, err := helper.GetResource(ctx, client, resourceID)
+		data, err := (credential.ClientStore{Client: client, Approve: approveCredentialResource}).Load(ctx, resourceID)
 		if err != nil {
 			return nil, fmt.Errorf("getting resource: %w", err)
 		}
 
+		secret := helper.GetStringField(data.Secret, "password")
 		envVars[i] = key + "=" + secret
 
 		if viper.GetBool("debug") {

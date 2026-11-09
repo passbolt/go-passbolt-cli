@@ -76,7 +76,7 @@ func cloudCredential(cmd *cobra.Command, protocol string) error {
 	// The machine client routes progress to stderr. Keep failure messages generic
 	// so SDK response bodies cannot expose returned cloud credentials.
 	err := withCredentialAPI(cmd, func(ctx context.Context, client *api.Client) error {
-		data, err := (credential.ClientStore{Client: client}).Load(ctx, strings.ToLower(id))
+		data, err := (credential.ClientStore{Client: client, Approve: approveCredentialResource}).Load(ctx, strings.ToLower(id))
 		if err != nil {
 			return credential.ErrLookup
 		}

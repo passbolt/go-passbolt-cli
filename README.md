@@ -112,6 +112,15 @@ Pipelines work: approval uses the desktop or controlling terminal, leaving the
 command's stdin and stdout available for data. Without either UI, agent access
 fails. `--yes` does not bypass approval.
 
+Approvals identify the calling process and its parent where the operating system
+provides that information. Executable names and PIDs are shown; command-line
+arguments are never displayed because they may contain credentials. This is
+best-effort context, not proof of requester identity. Reading a resource through
+`get resource`, `exec` environment substitution, or a credential helper adds a resource-specific approval after its
+metadata is loaded and before its secret is fetched. The dialog includes the
+resource's full name in its title and body, its UUID, account, and command. If a
+name is unavailable, the UUID remains visible.
+
 ```sh
 passbolt --agent list user --json | jq .
 passbolt agent status

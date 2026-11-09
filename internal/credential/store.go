@@ -8,7 +8,10 @@ import (
 	"github.com/passbolt/go-passbolt/helper"
 )
 
-type ClientStore struct{ Client *api.Client }
+type ClientStore struct {
+	Client  *api.Client
+	Approve func(context.Context, Record) error
+}
 
 func (s ClientStore) metadata(ctx context.Context, resource api.Resource) (Record, error) {
 	record := Record{ID: strings.ToLower(resource.ID), Name: resource.Name, Username: resource.Username}
@@ -71,6 +74,14 @@ func (s ClientStore) Load(ctx context.Context, id string) (ResourceData, error) 
 	record, err := s.metadata(ctx, *resource)
 	if err != nil {
 		return ResourceData{}, err
+	}
+	if !strings.EqualFold(resource.ID, id) {
+		return ResourceData{}, ErrLookup
+	}
+	if s.Approve != nil {
+		if err := s.Approve(ctx, record); err != nil {
+			return ResourceData{}, err
+		}
 	}
 	kind, err := s.Client.GetResourceType(ctx, resource.ResourceTypeID)
 	if err != nil {

@@ -17,6 +17,17 @@ var InvocationDialog *agent.Dialog
 
 var RedactServerErrors bool
 
+// ResourceApproval is installed only for a serialized agent invocation. It runs
+// after metadata is available and before a resource's secret is requested.
+var ResourceApproval func(context.Context, string, string) error
+
+func ApproveResource(ctx context.Context, id, name string) error {
+	if ResourceApproval != nil {
+		return ResourceApproval(ctx, id, name)
+	}
+	return nil
+}
+
 func CurrentDialog() agent.Dialog {
 	if InvocationDialog != nil {
 		return *InvocationDialog

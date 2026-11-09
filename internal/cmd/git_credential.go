@@ -147,7 +147,7 @@ func dockerCredential(cmd *cobra.Command, args []string) error {
 func withCredentialClient(cmd *cobra.Command, fn func(context.Context, credential.Resolver) error) error {
 	return withCredentialAPI(cmd, func(ctx context.Context, client *api.Client) error {
 		dialog := util.CurrentDialog()
-		resolver := credential.Resolver{Store: credential.ClientStore{Client: client}, Select: func(ctx context.Context, matches []credential.Match) (int, error) {
+		resolver := credential.Resolver{Store: credential.ClientStore{Client: client, Approve: approveCredentialResource}, Select: func(ctx context.Context, matches []credential.Match) (int, error) {
 			labels := make([]string, len(matches))
 			for i, match := range matches {
 				labels[i] = credential.MatchLabel(match)
@@ -180,4 +180,8 @@ func HelperArguments(program string, args []string) []string {
 	}
 	result := []string{"credential-helper", protocol}
 	return append(result, args...)
+}
+
+func approveCredentialResource(ctx context.Context, record credential.Record) error {
+	return util.ApproveResource(ctx, record.ID, record.Name)
 }

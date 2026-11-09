@@ -26,10 +26,10 @@ func (d Dialog) Select(ctx context.Context, title, prompt string, choices []stri
 	cleanup()
 	ctx, cancel := context.WithTimeout(ctx, time.Minute)
 	defer cancel()
-	title, prompt = Text(title), Text(prompt)
+	title, prompt = dialogText(title), dialogText(prompt)
 	labels := make([]string, len(choices))
 	for i, choice := range choices {
-		labels[i] = fmt.Sprintf("%d — %s", i+1, Text(choice))
+		labels[i] = fmt.Sprintf("%d — %s", i+1, dialogText(choice))
 	}
 	switch d.Backend {
 	case "", "auto":
