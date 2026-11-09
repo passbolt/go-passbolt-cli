@@ -33,15 +33,19 @@ type decryptedResource struct {
 }
 
 // ResourceListCmd Lists a Passbolt Resource
-var ResourceListCmd = &cobra.Command{
-	Use:     "resource",
-	Short:   "Lists Passbolt Resources",
-	Long:    `Lists Passbolt Resources`,
-	Aliases: []string{"resources"},
-	RunE:    ResourceList,
+var ResourceListCmd = makeResourceListCmd()
+
+func makeResourceListCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:     "resource",
+		Short:   "Lists Passbolt Resources",
+		Long:    `Lists Passbolt Resources`,
+		Aliases: []string{"resources"},
+		RunE:    ResourceList,
+	}
 }
 
-func init() {
+func configureList() {
 	flags := ResourceListCmd.Flags()
 	flags.Bool("favorite", false, "Resources that are marked as favorite")
 	flags.Bool("own", false, "Resources that are owned by me")
@@ -412,3 +416,5 @@ func parseResourceListFlags(cmd *cobra.Command) (*resourceListConfig, error) {
 		celFilter:      celFilter,
 	}, nil
 }
+
+func init() { configureList() }

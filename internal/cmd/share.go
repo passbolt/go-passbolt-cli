@@ -7,14 +7,20 @@ import (
 )
 
 // shareCmd represents the share command
-var shareCmd = &cobra.Command{
-	Use:   "share",
-	Short: "Shares a Passbolt Entity",
-	Long:  `Shares a Passbolt Entity`,
+var shareCmd = makeshareCmd()
+
+func makeshareCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "share",
+		Short: "Shares a Passbolt Entity",
+		Long:  `Shares a Passbolt Entity`,
+	}
 }
 
-func init() {
+func configureShare() {
 	rootCmd.AddCommand(shareCmd)
 	shareCmd.AddCommand(resource.ResourceShareCmd)
 	shareCmd.AddCommand(folder.FolderShareCmd)
 }
+
+func init() { configureShare() }

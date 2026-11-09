@@ -24,20 +24,31 @@ var cfgPath string
 const defaultConfigFile = "go-passbolt-cli.toml"
 
 // rootCmd represents the base command when called without any subcommands
-var rootCmd = &cobra.Command{
-	Use:          "passbolt",
-	Short:        "A CLI tool to interact with Passbolt.",
-	Long:         `A CLI tool to interact with Passbolt.`,
-	SilenceUsage: true,
-	// Errors are printed by Execute instead of cobra so that server-supplied
-	// text can be sanitized first: api.APIError embeds the server's Message
-	// verbatim and every command wraps it with %w.
-	SilenceErrors: true,
+var rootCmd = makerootCmd()
+
+func makerootCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:          "passbolt",
+		Short:        "A CLI tool to interact with Passbolt.",
+		Long:         `A CLI tool to interact with Passbolt.`,
+		SilenceUsage: true,
+		// Errors are printed by Execute instead of cobra so that server-supplied
+		// text can be sanitized first: api.APIError embeds the server's Message
+		// verbatim and every command wraps it with %w.
+		SilenceErrors: true,
+	}
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
+	if len(os.Args) == 2 && os.Args[1] == "__agent-serve" {
+		if err := serveAgent(); err != nil {
+			os.Exit(1)
+		}
+		return
+	}
+	cobra.OnInitialize(initConfig)
 	err := rootCmd.Execute()
 	// Last, so it covers the error line too. Not deferred: os.Exit skips defers.
 	if err != nil {
@@ -48,7 +59,8 @@ func Execute() {
 	util.WarnReplacements()
 }
 
-func init() {
+func configureRoot() {
+	installAgent(rootCmd)
 	pterm.DisableStyling()
 	// Backstop for any pterm printer used without an explicit writer; util.RenderTable
 	// sets one itself. Progressbars write to os.Stderr and are unaffected.
@@ -58,7 +70,7 @@ func init() {
 	rootCmd.SetOut(util.Out)
 	rootCmd.SetErr(util.Err)
 
-	cobra.OnInitialize(initConfig)
+	// Configuration is loaded by Execute or the request dispatcher.
 
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
 
@@ -225,3 +237,5 @@ func SetVersionInfo(version, commit, date string, dirty bool) {
 	}
 	rootCmd.Version = v
 }
+
+func init() { configureRoot() }

@@ -11,14 +11,18 @@ import (
 )
 
 // ResourceMoveCmd Moves a Passbolt Resource
-var ResourceMoveCmd = &cobra.Command{
-	Use:   "resource",
-	Short: "Moves a Passbolt Resource into a Folder",
-	Long:  `Moves a Passbolt Resource into a Folder`,
-	RunE:  ResourceMove,
+var ResourceMoveCmd = makeResourceMoveCmd()
+
+func makeResourceMoveCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "resource",
+		Short: "Moves a Passbolt Resource into a Folder",
+		Long:  `Moves a Passbolt Resource into a Folder`,
+		RunE:  ResourceMove,
+	}
 }
 
-func init() {
+func configureMove() {
 	ResourceMoveCmd.Flags().String("id", "", "id of Resource to Move")
 	ResourceMoveCmd.Flags().StringP("folderParentID", "f", "", "Folder in which to Move the Resource")
 
@@ -48,3 +52,5 @@ func ResourceMove(cmd *cobra.Command, args []string) error {
 		return nil
 	})
 }
+
+func init() { configureMove() }

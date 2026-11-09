@@ -9,14 +9,18 @@ import (
 )
 
 // createCmd represents the create command
-var createCmd = &cobra.Command{
-	Use:     "create",
-	Short:   "Creates a Passbolt Entity",
-	Long:    `Creates a Passbolt Entity`,
-	Aliases: []string{"new"},
+var createCmd = makecreateCmd()
+
+func makecreateCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:     "create",
+		Short:   "Creates a Passbolt Entity",
+		Long:    `Creates a Passbolt Entity`,
+		Aliases: []string{"new"},
+	}
 }
 
-func init() {
+func configureCreate() {
 	rootCmd.AddCommand(createCmd)
 	createCmd.PersistentFlags().BoolP("json", "j", false, "Output JSON")
 	createCmd.AddCommand(resource.ResourceCreateCmd)
@@ -24,3 +28,5 @@ func init() {
 	createCmd.AddCommand(group.GroupCreateCmd)
 	createCmd.AddCommand(user.UserCreateCmd)
 }
+
+func init() { configureCreate() }

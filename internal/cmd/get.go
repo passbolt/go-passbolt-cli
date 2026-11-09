@@ -9,14 +9,18 @@ import (
 )
 
 // getCmd represents the get command
-var getCmd = &cobra.Command{
-	Use:     "get",
-	Short:   "Gets a Passbolt Entity",
-	Long:    `Gets a Passbolt Entity`,
-	Aliases: []string{"read"},
+var getCmd = makegetCmd()
+
+func makegetCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:     "get",
+		Short:   "Gets a Passbolt Entity",
+		Long:    `Gets a Passbolt Entity`,
+		Aliases: []string{"read"},
+	}
 }
 
-func init() {
+func configureGet() {
 	rootCmd.AddCommand(getCmd)
 	getCmd.PersistentFlags().BoolP("json", "j", false, "Output JSON")
 	getCmd.AddCommand(resource.ResourceGetCmd)
@@ -25,3 +29,5 @@ func init() {
 	getCmd.AddCommand(user.UserGetCmd)
 
 }
+
+func init() { configureGet() }

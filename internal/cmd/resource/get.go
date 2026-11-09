@@ -11,23 +11,31 @@ import (
 )
 
 // ResourceGetCmd Gets a Passbolt Resource
-var ResourceGetCmd = &cobra.Command{
-	Use:   "resource",
-	Short: "Gets a Passbolt Resource",
-	Long:  `Gets a Passbolt Resource`,
-	RunE:  ResourceGet,
+var ResourceGetCmd = makeResourceGetCmd()
+
+func makeResourceGetCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "resource",
+		Short: "Gets a Passbolt Resource",
+		Long:  `Gets a Passbolt Resource`,
+		RunE:  ResourceGet,
+	}
 }
 
 // ResourcePermissionCmd Gets Permissions for Passbolt Resource
-var ResourcePermissionCmd = &cobra.Command{
-	Use:     "permission",
-	Short:   "Gets Permissions for a Passbolt Resource",
-	Long:    `Gets Permissions for a Passbolt Resource`,
-	Aliases: []string{"permissions"},
-	RunE:    ResourcePermission,
+var ResourcePermissionCmd = makeResourcePermissionCmd()
+
+func makeResourcePermissionCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:     "permission",
+		Short:   "Gets Permissions for a Passbolt Resource",
+		Long:    `Gets Permissions for a Passbolt Resource`,
+		Aliases: []string{"permissions"},
+		RunE:    ResourcePermission,
+	}
 }
 
-func init() {
+func configureGet() {
 	ResourceGetCmd.Flags().String("id", "", "id of Resource to Get")
 
 	ResourceGetCmd.MarkFlagRequired("id")
@@ -148,3 +156,5 @@ func ResourcePermission(cmd *cobra.Command, args []string) error {
 		return nil
 	})
 }
+
+func init() { configureGet() }

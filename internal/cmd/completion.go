@@ -6,11 +6,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var completionCmd = &cobra.Command{
-	Hidden: true,
-	Use:    "completion [bash|zsh|fish|powershell]",
-	Short:  "Generate completion script",
-	Long: `To load completions:
+var completionCmd = makecompletionCmd()
+
+func makecompletionCmd() *cobra.Command {
+	return &cobra.Command{
+		Hidden: true,
+		Use:    "completion [bash|zsh|fish|powershell]",
+		Short:  "Generate completion script",
+		Long: `To load completions:
 
 Bash:
 
@@ -49,24 +52,27 @@ PowerShell:
   PS> yourprogram completion powershell > yourprogram.ps1
   # and source this file from your PowerShell profile.
 `,
-	DisableFlagsInUseLine: true,
-	ValidArgs:             []string{"bash", "zsh", "fish", "powershell"},
-	Args:                  cobra.MatchAll(cobra.ExactArgs(1), cobra.OnlyValidArgs),
-	Run: func(cmd *cobra.Command, args []string) {
-		// Shell script, not human-facing text: sanitizing it would corrupt it.
-		switch args[0] {
-		case "bash":
-			cmd.Root().GenBashCompletion(os.Stdout) //nolint:forbidigo // raw stdout
-		case "zsh":
-			cmd.Root().GenZshCompletion(os.Stdout) //nolint:forbidigo // raw stdout
-		case "fish":
-			cmd.Root().GenFishCompletion(os.Stdout, true) //nolint:forbidigo // raw stdout
-		case "powershell":
-			cmd.Root().GenPowerShellCompletionWithDesc(os.Stdout) //nolint:forbidigo // raw stdout
-		}
-	},
+		DisableFlagsInUseLine: true,
+		ValidArgs:             []string{"bash", "zsh", "fish", "powershell"},
+		Args:                  cobra.MatchAll(cobra.ExactArgs(1), cobra.OnlyValidArgs),
+		Run: func(cmd *cobra.Command, args []string) {
+			// Shell script, not human-facing text: sanitizing it would corrupt it.
+			switch args[0] {
+			case "bash":
+				cmd.Root().GenBashCompletion(os.Stdout) //nolint:forbidigo // raw stdout
+			case "zsh":
+				cmd.Root().GenZshCompletion(os.Stdout) //nolint:forbidigo // raw stdout
+			case "fish":
+				cmd.Root().GenFishCompletion(os.Stdout, true) //nolint:forbidigo // raw stdout
+			case "powershell":
+				cmd.Root().GenPowerShellCompletionWithDesc(os.Stdout) //nolint:forbidigo // raw stdout
+			}
+		},
+	}
 }
 
-func init() {
+func configureCompletion() {
 	rootCmd.AddCommand(completionCmd)
 }
+
+func init() { configureCompletion() }

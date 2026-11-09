@@ -11,14 +11,18 @@ import (
 )
 
 // UserCreateCmd Creates a Passbolt User
-var UserCreateCmd = &cobra.Command{
-	Use:   "user",
-	Short: "Creates a Passbolt User",
-	Long:  `Creates a Passbolt User and Returns the Users ID`,
-	RunE:  UserCreate,
+var UserCreateCmd = makeUserCreateCmd()
+
+func makeUserCreateCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "user",
+		Short: "Creates a Passbolt User",
+		Long:  `Creates a Passbolt User and Returns the Users ID`,
+		RunE:  UserCreate,
+	}
 }
 
-func init() {
+func configureCreate() {
 	UserCreateCmd.Flags().StringP("username", "u", "", "Username (needs to be a email address)")
 	UserCreateCmd.Flags().StringP("firstname", "f", "", "First Name")
 	UserCreateCmd.Flags().StringP("lastname", "l", "", "Last Name")
@@ -71,3 +75,5 @@ func UserCreate(cmd *cobra.Command, args []string) error {
 		return nil
 	})
 }
+
+func init() { configureCreate() }

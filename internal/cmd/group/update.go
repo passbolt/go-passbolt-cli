@@ -11,14 +11,18 @@ import (
 )
 
 // GroupUpdateCmd Updates a Passbolt Group
-var GroupUpdateCmd = &cobra.Command{
-	Use:   "group",
-	Short: "Updates a Passbolt Group",
-	Long:  `Updates a Passbolt Group`,
-	RunE:  GroupUpdate,
+var GroupUpdateCmd = makeGroupUpdateCmd()
+
+func makeGroupUpdateCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "group",
+		Short: "Updates a Passbolt Group",
+		Long:  `Updates a Passbolt Group`,
+		RunE:  GroupUpdate,
+	}
 }
 
-func init() {
+func configureUpdate() {
 	GroupUpdateCmd.Flags().String("id", "", "id of Group to Update")
 	GroupUpdateCmd.Flags().StringP("name", "n", "", "Group Name")
 
@@ -81,3 +85,5 @@ func GroupUpdate(cmd *cobra.Command, args []string) error {
 		return nil
 	})
 }
+
+func init() { configureUpdate() }

@@ -11,15 +11,19 @@ import (
 )
 
 // FolderListCmd Lists a Passbolt Folder
-var FolderListCmd = &cobra.Command{
-	Use:     "folder",
-	Short:   "Lists Passbolt Folders",
-	Long:    `Lists Passbolt Folders`,
-	Aliases: []string{"folders"},
-	RunE:    FolderList,
+var FolderListCmd = makeFolderListCmd()
+
+func makeFolderListCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:     "folder",
+		Short:   "Lists Passbolt Folders",
+		Long:    `Lists Passbolt Folders`,
+		Aliases: []string{"folders"},
+		RunE:    FolderList,
+	}
 }
 
-func init() {
+func configureList() {
 	flags := FolderListCmd.Flags()
 	flags.StringP("search", "s", "", "Folders that have this in the Name")
 	flags.StringArrayP("folder", "f", []string{}, "Folders that are in this Folder")
@@ -128,3 +132,5 @@ func parseFolderListFlags(cmd *cobra.Command) (*folderListConfig, error) {
 		celFilter:      celFilter,
 	}, nil
 }
+
+func init() { configureList() }

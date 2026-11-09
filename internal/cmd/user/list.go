@@ -11,15 +11,19 @@ import (
 )
 
 // UserListCmd Lists a Passbolt User
-var UserListCmd = &cobra.Command{
-	Use:     "user",
-	Short:   "Lists Passbolt Users",
-	Long:    `Lists Passbolt Users`,
-	Aliases: []string{"users"},
-	RunE:    UserList,
+var UserListCmd = makeUserListCmd()
+
+func makeUserListCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:     "user",
+		Short:   "Lists Passbolt Users",
+		Long:    `Lists Passbolt Users`,
+		Aliases: []string{"users"},
+		RunE:    UserList,
+	}
 }
 
-func init() {
+func configureList() {
 	flags := UserListCmd.Flags()
 	flags.StringArrayP("group", "g", []string{}, "Users that are members of all of these groups")
 	flags.StringArrayP("resource", "r", []string{}, "Users that have access to resources")
@@ -147,3 +151,5 @@ func parseUserListFlags(cmd *cobra.Command) (*userListConfig, error) {
 		celFilter:      celFilter,
 	}, nil
 }
+
+func init() { configureList() }

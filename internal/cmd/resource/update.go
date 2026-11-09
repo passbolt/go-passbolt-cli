@@ -11,14 +11,18 @@ import (
 )
 
 // ResourceUpdateCmd Updates a Passbolt Resource
-var ResourceUpdateCmd = &cobra.Command{
-	Use:   "resource",
-	Short: "Updates a Passbolt Resource",
-	Long:  `Updates a Passbolt Resource`,
-	RunE:  ResourceUpdate,
+var ResourceUpdateCmd = makeResourceUpdateCmd()
+
+func makeResourceUpdateCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "resource",
+		Short: "Updates a Passbolt Resource",
+		Long:  `Updates a Passbolt Resource`,
+		RunE:  ResourceUpdate,
+	}
 }
 
-func init() {
+func configureUpdate() {
 	ResourceUpdateCmd.Flags().String("id", "", "id of Resource to Update")
 	ResourceUpdateCmd.Flags().StringP("name", "n", "", "Resource Name")
 	ResourceUpdateCmd.Flags().StringP("username", "u", "", "Resource Username")
@@ -127,3 +131,5 @@ func ResourceUpdate(cmd *cobra.Command, args []string) error {
 		return nil
 	})
 }
+
+func init() { configureUpdate() }

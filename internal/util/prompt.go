@@ -18,7 +18,12 @@ func IsInteractive() bool {
 }
 
 // Confirm asks a yes/no question on stderr; a non-terminal gets ErrNotInteractive.
+var ConfirmationPrompt func(string) (bool, error)
+
 func Confirm(prompt string) (bool, error) {
+	if ConfirmationPrompt != nil {
+		return ConfirmationPrompt(prompt)
+	}
 	if !IsInteractive() {
 		return false, ErrNotInteractive
 	}

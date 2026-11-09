@@ -10,14 +10,18 @@ import (
 )
 
 // ResourceShareCmd Shares a Passbolt Resource
-var ResourceShareCmd = &cobra.Command{
-	Use:   "resource",
-	Short: "Shares a Passbolt Resource",
-	Long:  `Shares a Passbolt Resource`,
-	RunE:  ResourceShare,
+var ResourceShareCmd = makeResourceShareCmd()
+
+func makeResourceShareCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "resource",
+		Short: "Shares a Passbolt Resource",
+		Long:  `Shares a Passbolt Resource`,
+		RunE:  ResourceShare,
+	}
 }
 
-func init() {
+func configureShare() {
 	ResourceShareCmd.Flags().String("id", "", "id of Resource to Share")
 	ResourceShareCmd.Flags().IntP("type", "t", 1, "Permission Type (1 Read Only, 7 Can Update, 15 Owner)")
 	ResourceShareCmd.Flags().StringArrayP("user", "u", []string{}, "User id's to share with")
@@ -59,3 +63,5 @@ func ResourceShare(cmd *cobra.Command, args []string) error {
 		return nil
 	})
 }
+
+func init() { configureShare() }

@@ -19,15 +19,19 @@ import (
 )
 
 // KeepassExportCmd Exports a Passbolt KeePass
-var KeepassExportCmd = &cobra.Command{
-	Use:     "keepass",
-	Short:   "Exports Passbolt to a KeePass File",
-	Long:    `Exports Passbolt to a KeePass File`,
-	Aliases: []string{},
-	RunE:    KeepassExport,
+var KeepassExportCmd = makeKeepassExportCmd()
+
+func makeKeepassExportCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:     "keepass",
+		Short:   "Exports Passbolt to a KeePass File",
+		Long:    `Exports Passbolt to a KeePass File`,
+		Aliases: []string{},
+		RunE:    KeepassExport,
+	}
 }
 
-func init() {
+func configureExport() {
 	KeepassExportCmd.Flags().StringP("file", "f", "passbolt-export.kdbx", "File name of the KeePass File")
 	KeepassExportCmd.Flags().StringP("password", "p", "", "Password for the KeePass File, if empty prompts interactively")
 	KeepassExportCmd.Flags().String("kdbx-version", "v3", "KDBX format version: v3 (AES-KDF, KDBX 3.1) or v4 (Argon2, KDBX 4)")
@@ -98,7 +102,7 @@ func KeepassExport(cmd *cobra.Command, args []string) error {
 		pterm.EnableStyling()
 		pterm.DisableColor()
 		defer pterm.DisableStyling()
-		progressbar, err := pterm.DefaultProgressbar.WithTitle("Decryping Resources").WithTotal(len(resources)).Start()
+		progressbar, err := pterm.DefaultProgressbar.WithWriter(util.Err).WithTitle("Decryping Resources").WithTotal(len(resources)).Start()
 		if err != nil {
 			return fmt.Errorf("progress: %w", err)
 		}
@@ -250,3 +254,5 @@ func encodeQuery(v url.Values) string {
 	}
 	return buf.String()
 }
+
+func init() { configureExport() }

@@ -6,13 +6,19 @@ import (
 )
 
 // exportCmd represents the export command
-var exportCmd = &cobra.Command{
-	Use:   "export",
-	Short: "Exports Passbolt Data",
-	Long:  `Exports Passbolt Data`,
+var exportCmd = makeexportCmd()
+
+func makeexportCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "export",
+		Short: "Exports Passbolt Data",
+		Long:  `Exports Passbolt Data`,
+	}
 }
 
-func init() {
+func configureExport() {
 	rootCmd.AddCommand(exportCmd)
 	exportCmd.AddCommand(keepass.KeepassExportCmd)
 }
+
+func init() { configureExport() }

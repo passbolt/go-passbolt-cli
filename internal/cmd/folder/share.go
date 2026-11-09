@@ -11,14 +11,18 @@ import (
 )
 
 // FolderShareCmd Shares a Passbolt Folder
-var FolderShareCmd = &cobra.Command{
-	Use:   "folder",
-	Short: "Shares a Passbolt Folder",
-	Long:  `Shares a Passbolt Folder`,
-	RunE:  FolderShare,
+var FolderShareCmd = makeFolderShareCmd()
+
+func makeFolderShareCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "folder",
+		Short: "Shares a Passbolt Folder",
+		Long:  `Shares a Passbolt Folder`,
+		RunE:  FolderShare,
+	}
 }
 
-func init() {
+func configureShare() {
 	FolderShareCmd.Flags().String("id", "", "id of Folder to Share")
 	FolderShareCmd.Flags().IntP("type", "t", 1, "Permission Type (1 Read Only, 7 Can Update, 15 Owner)")
 	FolderShareCmd.Flags().StringArrayP("user", "u", []string{}, "User id's to share with")
@@ -60,3 +64,5 @@ func FolderShare(cmd *cobra.Command, args []string) error {
 		return nil
 	})
 }
+
+func init() { configureShare() }

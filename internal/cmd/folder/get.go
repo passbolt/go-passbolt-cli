@@ -10,23 +10,31 @@ import (
 )
 
 // FolderGetCmd Gets a Passbolt Folder
-var FolderGetCmd = &cobra.Command{
-	Use:   "folder",
-	Short: "Gets a Passbolt Folder",
-	Long:  `Gets a Passbolt Folder`,
-	RunE:  FolderGet,
+var FolderGetCmd = makeFolderGetCmd()
+
+func makeFolderGetCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "folder",
+		Short: "Gets a Passbolt Folder",
+		Long:  `Gets a Passbolt Folder`,
+		RunE:  FolderGet,
+	}
 }
 
 // FolderPermissionCmd Gets Permissions for Passbolt Folder
-var FolderPermissionCmd = &cobra.Command{
-	Use:     "permission",
-	Short:   "Gets Permissions for a Passbolt Folder",
-	Long:    `Gets Permissions for a Passbolt Folder`,
-	Aliases: []string{"permissions"},
-	RunE:    FolderPermission,
+var FolderPermissionCmd = makeFolderPermissionCmd()
+
+func makeFolderPermissionCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:     "permission",
+		Short:   "Gets Permissions for a Passbolt Folder",
+		Long:    `Gets Permissions for a Passbolt Folder`,
+		Aliases: []string{"permissions"},
+		RunE:    FolderPermission,
+	}
 }
 
-func init() {
+func configureGet() {
 	FolderGetCmd.Flags().String("id", "", "id of Folder to Get")
 
 	FolderGetCmd.MarkFlagRequired("id")
@@ -103,3 +111,5 @@ func FolderPermission(cmd *cobra.Command, args []string) error {
 		return nil
 	})
 }
+
+func init() { configureGet() }

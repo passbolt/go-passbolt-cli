@@ -10,25 +10,29 @@ import (
 )
 
 // configureCmd represents the configure command
-var configureCmd = &cobra.Command{
-	Use:   "configure",
-	Short: "Configure saves the provided global flags to the Config File",
-	Long: `Configure saves the provided global flags to the Config File.
+var configureCmd = makeconfigureCmd()
+
+func makeconfigureCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "configure",
+		Short: "Configure saves the provided global flags to the Config File",
+		Long: `Configure saves the provided global flags to the Config File.
 this makes using the cli easier as they don't have to be specified all the time.
 
 Secrets are stored in cleartext, so the file is kept at mode 0600;
 a --config file with looser permissions is reported, not changed.`,
-	RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, args []string) error {
 
-		if err := util.WriteViperConfig(cfgPath); err != nil {
-			return fmt.Errorf("writing Config: %w", err)
-		}
-		if viper.GetBool("debug") {
-			assumeYes, _ := cmd.Flags().GetBool("yes")
-			dumpSettings(assumeYes)
-		}
-		return nil
-	},
+			if err := util.WriteViperConfig(cfgPath); err != nil {
+				return fmt.Errorf("writing Config: %w", err)
+			}
+			if viper.GetBool("debug") {
+				assumeYes, _ := cmd.Flags().GetBool("yes")
+				dumpSettings(assumeYes)
+			}
+			return nil
+		},
+	}
 }
 
 // dumpSettings prints every saved setting, secrets included, once confirmed.
@@ -48,6 +52,8 @@ func dumpSettings(assumeYes bool) {
 	util.Eprintf("Saved: %v\n", util.Sanitize(fmt.Sprintf("%+v", viper.AllSettings())))
 }
 
-func init() {
+func configureConfigure() {
 	rootCmd.AddCommand(configureCmd)
 }
+
+func init() { configureConfigure() }

@@ -37,3 +37,35 @@ Permissions do not protect the file in these places:
 
 - Keep the file on a local disk, in your home directory. The default location is fine.
 - If that is not possible, save only `serverAddress` and pass the rest through environment variables or flags. With no `userPassword` saved, the CLI asks for it each time.
+
+## Opt-in authentication agent
+
+The agent is disabled by default. Enabling it keeps an unlocked account key and
+Passbolt session/MFA cookies in a background process until its one-hour idle
+lease expires or you lock/stop it. Each authenticated CLI invocation requires a
+separate approval; status queries and rejected requests do not extend the lease.
+A valid server session may expire sooner and server MFA requirements remain in
+force. A command already approved may finish after its lease deadline.
+
+IPC uses an owner-only Unix socket in a checked `0700` directory, or a local-only
+Windows named pipe restricted to the Windows logon SID. The Windows client
+verifies the connected server's logon identity before transmitting configuration.
+The request protocol is bounded and versioned. Authentication material is not
+returned to foreground clients, placed in launch arguments/environment, logged,
+or persisted. An `exec` request intentionally returns the resource values needed
+for the requested child program's environment.
+
+This protects against other ordinary local users, not administrators, debuggers
+with access to your process, or a compromised account running as you. The agent
+receives its UI/session context from the invoking same-user CLI. Approval identifies
+the server, account fingerprint and command path; it does not list argument values,
+which may themselves contain secrets. OS swap, crash dumps and managed-runtime
+copies can retain memory; this feature does not promise locked RAM or forensic
+memory erasure. Mutable protocol/input buffers and SDK key material are cleared
+where supported, including offline local lock. Stopping the process releases its
+address space.
+
+The first implementation serializes commands. A stalled command can delay other
+requests and expiry cleanup until it finishes; connection cancellation and request
+timeouts cancel its network operations. A lost connection is never automatically
+retried because a server write may already have completed.

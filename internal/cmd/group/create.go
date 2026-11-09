@@ -11,14 +11,18 @@ import (
 )
 
 // GroupCreateCmd Creates a Passbolt Group
-var GroupCreateCmd = &cobra.Command{
-	Use:   "group",
-	Short: "Creates a Passbolt Group",
-	Long:  `Creates a Passbolt Group and Returns the Groups ID`,
-	RunE:  GroupCreate,
+var GroupCreateCmd = makeGroupCreateCmd()
+
+func makeGroupCreateCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "group",
+		Short: "Creates a Passbolt Group",
+		Long:  `Creates a Passbolt Group and Returns the Groups ID`,
+		RunE:  GroupCreate,
+	}
 }
 
-func init() {
+func configureCreate() {
 	GroupCreateCmd.Flags().StringP("name", "n", "", "Group Name")
 
 	GroupCreateCmd.Flags().StringArrayP("user", "u", []string{}, "Users to Add to Group")
@@ -78,3 +82,5 @@ func GroupCreate(cmd *cobra.Command, args []string) error {
 		return nil
 	})
 }
+
+func init() { configureCreate() }

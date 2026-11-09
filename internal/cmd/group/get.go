@@ -13,14 +13,18 @@ import (
 )
 
 // GroupGetCmd Gets a Passbolt Group
-var GroupGetCmd = &cobra.Command{
-	Use:   "group",
-	Short: "Gets a Passbolt Group",
-	Long:  `Gets a Passbolt Group`,
-	RunE:  GroupGet,
+var GroupGetCmd = makeGroupGetCmd()
+
+func makeGroupGetCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "group",
+		Short: "Gets a Passbolt Group",
+		Long:  `Gets a Passbolt Group`,
+		RunE:  GroupGet,
+	}
 }
 
-func init() {
+func configureGet() {
 	GroupGetCmd.Flags().String("id", "", "id of Group to Get")
 
 	GroupGetCmd.Flags().StringArrayP("column", "c", []string{"UserID", "Username", "UserFirstName", "UserLastName", "IsGroupManager"}, "Membership Columns to return, possible Columns:\nUserID, Username, UserFirstName, UserLastName, IsGroupManager")
@@ -102,3 +106,5 @@ func GroupGet(cmd *cobra.Command, args []string) error {
 		return nil
 	})
 }
+
+func init() { configureGet() }

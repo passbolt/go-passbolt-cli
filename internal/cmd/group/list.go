@@ -11,15 +11,19 @@ import (
 )
 
 // GroupListCmd Lists a Passbolt Group
-var GroupListCmd = &cobra.Command{
-	Use:     "group",
-	Short:   "Lists Passbolt Groups",
-	Long:    `Lists Passbolt Groups`,
-	Aliases: []string{"groups"},
-	RunE:    GroupList,
+var GroupListCmd = makeGroupListCmd()
+
+func makeGroupListCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:     "group",
+		Short:   "Lists Passbolt Groups",
+		Long:    `Lists Passbolt Groups`,
+		Aliases: []string{"groups"},
+		RunE:    GroupList,
+	}
 }
 
-func init() {
+func configureList() {
 	flags := GroupListCmd.Flags()
 	flags.StringArrayP("user", "u", []string{}, "Groups that have all of these users as members")
 	flags.StringArrayP("manager", "m", []string{}, "Groups that have all of these users as managers")
@@ -127,3 +131,5 @@ func parseGroupListFlags(cmd *cobra.Command) (*groupListConfig, error) {
 		celFilter:      celFilter,
 	}, nil
 }
+
+func init() { configureList() }

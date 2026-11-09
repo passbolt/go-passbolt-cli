@@ -10,11 +10,15 @@ import (
 )
 
 // FolderDeleteCmd Deletes a Folder
-var FolderDeleteCmd = &cobra.Command{
-	Use:   "folder",
-	Short: "Deletes a Passbolt Folder",
-	Long:  `Deletes a Passbolt Folder`,
-	RunE:  FolderDelete,
+var FolderDeleteCmd = makeFolderDeleteCmd()
+
+func makeFolderDeleteCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "folder",
+		Short: "Deletes a Passbolt Folder",
+		Long:  `Deletes a Passbolt Folder`,
+		RunE:  FolderDelete,
+	}
 }
 
 func FolderDelete(cmd *cobra.Command, args []string) error {

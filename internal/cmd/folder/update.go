@@ -11,14 +11,18 @@ import (
 )
 
 // FolderUpdateCmd Updates a Passbolt Folder
-var FolderUpdateCmd = &cobra.Command{
-	Use:   "folder",
-	Short: "Updates a Passbolt Folder",
-	Long:  `Updates a Passbolt Folder`,
-	RunE:  FolderUpdate,
+var FolderUpdateCmd = makeFolderUpdateCmd()
+
+func makeFolderUpdateCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "folder",
+		Short: "Updates a Passbolt Folder",
+		Long:  `Updates a Passbolt Folder`,
+		RunE:  FolderUpdate,
+	}
 }
 
-func init() {
+func configureUpdate() {
 	FolderUpdateCmd.Flags().String("id", "", "id of Folder to Update")
 	FolderUpdateCmd.Flags().StringP("name", "n", "", "Folder Name")
 
@@ -48,3 +52,5 @@ func FolderUpdate(cmd *cobra.Command, args []string) error {
 		return nil
 	})
 }
+
+func init() { configureUpdate() }

@@ -13,14 +13,18 @@ import (
 )
 
 // ResourceCreateCmd Creates a Passbolt Resource
-var ResourceCreateCmd = &cobra.Command{
-	Use:   "resource",
-	Short: "Creates a Passbolt Resource",
-	Long:  `Creates a Passbolt Resource and Returns the Resources ID`,
-	RunE:  ResourceCreate,
+var ResourceCreateCmd = makeResourceCreateCmd()
+
+func makeResourceCreateCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "resource",
+		Short: "Creates a Passbolt Resource",
+		Long:  `Creates a Passbolt Resource and Returns the Resources ID`,
+		RunE:  ResourceCreate,
+	}
 }
 
-func init() {
+func configureCreate() {
 	ResourceCreateCmd.Flags().StringP("name", "n", "", "Resource Name")
 	ResourceCreateCmd.Flags().StringP("username", "u", "", "Resource Username")
 	ResourceCreateCmd.Flags().String("uri", "", "Resource URI")
@@ -183,3 +187,5 @@ func parseKeyValue(s string) (string, any, error) {
 	}
 	return key, val, nil
 }
+
+func init() { configureCreate() }

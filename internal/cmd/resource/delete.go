@@ -10,11 +10,15 @@ import (
 )
 
 // ResourceDeleteCmd Deletes a Resource
-var ResourceDeleteCmd = &cobra.Command{
-	Use:   "resource",
-	Short: "Deletes a Passbolt Resource",
-	Long:  `Deletes a Passbolt Resource`,
-	RunE:  ResourceDelete,
+var ResourceDeleteCmd = makeResourceDeleteCmd()
+
+func makeResourceDeleteCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "resource",
+		Short: "Deletes a Passbolt Resource",
+		Long:  `Deletes a Passbolt Resource`,
+		RunE:  ResourceDelete,
+	}
 }
 
 func ResourceDelete(cmd *cobra.Command, args []string) error {

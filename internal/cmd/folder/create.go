@@ -11,14 +11,18 @@ import (
 )
 
 // FolderCreateCmd Creates a Passbolt Folder
-var FolderCreateCmd = &cobra.Command{
-	Use:   "folder",
-	Short: "Creates a Passbolt Folder",
-	Long:  `Creates a Passbolt Folder and Returns the Folders ID`,
-	RunE:  FolderCreate,
+var FolderCreateCmd = makeFolderCreateCmd()
+
+func makeFolderCreateCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "folder",
+		Short: "Creates a Passbolt Folder",
+		Long:  `Creates a Passbolt Folder and Returns the Folders ID`,
+		RunE:  FolderCreate,
+	}
 }
 
-func init() {
+func configureCreate() {
 	FolderCreateCmd.Flags().StringP("name", "n", "", "Folder Name")
 	FolderCreateCmd.Flags().StringP("folderParentID", "f", "", "Folder in which to create the Folder")
 
@@ -57,3 +61,5 @@ func FolderCreate(cmd *cobra.Command, args []string) error {
 		return nil
 	})
 }
+
+func init() { configureCreate() }

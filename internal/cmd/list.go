@@ -9,14 +9,18 @@ import (
 )
 
 // listCmd represents the list command
-var listCmd = &cobra.Command{
-	Use:     "list",
-	Short:   "Lists Passbolt Entitys",
-	Long:    `Lists Passbolt Entitys`,
-	Aliases: []string{"index", "ls", "filter", "search"},
+var listCmd = makelistCmd()
+
+func makelistCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:     "list",
+		Short:   "Lists Passbolt Entitys",
+		Long:    `Lists Passbolt Entitys`,
+		Aliases: []string{"index", "ls", "filter", "search"},
+	}
 }
 
-func init() {
+func configureList() {
 	rootCmd.AddCommand(listCmd)
 	listCmd.PersistentFlags().BoolP("json", "j", false, "Output JSON")
 	listCmd.PersistentFlags().String("filter", "",
@@ -31,3 +35,5 @@ func init() {
 	listCmd.AddCommand(group.GroupListCmd)
 	listCmd.AddCommand(user.UserListCmd)
 }
+
+func init() { configureList() }

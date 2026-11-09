@@ -11,14 +11,18 @@ import (
 )
 
 // FolderMoveCmd Moves a Passbolt Folder
-var FolderMoveCmd = &cobra.Command{
-	Use:   "folder",
-	Short: "Moves a Passbolt Folder into a Folder",
-	Long:  `Moves a Passbolt Folder into a Folder`,
-	RunE:  FolderMove,
+var FolderMoveCmd = makeFolderMoveCmd()
+
+func makeFolderMoveCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "folder",
+		Short: "Moves a Passbolt Folder into a Folder",
+		Long:  `Moves a Passbolt Folder into a Folder`,
+		RunE:  FolderMove,
+	}
 }
 
-func init() {
+func configureMove() {
 	FolderMoveCmd.Flags().String("id", "", "id of Folder to Move")
 	FolderMoveCmd.Flags().StringP("folderParentID", "f", "", "Folder in which to Move the Folder")
 
@@ -48,3 +52,5 @@ func FolderMove(cmd *cobra.Command, args []string) error {
 		return nil
 	})
 }
+
+func init() { configureMove() }

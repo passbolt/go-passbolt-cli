@@ -4,6 +4,7 @@ go 1.27.3
 
 require (
 	cel.dev/cel-go v0.33.2
+	github.com/Microsoft/go-winio v0.6.4
 	github.com/ProtonMail/gopenpgp/v3 v3.5.2
 	github.com/passbolt/go-passbolt v0.8.4
 	github.com/pterm/pterm v0.12.84
@@ -13,6 +14,7 @@ require (
 	github.com/spf13/viper v1.21.0
 	github.com/testcontainers/testcontainers-go v0.44.0
 	github.com/tobischo/gokeepasslib/v3 v3.7.1
+	golang.org/x/net v0.61.0
 	golang.org/x/sys v0.49.0
 	golang.org/x/term v0.47.0
 )
@@ -24,7 +26,6 @@ require (
 	cel.dev/expr v0.25.3 // indirect
 	dario.cat/mergo v1.0.2 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20261013165250-51075c6ea6bc // indirect
-	github.com/Microsoft/go-winio v0.6.4 // indirect
 	github.com/ProtonMail/go-crypto v1.5.2 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect

@@ -11,11 +11,15 @@ import (
 )
 
 // UserDeleteCmd Deletes a User
-var UserDeleteCmd = &cobra.Command{
-	Use:   "user",
-	Short: "Deletes a Passbolt User",
-	Long:  `Deletes a Passbolt User`,
-	RunE:  UserDelete,
+var UserDeleteCmd = makeUserDeleteCmd()
+
+func makeUserDeleteCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "user",
+		Short: "Deletes a Passbolt User",
+		Long:  `Deletes a Passbolt User`,
+		RunE:  UserDelete,
+	}
 }
 
 func UserDelete(cmd *cobra.Command, args []string) error {

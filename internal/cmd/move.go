@@ -7,14 +7,20 @@ import (
 )
 
 // moveCmd represents the move command
-var moveCmd = &cobra.Command{
-	Use:   "move",
-	Short: "Moves a Passbolt Entity",
-	Long:  `Moves a Passbolt Entity`,
+var moveCmd = makemoveCmd()
+
+func makemoveCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "move",
+		Short: "Moves a Passbolt Entity",
+		Long:  `Moves a Passbolt Entity`,
+	}
 }
 
-func init() {
+func configureMove() {
 	rootCmd.AddCommand(moveCmd)
 	moveCmd.AddCommand(resource.ResourceMoveCmd)
 	moveCmd.AddCommand(folder.FolderMoveCmd)
 }
+
+func init() { configureMove() }

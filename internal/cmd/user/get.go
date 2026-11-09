@@ -11,14 +11,18 @@ import (
 )
 
 // UserGetCmd Gets a Passbolt User
-var UserGetCmd = &cobra.Command{
-	Use:   "user",
-	Short: "Gets a Passbolt User",
-	Long:  `Gets a Passbolt User`,
-	RunE:  UserGet,
+var UserGetCmd = makeUserGetCmd()
+
+func makeUserGetCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "user",
+		Short: "Gets a Passbolt User",
+		Long:  `Gets a Passbolt User`,
+		RunE:  UserGet,
+	}
 }
 
-func init() {
+func configureGet() {
 	UserGetCmd.Flags().String("id", "", "id of User to Get")
 
 	UserGetCmd.MarkFlagRequired("id")
@@ -58,3 +62,5 @@ func UserGet(cmd *cobra.Command, args []string) error {
 		return nil
 	})
 }
+
+func init() { configureGet() }

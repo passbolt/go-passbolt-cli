@@ -10,11 +10,15 @@ import (
 )
 
 // GroupDeleteCmd Deletes a Group
-var GroupDeleteCmd = &cobra.Command{
-	Use:   "group",
-	Short: "Deletes a Passbolt Group",
-	Long:  `Deletes a Passbolt Group`,
-	RunE:  GroupDelete,
+var GroupDeleteCmd = makeGroupDeleteCmd()
+
+func makeGroupDeleteCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "group",
+		Short: "Deletes a Passbolt Group",
+		Long:  `Deletes a Passbolt Group`,
+		RunE:  GroupDelete,
+	}
 }
 
 func GroupDelete(cmd *cobra.Command, args []string) error {

@@ -20,6 +20,9 @@ import (
 
 // ReadPassword reads a Password interactively or via Pipe
 func ReadPassword(prompt string) (string, error) {
+	if PasswordPrompt != nil {
+		return PasswordPrompt(prompt)
+	}
 	fd := int(os.Stdin.Fd())
 	var pass string
 	if IsInteractive() {
@@ -45,6 +48,10 @@ func ReadPassword(prompt string) (string, error) {
 // SaveSessionKeysAndLogout saves any pending session keys to the server and then logs out.
 // This should be used instead of client.Logout() to ensure session keys are persisted.
 func SaveSessionKeysAndLogout(ctx context.Context, client *api.Client) {
+	if ClientRelease != nil {
+		ClientRelease(ctx, client)
+		return
+	}
 	// Save any pending session keys that were discovered during decryption
 	if count := client.GetPendingSessionKeysCount(); count > 0 {
 		saved, err := client.SavePendingSessionKeys(ctx)
@@ -76,7 +83,26 @@ func WithClient(cmd *cobra.Command, fn func(ctx context.Context, client *api.Cli
 }
 
 // GetClient gets a Logged in Passbolt Client
+// ClientProvider, ClientRelease and PasswordPrompt are scoped to a serialized
+// agent invocation. They remain nil in ordinary CLI execution.
+var ClientProvider func(context.Context) (*api.Client, error)
+var ClientRelease func(context.Context, *api.Client)
+var PasswordPrompt func(string) (string, error)
+
 func GetClient(ctx context.Context) (*api.Client, error) {
+	if ClientProvider != nil {
+		return ClientProvider(ctx)
+	}
+	return NewClient(ctx)
+}
+
+// NewClient performs fresh authentication without consulting an agent provider.
+func NewClient(ctx context.Context) (*api.Client, error) {
+	return NewClientWithHTTP(ctx, nil)
+}
+
+// NewClientWithHTTP allows the agent to own the transport for session cleanup.
+func NewClientWithHTTP(ctx context.Context, httpClient *http.Client) (*api.Client, error) {
 	serverAddress := viper.GetString("serverAddress")
 	if serverAddress == "" {
 		return nil, fmt.Errorf("serverAddress is not defined")
@@ -99,9 +125,12 @@ func GetClient(ctx context.Context) (*api.Client, error) {
 		Println()
 	}
 
-	httpClient, err := GetHTTPClient()
-	if err != nil {
-		return nil, err
+	var err error
+	if httpClient == nil {
+		httpClient, err = GetHTTPClient()
+		if err != nil {
+			return nil, err
+		}
 	}
 	client, err := api.NewClient(httpClient, "", serverAddress, userPrivateKey, userPassword)
 	if err != nil {
