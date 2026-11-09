@@ -28,7 +28,12 @@ type Dialog struct {
 }
 
 // Text removes terminal controls and bounds untrusted server/command descriptions.
-func Text(s string) string {
+func Text(s string) string { return boundedText(s, 1024) }
+
+// dialogText allows complete resource names and identity details in approvals.
+func dialogText(s string) string { return boundedText(s, 16384) }
+
+func boundedText(s string, limit int) string {
 	var b strings.Builder
 	for _, r := range s {
 		if unicode.IsPrint(r) {
@@ -36,7 +41,7 @@ func Text(s string) string {
 		} else {
 			b.WriteRune('\uFFFD')
 		}
-		if b.Len() > 1024 {
+		if b.Len() > limit {
 			break
 		}
 	}
@@ -45,7 +50,7 @@ func Text(s string) string {
 func (d Dialog) Ask(ctx context.Context, title, prompt string, secret bool) (string, error) {
 	ctx, cancel := context.WithTimeout(ctx, time.Minute)
 	defer cancel()
-	title, prompt = Text(title), Text(prompt)
+	title, prompt = dialogText(title), dialogText(prompt)
 	switch d.Backend {
 	case "pinentry":
 		return d.pinentry(ctx, title, prompt, secret)

@@ -61,3 +61,30 @@ func TestDesktopRequiresDisplay(t *testing.T) {
 		t.Fatalf("desktop selected without a display: %v", err)
 	}
 }
+
+func TestResourceApprovalRendersFullUnicodeNameAndRequester(t *testing.T) {
+	dir := t.TempDir()
+	log := filepath.Join(dir, "arguments")
+	if err := os.WriteFile(filepath.Join(dir, "zenity"), []byte(`#!/bin/sh
+printf '%s\n' "$@" > "$DIALOG_TEST_LOG"
+`), 0700); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", dir)
+	t.Setenv("DIALOG_TEST_LOG", log)
+	t.Setenv("DISPLAY", ":test")
+	name := strings.Repeat("🌐", 255) + "resource-tail"
+	title, prompt := ResourceApproval("vault", "get resource", "git (PID 123)", "resource-uuid", name)
+	if err := (Dialog{Environment: os.Environ()}).Confirm(context.Background(), title, prompt); err != nil {
+		t.Fatal(err)
+	}
+	args, err := os.ReadFile(log)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{name, "resource-uuid", "git (PID 123)"} {
+		if !strings.Contains(string(args), want) {
+			t.Fatalf("rendered approval missing %q", want)
+		}
+	}
+}

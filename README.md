@@ -112,6 +112,13 @@ Pipelines work: approval uses the desktop or controlling terminal, leaving the
 command's stdin and stdout available for data. Without either UI, agent access
 fails. `--yes` does not bypass approval.
 
+Approvals display requester executable and parent process names and PIDs when
+available, without inspecting command-line arguments. These details are
+best-effort context, not proof of identity. Single-resource reads via `get
+resource` and `exec` environment substitution additionally request approval with
+the full resource name in title/body and the UUID before fetching its secret.
+Bulk list/export operations retain command-level approval.
+
 ```sh
 passbolt --agent list user --json | jq .
 passbolt agent status

@@ -227,6 +227,7 @@ func (a *commandAgent) Run(ctx context.Context, req agent.Request, in io.Reader,
 		util.PasswordPrompt = nil
 		util.ConfirmationPrompt = nil
 		util.InvocationContext = context.Background()
+		util.ResourceApproval = nil
 		util.ProxyEnvironment = nil
 		util.Out = io.Discard
 		util.Err = io.Discard
@@ -279,7 +280,8 @@ func (a *commandAgent) Run(ctx context.Context, req agent.Request, in io.Reader,
 		return result, err
 	}
 	dialog := agent.Dialog{Backend: req.Dialog, Pinentry: req.Pinentry, Terminal: req.Terminal, PID: req.PID, Environment: req.Environment}
-	if err := dialog.Confirm(ctx, "Passbolt approval", label+" — "+summary); err != nil {
+	requester := agent.Requester(req.PID)
+	if err := dialog.Confirm(ctx, "Passbolt approval", label+" — "+summary+" | Requester: "+requester); err != nil {
 		return result, err
 	}
 	// Only approval refreshes the idle deadline. Existing expired entries have
@@ -302,6 +304,10 @@ func (a *commandAgent) Run(ctx context.Context, req agent.Request, in io.Reader,
 	root.SetOut(util.Out)
 	root.SetErr(util.Err)
 	util.InvocationContext = ctx
+	util.ResourceApproval = func(resourceCtx context.Context, id, name string) error {
+		title, prompt := agent.ResourceApproval(label, summary, requester, id, name)
+		return dialog.Confirm(resourceCtx, title, prompt)
+	}
 	util.ProxyEnvironment = append([]string{}, req.Environment...)
 	invocationEnvironment = req.Environment
 	agentExecArgs = nil

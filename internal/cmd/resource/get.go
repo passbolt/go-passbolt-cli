@@ -66,6 +66,15 @@ func ResourceGet(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return fmt.Errorf("getting resource type: %w", err)
 		}
+		if util.ResourceApproval != nil {
+			_, metadata, _, err := helper.GetResourceFieldMaps(client, *resource, api.Secret{}, *rType, false)
+			if err != nil {
+				return util.ExplainReadError("reading resource metadata", rType.Slug, err)
+			}
+			if err := util.ApproveResource(ctx, resource.ID, helper.GetStringField(metadata, "name")); err != nil {
+				return err
+			}
+		}
 		secret, err := client.GetSecret(ctx, resource.ID)
 		if err != nil {
 			return fmt.Errorf("getting secret: %w", err)

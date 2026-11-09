@@ -99,6 +99,9 @@ func resolveEnvironmentSecrets(ctx context.Context, client *api.Client) ([]strin
 		}
 
 		resourceID := strings.TrimPrefix(value, PassboltPrefix)
+		if err := util.ApproveResourceRead(ctx, client, resourceID); err != nil {
+			return nil, fmt.Errorf("approving resource: %w", err)
+		}
 		_, _, _, _, secret, _, err := helper.GetResource(ctx, client, resourceID)
 		if err != nil {
 			return nil, fmt.Errorf("getting resource: %w", err)

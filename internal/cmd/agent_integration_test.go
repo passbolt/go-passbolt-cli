@@ -54,7 +54,11 @@ func TestAgentAuthenticationReuseApprovalAndExpiry(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var logins, mfas, logouts, writes atomic.Int32
+	credentialSecret, err := cryptoClient.EncryptMessage(`{"password":"test-resource-secret","description":""}`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var logins, mfas, logouts, writes, secretReads atomic.Int32
 	var valid atomic.Bool
 	var failWrite atomic.Bool
 	respond := func(w http.ResponseWriter, body any) {
@@ -101,6 +105,26 @@ func TestAgentAuthenticationReuseApprovalAndExpiry(t *testing.T) {
 			respond(w, nil)
 		case "/settings.json":
 			respond(w, map[string]any{"passbolt": map[string]any{"plugins": map[string]any{}}})
+		case "/resources.json":
+			respond(w, []any{
+				map[string]any{"id": "01234567-89ab-cdef-0123-456789abcdef", "resource_type_id": "22222222-2222-2222-2222-222222222222", "name": "Git token", "username": "token", "uri": "https://git.example/team"},
+				map[string]any{"id": "33333333-3333-3333-3333-333333333333", "resource_type_id": "22222222-2222-2222-2222-222222222222", "name": "Registry token", "username": "token", "uri": "https://registry.example"},
+			})
+		case "/resources/33333333-3333-3333-3333-333333333333.json":
+			respond(w, map[string]any{"id": "33333333-3333-3333-3333-333333333333", "resource_type_id": "22222222-2222-2222-2222-222222222222", "name": "Registry token", "username": "token", "uri": "https://registry.example"})
+		case "/secrets/resource/33333333-3333-3333-3333-333333333333.json":
+			respond(w, map[string]any{"resource_id": "33333333-3333-3333-3333-333333333333", "data": credentialSecret})
+		case "/resources/01234567-89ab-cdef-0123-456789abcdef.json":
+			respond(w, map[string]any{"id": "01234567-89ab-cdef-0123-456789abcdef", "resource_type_id": "22222222-2222-2222-2222-222222222222", "name": "Git token", "username": "token", "uri": "https://git.example/team"})
+		case "/resources/44444444-4444-4444-4444-444444444444.json":
+			json.NewEncoder(w).Encode(map[string]any{"header": map[string]any{"status": "error", "code": 404, "message": "private-error-marker"}, "body": "hcloud-smoke-token"})
+
+		case "/resource-types/22222222-2222-2222-2222-222222222222.json":
+			respond(w, map[string]any{"id": "22222222-2222-2222-2222-222222222222", "slug": "password-and-description"})
+		case "/secrets/resource/01234567-89ab-cdef-0123-456789abcdef.json":
+			secretReads.Add(1)
+			respond(w, map[string]any{"resource_id": "01234567-89ab-cdef-0123-456789abcdef", "data": credentialSecret})
+
 		case "/users.json":
 			respond(w, []any{})
 		case "/users/11111111-1111-1111-1111-111111111111.json":
@@ -127,8 +151,9 @@ func TestAgentAuthenticationReuseApprovalAndExpiry(t *testing.T) {
 printf 'OK ready\n'
 while IFS= read -r line; do
  case "$line" in
- SETDESC*) desc="$line"; printf 'OK\n';;
- CONFIRM) printf 'confirm\n' >> "$TEST_PROMPT_LOG"; if [ "$TEST_DENY" = 1 ]; then printf 'ERR 1 denied\n'; else printf 'OK\n'; fi;;
+ SETTITLE*) printf '%s\n' "$line" >> "$TEST_PROMPT_LOG.details"; printf 'OK\n';;
+ SETDESC*) desc="$line"; printf '%s\n' "$line" >> "$TEST_PROMPT_LOG.details"; printf 'OK\n';;
+ CONFIRM) case "$desc" in *Resource:*) if [ "$TEST_DENY_RESOURCE" = 1 ]; then printf 'ERR 1 denied\n'; continue; fi;; esac; printf 'confirm\n' >> "$TEST_PROMPT_LOG"; if [ "$TEST_DENY" = 1 ]; then printf 'ERR 1 denied\n'; else printf 'OK\n'; fi;;
  GETPIN) case "$desc" in *TOTP*) printf 'totp\n' >> "$TEST_PROMPT_LOG"; printf 'D 123456\nOK\n';; *) printf 'password\n' >> "$TEST_PROMPT_LOG"; printf 'D test-passphrase\nOK\n';; esac;;
  *) printf 'OK\n';;
  esac
@@ -234,6 +259,28 @@ done
 	// The pinned SDK normally skips private-key cleanup on failed remote logout.
 	if _, err := run(req); err != nil {
 		t.Fatal(err)
+	}
+	for _, args := range [][]string{
+		{"get", "resource", "--id", "01234567-89ab-cdef-0123-456789abcdef", "--json"},
+		{"exec", "--", "/bin/true"},
+	} {
+		resourceRequest := req
+		resourceRequest.PID = os.Getpid()
+		resourceRequest.Args = args
+		resourceRequest.Environment = append(append([]string{}, req.Environment...), "TEST_DENY_RESOURCE=1", "TEST_SECRET=passbolt://01234567-89ab-cdef-0123-456789abcdef")
+		before := secretReads.Load()
+		if output, err := run(resourceRequest); err == nil || output != "" || secretReads.Load() != before {
+			t.Fatalf("denied resource approval %v read a secret: output=%q error=%v reads=%d", args, output, err, secretReads.Load()-before)
+		}
+	}
+	details, err := os.ReadFile(log + ".details")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"Passbolt resource approval", "Git token", "01234567-89ab-cdef-0123-456789abcdef", "Requester:", "parent"} {
+		if !strings.Contains(string(details), want) {
+			t.Fatalf("approval missing %q", want)
+		}
 	}
 	var retained *api.Client
 	for _, cached := range manager.clients {
