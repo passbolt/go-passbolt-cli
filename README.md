@@ -183,3 +183,9 @@ passbolt update group --id GROUP_UUID --user USER_UUID
 
 Demotion requires the SDK to send an explicit `is_admin: false` membership update.
 The command retains the normal dry-run and secret re-encryption workflow.
+
+Group detail JSON exposes each user's `membership_id` separately from the existing
+`id` user UUID. The table accepts `--column MembershipID`. Group updates are
+idempotent and reread the group to verify requested names and memberships; shared
+secrets still use the SDK's normal dry-run and re-encryption flow. A verification
+error may follow a partially applied server change, so reread before retrying.

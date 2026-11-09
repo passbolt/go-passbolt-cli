@@ -15,6 +15,7 @@ type GroupJSONOutput struct {
 }
 
 type GroupUserMembershipJSONOutput struct {
+	MembershipID   *string `json:"membership_id,omitempty"`
 	ID             *string `json:"id,omitempty"`
 	Username       *string `json:"username,omitempty"`
 	FirstName      *string `json:"first_name,omitempty"`
