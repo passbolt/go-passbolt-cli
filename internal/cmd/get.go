@@ -4,6 +4,7 @@ import (
 	"github.com/passbolt/go-passbolt-cli/internal/cmd/folder"
 	"github.com/passbolt/go-passbolt-cli/internal/cmd/group"
 	"github.com/passbolt/go-passbolt-cli/internal/cmd/resource"
+	"github.com/passbolt/go-passbolt-cli/internal/cmd/settings"
 	"github.com/passbolt/go-passbolt-cli/internal/cmd/user"
 	"github.com/spf13/cobra"
 )
@@ -23,5 +24,6 @@ func init() {
 	getCmd.AddCommand(folder.FolderGetCmd)
 	getCmd.AddCommand(group.GroupGetCmd)
 	getCmd.AddCommand(user.UserGetCmd)
+	getCmd.AddCommand(settings.NewGetCommand())
 
 }

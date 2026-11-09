@@ -171,3 +171,59 @@ This would resolve the `passbolt://` reference in `GITHUB_TOKEN` to its actual s
 
 Usage for all subcommands is [here](https://github.com/passbolt/go-passbolt-cli/wiki/passbolt).
 And is also available via `man passbolt`
+
+## Manage organization settings
+
+Read a plugin's organization settings as JSON:
+
+```sh
+passbolt get organization-settings --plugin email-notifications
+```
+
+Submit a plugin-specific JSON object from a file or stdin:
+
+```sh
+passbolt update organization-settings --plugin email-notifications --input-file notifications.json
+passbolt update organization-settings --plugin email-notifications --input-file - < notifications.json
+```
+
+Updates are silent by default. Add `--json` to print the server's response.
+Input uses the plugin API's original JSON schema, without field renaming or
+notification-key flattening. Read responses may contain server-only fields and
+are not necessarily suitable for direct reuse as update input. Prepare any
+required encrypted or signed credentials before submitting them. SSO writes
+create settings; activation is a separate server workflow. Metadata settings
+writes do not perform metadata migrations.
+
+Delete or disable settings where supported. Some plugins have one settings
+record; others require a settings UUID returned by their API:
+
+```sh
+passbolt delete organization-settings --plugin directory-sync
+passbolt delete organization-settings --plugin self-registration --id SETTINGS_UUID
+```
+
+The client supports these operations; availability and permissions also depend
+on the server's edition and enabled plugins. Plugin names support shell
+completion, filtered by the command's supported operations.
+
+| Plugin | Get | Update | Delete |
+| --- | --- | --- | --- |
+| account-recovery-policies | yes | yes | — |
+| directory-sync | yes | yes | no ID |
+| email-notifications | yes | yes | — |
+| export-policies | yes | — | — |
+| locale | — | yes | — |
+| metadata-keys | yes | yes | — |
+| metadata-types | yes | yes | — |
+| mfa | yes | yes | — |
+| mfa-policies | yes | yes | — |
+| password-expiry | yes | yes | requires `--id` |
+| password-policies | yes | yes | — |
+| scim | yes | yes | requires `--id` |
+| secret-revisions | yes | yes | no ID |
+| self-registration | yes | yes | requires `--id` |
+| smtp | yes | yes | — |
+| sso | yes | yes | requires `--id` |
+| user-key-policies | yes | — | — |
+| user-passphrase-policies | yes | yes | — |
