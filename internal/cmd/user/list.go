@@ -72,18 +72,7 @@ func UserList(cmd *cobra.Command, args []string) error {
 func printJSONUsers(users []api.User, isColumnsChanged bool, columns []string) error {
 	outputUsers := make([]UserJSONOutput, len(users))
 	for i := range users {
-		outputUsers[i] = UserJSONOutput{
-			ID:                &users[i].ID,
-			Username:          &users[i].Username,
-			FirstName:         &users[i].Profile.FirstName,
-			LastName:          &users[i].Profile.LastName,
-			Role:              &users[i].Role.Name,
-			CreatedTimestamp:  &users[i].Created.Time,
-			ModifiedTimestamp: &users[i].Modified.Time,
-			Active:            users[i].Active,
-			Deleted:           users[i].Deleted,
-			Disabled:          users[i].Disabled != nil,
-		}
+		outputUsers[i] = userJSONOutput(users[i])
 	}
 
 	if isColumnsChanged {

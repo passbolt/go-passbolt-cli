@@ -1,6 +1,9 @@
 package user
 
-import "time"
+import (
+	"github.com/passbolt/go-passbolt/api"
+	"time"
+)
 
 type UserJSONOutput struct {
 	ID                *string    `json:"id,omitempty"`
@@ -16,4 +19,22 @@ type UserJSONOutput struct {
 	Active   bool `json:"active"`
 	Deleted  bool `json:"deleted"`
 	Disabled bool `json:"disabled"`
+}
+
+// userJSONOutput preserves account state while tolerating omitted optional associations.
+func userJSONOutput(u api.User) UserJSONOutput {
+	out := UserJSONOutput{ID: &u.ID, Username: &u.Username, Active: u.Active, Deleted: u.Deleted, Disabled: u.Disabled != nil}
+	if u.Profile != nil {
+		out.FirstName, out.LastName = &u.Profile.FirstName, &u.Profile.LastName
+	}
+	if u.Role != nil {
+		out.Role = &u.Role.Name
+	}
+	if u.Created != nil {
+		out.CreatedTimestamp = &u.Created.Time
+	}
+	if u.Modified != nil {
+		out.ModifiedTimestamp = &u.Modified.Time
+	}
+	return out
 }

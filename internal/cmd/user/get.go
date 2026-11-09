@@ -6,7 +6,6 @@ import (
 
 	"github.com/passbolt/go-passbolt-cli/internal/util"
 	"github.com/passbolt/go-passbolt/api"
-	"github.com/passbolt/go-passbolt/helper"
 	"github.com/spf13/cobra"
 )
 
@@ -35,26 +34,30 @@ func UserGet(cmd *cobra.Command, args []string) error {
 	}
 
 	return util.WithClient(cmd, func(ctx context.Context, client *api.Client) error {
-		role, username, firstname, lastname, err := helper.GetUser(
-			ctx,
-			client,
-			id,
-		)
+		u, err := client.GetUser(ctx, id)
 		if err != nil {
 			return fmt.Errorf("getting User: %w", err)
 		}
-		if jsonOutput {
-			return util.PrintJSON(UserJSONOutput{
-				Username:  &username,
-				FirstName: &firstname,
-				LastName:  &lastname,
-				Role:      &role,
-			})
-		}
-		util.Printf("Username: %v\n", util.Sanitize(username))
-		util.Printf("FirstName: %v\n", util.Sanitize(firstname))
-		util.Printf("LastName: %v\n", util.Sanitize(lastname))
-		util.Printf("Role: %v\n", util.Sanitize(role))
-		return nil
+		return printUserDetail(*u, jsonOutput)
 	})
+}
+
+func printUserDetail(u api.User, jsonOutput bool) error {
+	out := userJSONOutput(u)
+	if jsonOutput {
+		return util.PrintJSON(out)
+	}
+	util.Printf("ID: %v\n", util.Sanitize(u.ID))
+	util.Printf("Username: %v\n", util.Sanitize(u.Username))
+	if u.Profile != nil {
+		util.Printf("FirstName: %v\n", util.Sanitize(u.Profile.FirstName))
+		util.Printf("LastName: %v\n", util.Sanitize(u.Profile.LastName))
+	}
+	if u.Role != nil {
+		util.Printf("Role: %v\n", util.Sanitize(u.Role.Name))
+	}
+	util.Printf("Active: %t\n", u.Active)
+	util.Printf("Deleted: %t\n", u.Deleted)
+	util.Printf("Disabled: %t\n", u.Disabled != nil)
+	return nil
 }
