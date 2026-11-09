@@ -171,3 +171,14 @@ This would resolve the `passbolt://` reference in `GITHUB_TOKEN` to its actual s
 
 Usage for all subcommands is [here](https://github.com/passbolt/go-passbolt-cli/wiki/passbolt).
 And is also available via `man passbolt`
+
+## Request recovery mail or renew an invitation
+
+Using your configured connection, request account recovery mail by username:
+
+```sh
+passbolt recover user --username ada@example.com
+```
+
+For an account that has not completed setup, this renews the invitation.
+Success does not confirm that an account exists or that an email was delivered.
