@@ -8,7 +8,7 @@ import (
 	"io"
 )
 
-const ProtocolVersion = 1
+const ProtocolVersion = 2
 const MaxFrame = 8 << 20
 
 var ErrProtocol = errors.New("incompatible agent protocol; stop the old agent and retry")

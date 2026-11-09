@@ -2,7 +2,8 @@ project_name: go-passbolt-cli
 checksum:
   name_template: 'checksums.txt'
 builds:
-  - env: [CGO_ENABLED=0]
+  - id: passbolt
+    env: [CGO_ENABLED=0]
     flags:
       - -trimpath
     goos:
@@ -13,6 +14,19 @@ builds:
       - amd64
       - arm64
     binary: passbolt
+  - id: git-credential-passbolt
+    env: [CGO_ENABLED=0]
+    flags: [-trimpath]
+    goos: [linux, windows, darwin]
+    goarch: [amd64, arm64]
+    binary: git-credential-passbolt
+  - id: docker-credential-passbolt
+    env: [CGO_ENABLED=0]
+    flags: [-trimpath]
+    goos: [linux, windows, darwin]
+    goarch: [amd64, arm64]
+    binary: docker-credential-passbolt
+
 archives:
   - files:
       - completion/*
@@ -50,7 +64,7 @@ brews:
     description: "A CLI tool to interact with Passbolt, a Open source Password Manager for Teams"
     directory: Formula
     install: |
-      bin.install "passbolt"
+      bin.install "passbolt", "git-credential-passbolt", "docker-credential-passbolt"
       bash_completion.install "completion/bash" => "passbolt"
       zsh_completion.install "completion/zsh" => "_passbolt"
       fish_completion.install "completion/fish" => "passbolt.fish"

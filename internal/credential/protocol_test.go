@@ -10,13 +10,13 @@ const id = "01234567-89ab-cdef-0123-456789abcdef"
 
 func TestReadRequest(t *testing.T) {
 	req, err := ReadRequest(strings.NewReader("protocol=https\r\nhost=api.hetzner.cloud\r\npath=" + id + "\r\nusername=token\r\ncapability[]=unknown\r\n\r\n"))
-	if err != nil || req.ResourceID != id || req.Username != "token" {
+	if err != nil || req.Path != id || req.Username != "token" {
 		t.Fatalf("%+v %v", req, err)
 	}
 	for _, data := range []string{
-		"protocol=https\nhost=example.com\n\n",
+		"protocol=https\nhost=example.com/invalid\n\n",
 		"protocol=https\nhost=example.com\npath=../secret\n\n",
-		"protocol=https\nhost=example.com\npath=" + id + "/extra\n\n",
+		"protocol=ssh\nhost=example.com\npath=" + id + "\n\n",
 		"protocol=https\nhost=example.com\npath=" + id + "\npath=" + id + "\n\n",
 		"protocol=https\nhost=bad\x00host\npath=" + id + "\n\n",
 		"broken-field\n\n", strings.Repeat("x", 65537),

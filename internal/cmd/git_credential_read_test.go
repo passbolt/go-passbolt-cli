@@ -39,8 +39,10 @@ func TestGitCredentialDecryptsResourceAndProtectsProtocol(t *testing.T) {
 			return
 		}
 		switch r.URL.Path {
+		case "/resources.json":
+			respond(w, []any{map[string]any{"id": resourceID, "name": "Git credential", "username": username.Load(), "uri": "https://git.example/team"}})
 		case "/resources/" + resourceID + ".json":
-			respond(w, map[string]any{"id": resourceID, "resource_type_id": typeID, "name": "API token", "username": username.Load()})
+			respond(w, map[string]any{"id": resourceID, "resource_type_id": typeID, "name": "API token", "username": username.Load(), "uri": "https://git.example/team"})
 		case "/resource-types/" + typeID + ".json":
 			respond(w, map[string]any{"id": typeID, "slug": "password-and-description"})
 		case "/secrets/resource/" + resourceID + ".json":
@@ -82,7 +84,7 @@ func TestGitCredentialDecryptsResourceAndProtectsProtocol(t *testing.T) {
 		{name: "exact bytes", password: "a=☃\u200bb", user: "token", want: "username=token\npassword=a=☃\u200bb\n\n"},
 		{name: "token only", password: "token", want: "password=token\n\n"},
 		{name: "requested username", password: "token", requested: "user", want: "username=user\npassword=token\n\n"},
-		{name: "username mismatch", password: "token", user: "one", requested: "two", wantError: true},
+		{name: "username mismatch", password: "token", user: "one", requested: "two"},
 		{name: "newline password", password: "token\npassword=injected", wantError: true},
 		{name: "empty password", wantError: true},
 		{name: "server error", password: "token", wantError: true, serverError: true},
@@ -105,7 +107,7 @@ func TestGitCredentialDecryptsResourceAndProtectsProtocol(t *testing.T) {
 			util.Err = &diagnostics
 			root.SetOut(&diagnostics)
 			root.SetErr(&diagnostics)
-			input := "protocol=https\nhost=api.hetzner.cloud\npath=" + resourceID + "\n"
+			input := "protocol=https\nhost=git.example\npath=team/repo.git\n"
 			if test.requested != "" {
 				input += "username=" + test.requested + "\n"
 			}

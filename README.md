@@ -128,46 +128,128 @@ The agent never writes cached authentication to disk or a credential store.
 After upgrading the CLI, stop an older running agent before using the new binary.
 See [SECURITY.md](SECURITY.md) for the local security boundary.
 
-## Git credential protocol and hcloud
+## Raw secret output for pipelines
 
-`passbolt git-credential get` is a read-only credential helper. It reads Git
-credential fields from stdin, selects the Passbolt resource whose UUID is in
-`path`, and returns its `username` (when present) and `password`. The scheme and
-host identify the consumer; Passbolt's server and account still come from its own
-configuration. This mode does not search resource URIs or resolve ordinary Git
-remote URLs. `store` and `erase` succeed without changing any resource.
-
-For hcloud versions with credential-helper support, replace the Python adapter
-with the CLI directly:
+Print one string field without tables, labels, JSON, or an added newline:
 
 ```sh
-hcloud context create production \
-  --credential-helper passbolt \
-  --credential-helper-arg=--agent \
-  --credential-helper-arg=git-credential \
-  --credential-url=https://api.hetzner.cloud/01234567-89ab-cdef-0123-456789abcdef
+passbolt get resource --id RESOURCE_UUID --field password --raw
 ```
 
-This requires the credential-helper feature proposed in
-[hetznercloud/cli#1531](https://github.com/hetznercloud/cli/pull/1531).
-The selected resource's password field contains the API token. hcloud appends
-`get` to the helper arguments, so it runs `passbolt --agent git-credential get`.
-To select another Passbolt configuration, add
-`--credential-helper-arg=--config=/absolute/path/to/passbolt.toml` before the
-`git-credential` argument. The context stores only the helper arguments and lookup
-URL; authentication and token retrieval happen when hcloud needs the token.
+`--raw` defaults to the `password` field; `--field` selects another string field,
+including a named custom field. Surrounding whitespace is trimmed. Authentication
+uses the agent UI or a separate desktop/TTY dialog, leaving stdin available to the
+calling process. Warnings and diagnostics go to stderr, with raw API error details
+redacted. `--raw` cannot be combined with `--json` or `--debug`.
 
-The helper validates the UUID before authentication or agent startup, and agent
-mode retains the usual per-command approval. Dialogs use the desktop or controlling
-terminal, independently of protocol stdin/stdout. Without the agent, authentication
-runs afresh and any required prompts still use a separate dialog. `--debug` is
-rejected for lookups. Progress and raw API error text are suppressed so stdout
-contains only the credential response and failures cannot echo server secrets.
+A consumer that implements `token_command` can invoke it directly. For example,
+these **hcloud Part 2** configurations require token-command support in hcloud;
+this Passbolt change does not implement or enable that hcloud setting:
 
-Credential values are returned byte-for-byte, with CR, LF and NUL rejected to
-prevent protocol injection. A supplied username must agree with a nonempty
-resource username; otherwise lookup fails without returning a password. For a
-resource without a username, the requested username is retained when supplied.
+```toml
+[[contexts]]
+name = "cloudmail-bsbhh"
+token_command = "/home/felix.jacobi/bin/passbolt get resource --id CLOUDMAIL_RESOURCE_UUID --field password --raw"
+
+[[contexts]]
+name = "iserv-backendservers"
+token_command = "/home/felix.jacobi/bin/passbolt get resource --id BACKENDSERVERS_RESOURCE_UUID --field password --raw"
+```
+
+Replace the placeholders with immutable UUIDs. API tokens remain in Passbolt;
+they are not embedded in commands, environment variables, or consumer config.
+
+## Native Git credentials
+
+The release includes `git-credential-passbolt`. Configure Git with:
+
+```sh
+git config --global credential.helper passbolt
+git config --global credential.useHttpPath true
+```
+
+The equivalent direct command is `passbolt credential-helper git get`.
+`passbolt git-credential get` remains an alias for existing callers.
+
+Git's `protocol`, `host`, optional `path` and username hint are matched against
+Passbolt resource URI metadata. Match requires the same HTTP(S) scheme and exact
+normalized host/port; a stored path must match on a slash boundary. If Git omits
+the path, all same-origin credentials are considered. The helper reads metadata
+first and decrypts only the selected resource's password. Multiple URI matches
+from the same resource are deduplicated. Ambiguous matches require a controlling
+terminal and explicit selection using the desktop, terminal, or pinentry UI;
+unattended ambiguity cancels. `--yes` never bypasses selection.
+
+Passbolt's server/account are configured separately. Passbolt permalinks and UUID
+paths are **not resource selectors** in the Git protocol. No URI matching fallback
+is used for the deterministic `get resource --id` command. A no-match Git lookup
+returns no fields so Git can try another helper. `store` and `erase` are no-ops.
+
+## Native Docker credentials
+
+The release includes `docker-credential-passbolt`, using the official
+`github.com/docker/docker-credential-helpers/credentials` interface and runtime.
+Example Docker configuration:
+
+```json
+{
+  "credHelpers": {
+    "registry.example.com": "passbolt"
+  }
+}
+```
+
+`passbolt credential-helper docker get` accepts the registry server URL on stdin
+and returns Docker's `ServerURL`, `Username` and `Secret` JSON. `list` returns the
+standard server-to-username map and never decrypts passwords. Registry entries are
+HTTP(S) origin URIs (also `/v2/` endpoints), with Docker Hub's standard aliases
+normalized. Repository/web-page paths are excluded from Docker enumeration.
+Conflicting usernames require interactive selection or cancel.
+
+Docker's upstream client expects its fixed not-found status message on stdout
+with a nonzero exit status when no credential matches. That standardized protocol
+response is the only non-JSON Docker failure output; diagnostics stay on stderr.
+`store` and `erase` return a read-only error and never change Passbolt resources.
+Git and Docker preserve credential bytes within their wire formats; invalid Git
+line-protocol characters are rejected before output. `--debug` is unavailable.
+
+## AWS credential_process
+
+```ini
+[profile passbolt]
+credential_process = /home/felix.jacobi/bin/passbolt credential-helper aws get --id RESOURCE_UUID
+```
+
+The AWS version-1 response maps the resource username to `AccessKeyId` and password
+to `SecretAccessKey`. Optional string fields `session_token` and `expiration` are
+read from encrypted resource/custom fields; expiration is an RFC3339 value.
+Missing optional values are omitted, not serialized as null. Customize field names
+with `--session-token-field` and `--expiration-field`; an empty name disables the
+optional field. An explicitly configured field must exist. Invalid or expired
+credentials fail before any JSON is emitted. Custom fields may be selected by
+name or immutable field ID; keep session tokens in secret values, not metadata.
+
+## Kubernetes exec authentication
+
+Example kubeconfig user:
+
+```yaml
+users:
+  - name: passbolt
+    user:
+      exec:
+        apiVersion: client.authentication.k8s.io/v1
+        command: /home/felix.jacobi/bin/passbolt
+        args: [credential-helper, k8s, get, --id, RESOURCE_UUID]
+        interactiveMode: IfAvailable
+```
+
+The helper emits the official `client-go` v1 `ExecCredential` type with the
+resource password in `status.token` and an optional RFC3339 expiration field.
+`KUBERNETES_EXEC_INFO` is validated; a host declaring `interactive: false` cannot
+trigger agent approval or authentication prompts. Agent use requires interaction,
+so that combination fails clearly. All cloud helpers use immutable resource UUIDs,
+never service-URL discovery, and keep lookup/cleanup errors free of secret data.
 
 # Usage
 

@@ -24,7 +24,7 @@ func TestCredentialValidationAndNoopDoNotAuthenticate(t *testing.T) {
 		op, input string
 		wantError bool
 	}{
-		{op: "get", input: "protocol=https\nhost=example.com\npath=not-a-uuid\n\n", wantError: true},
+		{op: "get", input: "protocol=https\nhost=example.com/invalid\npath=not-a-uuid\n\n", wantError: true},
 		{op: "store", input: "password=do-not-store\n\n"},
 		{op: "erase", input: "protocol=https\n\n"},
 		{op: "unknown", wantError: true},

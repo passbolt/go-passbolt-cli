@@ -130,3 +130,54 @@ func TestTerminalApprovalAndSecretInput(t *testing.T) {
 		})
 	}
 }
+
+func TestTerminalCredentialSelection(t *testing.T) {
+	master, path, slave := linuxPTY(t)
+	before, err := term.GetState(int(slave.Fd()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	result := make(chan int, 1)
+	go func() {
+		at, err := (Dialog{Backend: "terminal", Terminal: path}).Select(ctx, "Credentials", "Choose", []string{"https://git.example — alice", "https://git.example — bob"})
+		if err != nil {
+			result <- -1
+		} else {
+			result <- at
+		}
+	}()
+	var output strings.Builder
+	for !strings.Contains(output.String(), "Option number") {
+		n, err := unix.Poll([]unix.PollFd{{Fd: int32(master), Events: unix.POLLIN}}, 50)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if n == 0 {
+			if ctx.Err() != nil {
+				t.Fatal("selection did not render")
+			}
+			continue
+		}
+		var data [4096]byte
+		n, err = unix.Read(master, data[:])
+		if err != nil {
+			t.Fatal(err)
+		}
+		output.Write(data[:n])
+	}
+	unix.Write(master, []byte("2\r"))
+	select {
+	case at := <-result:
+		if at != 1 {
+			t.Fatalf("selected %d", at)
+		}
+	case <-ctx.Done():
+		t.Fatal("selection did not finish")
+	}
+	after, err := term.GetState(int(slave.Fd()))
+	if err != nil || !reflect.DeepEqual(before, after) {
+		t.Fatal("selection did not restore terminal mode")
+	}
+}

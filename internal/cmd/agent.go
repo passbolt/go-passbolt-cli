@@ -52,7 +52,7 @@ func authenticatedCommand(cmd *cobra.Command) bool {
 		cmd = cmd.Parent()
 	}
 	switch cmd.Name() {
-	case "git-credential":
+	case "git-credential", "docker-credential", "credential-helper":
 		return true
 	case "get", "list", "create", "update", "delete", "move", "share", "export", "exec":
 		return true
@@ -60,7 +60,7 @@ func authenticatedCommand(cmd *cobra.Command) bool {
 	return false
 }
 func routeAgent(cmd *cobra.Command, _ []string) error {
-	if inAgent || cmd.Name() == "git-credential" || !viper.GetBool("agent") || !authenticatedCommand(cmd) {
+	if inAgent || isCredentialCommand(cmd) || !viper.GetBool("agent") || !authenticatedCommand(cmd) {
 		return nil
 	}
 	// Preserve Cobra's argument and required-flag validation before the remote call.
@@ -229,6 +229,7 @@ func (a *commandAgent) Run(ctx context.Context, req agent.Request, in io.Reader,
 		util.PasswordPrompt = nil
 		util.ConfirmationPrompt = nil
 		util.InvocationContext = context.Background()
+		util.InvocationDialog = nil
 		util.ProxyEnvironment = nil
 		util.DataOut = io.Discard
 		util.Out = io.Discard
@@ -307,6 +308,7 @@ func (a *commandAgent) Run(ctx context.Context, req agent.Request, in io.Reader,
 	root.SetOut(util.Out)
 	root.SetErr(util.Err)
 	util.InvocationContext = ctx
+	util.InvocationDialog = &dialog
 	util.ProxyEnvironment = append([]string{}, req.Environment...)
 	invocationEnvironment = req.Environment
 	agentExecArgs = nil
@@ -359,7 +361,7 @@ func (a *commandAgent) Run(ctx context.Context, req agent.Request, in io.Reader,
 	util.ClientRelease = func(clientCtx context.Context, client *api.Client) {
 		if client.GetPendingSessionKeysCount() > 0 {
 			if _, err := client.SavePendingSessionKeys(clientCtx); err != nil {
-				util.Eprintln("Warning: failed to save session keys:", util.Sanitize(err.Error()))
+				util.SessionKeyWarning(err)
 			}
 		}
 	}

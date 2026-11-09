@@ -1,24 +1,25 @@
 package cmd
 
 import (
+	"context"
+	"errors"
 	"io"
-	"os"
+	"path/filepath"
 	"strings"
 
-	"github.com/passbolt/go-passbolt-cli/internal/agent"
+	dockercredentials "github.com/docker/docker-credential-helpers/credentials"
 	"github.com/passbolt/go-passbolt-cli/internal/credential"
 	"github.com/passbolt/go-passbolt-cli/internal/util"
-	"github.com/passbolt/go-passbolt/helper"
+	"github.com/passbolt/go-passbolt/api"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
 func newGitCredentialCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:   "git-credential <get|store|erase>",
-		Short: "Read credentials using a resource UUID in the credential URL path",
-		Long:  "Read a Git credential request from stdin and return the selected resource's username and password. The URL path must be a Passbolt resource UUID; protocol and host identify the consumer, not the Passbolt server. Store and erase are no-ops.",
-		Args: func(cmd *cobra.Command, args []string) error {
+		Use: "git-credential <get|store|erase>", Short: "Read Git credentials by matching resource service URLs",
+		Long: "Match the requested HTTP(S) credential context against Passbolt resource URI fields. Ambiguous lookups require an interactive terminal and explicit selection. Store and erase are no-ops.",
+		Args: func(_ *cobra.Command, args []string) error {
 			if len(args) != 1 {
 				return credential.ErrRequest
 			}
@@ -31,10 +32,38 @@ func newGitCredentialCommand() *cobra.Command {
 		RunE: gitCredential,
 	}
 }
-func init() { rootCmd.AddCommand(newGitCredentialCommand()) }
+func newDockerCredentialCommand() *cobra.Command {
+	return &cobra.Command{Use: "docker-credential <get|list|store|erase>", Short: "Read Docker registry credentials from Passbolt", Args: func(_ *cobra.Command, args []string) error {
+		if len(args) != 1 {
+			return credential.ErrRequest
+		}
+		switch args[0] {
+		case "get", "list", "store", "erase":
+			return nil
+		}
+		return credential.ErrRequest
+	}, RunE: dockerCredential}
+}
+func newCredentialHelperCommand() *cobra.Command {
+	root := &cobra.Command{Use: "credential-helper", Short: "Read credentials using standard Git or Docker protocols"}
+	git := newGitCredentialCommand()
+	git.Use = "git <get|store|erase>"
+	docker := newDockerCredentialCommand()
+	docker.Use = "docker <get|list|store|erase>"
+	root.AddCommand(git, docker, newCloudCredentialCommand("aws"), newCloudCredentialCommand("k8s"))
+	return root
+}
+func init() {
+	rootCmd.AddCommand(newGitCredentialCommand(), newDockerCredentialCommand(), newCredentialHelperCommand())
+}
 
+func isCredentialCommand(cmd *cobra.Command) bool {
+	if cmd.Name() == "git-credential" || cmd.Name() == "docker-credential" {
+		return true
+	}
+	return cmd.Parent() != nil && cmd.Parent().Name() == "credential-helper"
+}
 func gitCredential(cmd *cobra.Command, args []string) error {
-	// Never persist, alter or delete Passbolt resources in response to Git hooks.
 	if args[0] != "get" {
 		return nil
 	}
@@ -46,45 +75,109 @@ func gitCredential(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	if !inAgent && viper.GetBool("agent") {
-		// Validation happens before starting the agent or asking for approval. Replay
-		// the consumed protocol fields through its demand-driven stdin channel.
 		cmd.SetIn(strings.NewReader(req.Encode()))
 		if err := callAgent(cmd, "run"); err != nil {
 			return credential.ErrLookup
 		}
 		return nil
 	}
-	ctx, cancel := util.GetContext()
-	defer cancel()
-	oldOut, oldErr := util.Out, util.Err
-	oldPrompt := util.PasswordPrompt
-	// Auth progress and API error text must never enter protocol output or expose
-	// values embedded in server errors. The caller gets a generic lookup error.
-	util.Out, util.Err = io.Discard, io.Discard
-	defer func() { util.Out, util.Err = oldOut, oldErr; util.PasswordPrompt = oldPrompt }()
-	if oldPrompt == nil {
-		dialog := agent.Dialog{Backend: viper.GetString("agent-dialog"), Pinentry: viper.GetString("agent-pinentry"), Terminal: agent.CurrentTerminal(), PID: os.Getpid(), Environment: os.Environ()}
-		util.PasswordPrompt = func(prompt string) (string, error) {
-			return dialog.Ask(ctx, "Passbolt credential authentication", prompt, true)
+	err = withCredentialClient(cmd, func(ctx context.Context, resolver credential.Resolver) error {
+		username, password, err := resolver.Git(ctx, req)
+		if errors.Is(err, credential.ErrNotFound) {
+			return nil
 		}
-	}
-	client, err := util.GetClient(ctx)
+		if err != nil {
+			return err
+		}
+		return credential.WriteResponse(util.DataOut, username, password)
+	})
 	if err != nil {
-		return credential.ErrLookup
-	}
-	defer util.SaveSessionKeysAndLogout(ctx, client)
-	_, _, username, _, password, _, err := helper.GetResource(ctx, client, req.ResourceID)
-	if err != nil {
-		return credential.ErrLookup
-	}
-	if req.Username != "" && username != "" && req.Username != username {
-		return credential.ErrLookup
-	}
-	if username == "" {
-		username = req.Username
-	}
-	if err := credential.WriteResponse(util.DataOut, username, password); err != nil {
 		return credential.ErrLookup
 	}
 	return nil
+}
+func dockerCredential(cmd *cobra.Command, args []string) error {
+	action := args[0]
+	if action == "store" || action == "erase" {
+		if err := credential.HandleDocker(&credential.DockerBackend{}, action, cmd.InOrStdin(), io.Discard); err != nil {
+			return credential.ErrReadOnly
+		}
+		return nil
+	}
+	if viper.GetBool("debug") {
+		return credential.ErrLookup
+	}
+	var original string
+	var err error
+	if action == "get" {
+		original, _, err = credential.ReadDockerServer(cmd.InOrStdin())
+		if err != nil {
+			return err
+		}
+	}
+	if !inAgent && viper.GetBool("agent") {
+		if action == "get" {
+			cmd.SetIn(strings.NewReader(original + "\n"))
+		}
+		if err := callAgent(cmd, "run"); err != nil {
+			return credential.ErrLookup
+		}
+		return nil
+	}
+	err = withCredentialClient(cmd, func(ctx context.Context, resolver credential.Resolver) error {
+		input := io.Reader(strings.NewReader(""))
+		if action == "get" {
+			input = strings.NewReader(original + "\n")
+		}
+		return credential.HandleDocker(&credential.DockerBackend{Context: ctx, Resolver: resolver}, action, input, util.DataOut)
+	})
+	if dockercredentials.IsErrCredentialsNotFound(err) {
+		// This fixed message is Docker protocol data, not a diagnostic: upstream
+		// client.Get distinguishes a missing entry from failure using helper stdout.
+		if _, writeErr := io.WriteString(util.DataOut, dockercredentials.NewErrCredentialsNotFound().Error()+"\n"); writeErr != nil {
+			return writeErr
+		}
+		return credential.ErrNotFound
+	}
+	if err != nil {
+		return credential.ErrLookup
+	}
+	return nil
+}
+func withCredentialClient(cmd *cobra.Command, fn func(context.Context, credential.Resolver) error) error {
+	return withCredentialAPI(cmd, func(ctx context.Context, client *api.Client) error {
+		dialog := util.CurrentDialog()
+		resolver := credential.Resolver{Store: credential.ClientStore{Client: client}, Select: func(ctx context.Context, matches []credential.Match) (int, error) {
+			labels := make([]string, len(matches))
+			for i, match := range matches {
+				labels[i] = credential.MatchLabel(match)
+			}
+			return dialog.Select(ctx, "Passbolt credentials", "Select the matching service URL and account", labels)
+		}}
+		return fn(ctx, resolver)
+	})
+}
+
+func withCredentialAPI(cmd *cobra.Command, fn func(context.Context, *api.Client) error) error {
+	oldOut, oldErr := util.Out, util.Err
+	util.Out, util.Err = io.Discard, io.Discard
+	defer func() { util.Out, util.Err = oldOut, oldErr }()
+	return util.WithMachineClient(cmd, fn)
+}
+
+// HelperArguments lets release binaries or symlinks use conventional helper
+// names while sharing the same implementation and authenticated agent.
+func HelperArguments(program string, args []string) []string {
+	name := strings.TrimSuffix(strings.ToLower(filepath.Base(program)), ".exe")
+	var protocol string
+	switch name {
+	case "git-credential-passbolt":
+		protocol = "git"
+	case "docker-credential-passbolt":
+		protocol = "docker"
+	default:
+		return args
+	}
+	result := []string{"credential-helper", protocol}
+	return append(result, args...)
 }

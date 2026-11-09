@@ -70,16 +70,31 @@ requests and expiry cleanup until it finishes; connection cancellation and reque
 timeouts cancel its network operations. A lost connection is never automatically
 retried because a server write may already have completed.
 
-## Read-only credential helper
+## Machine credential outputs
 
-The `git-credential` command intentionally releases the selected resource's
-password to its requesting client. Use a trusted helper consumer and an explicit
-resource UUID. The credential URL's host is an identifier, not an authorization
-boundary or a replacement for the configured Passbolt server. This command does
-not perform URI discovery or create, update, or delete resources.
+Raw extraction, Git/Docker helpers, AWS credential_process and Kubernetes exec
+reserve stdout for the selected protocol. Prompts use a separate desktop/TTY UI;
+diagnostics go to stderr. Debug logging is rejected. Server-controlled lookup and
+session-key cleanup errors are redacted/suppressed in machine modes. Docker's
+fixed upstream not-found marker is protocol data, not an arbitrary diagnostic.
 
-Lookup validates its input before authentication. Credential output bypasses
-terminal sanitization to preserve the original value, with newline, carriage
-return and NUL rejected before any response is written. Authentication progress
-and API error details are suppressed; errors are generic. Agent approval remains
-mandatory for every lookup, while `store` and `erase` do not use the agent.
+Git matches service URI scheme, authority and path metadata, rather than treating
+a URL as a Passbolt resource selector. Docker matches registry origins. Searches
+do not decrypt passwords; only a selected immutable resource ID is read, with
+current URI/account metadata revalidated before release. Ambiguous unattended
+lookups cancel even if a desktop is present. Interactive selection is explicit
+and cannot be bypassed with --yes. Docker list reports usernames only and never
+reads resource passwords. Store/erase operations never alter resources.
+
+Raw, AWS and Kubernetes outputs use explicit resource UUIDs. Returned credentials
+are intentionally released only to the requesting consumer over stdout, never
+written to configuration or injected into environment variables. Raw mode trims
+surrounding whitespace; Git/Docker retain values within their standard formats.
+The official Docker runtime handles its wire protocol; Kubernetes uses its
+upstream clientauthentication/v1 structure. AWS optional fields use nil pointers
+when absent. Expiration values are validated before any output.
+
+Cloud process invocations remain subject to user consent and server policy.
+Kubernetes' standard exec request can prohibit interaction; the helper honors that
+restriction rather than prompting through a hidden terminal or GUI. Memory and
+same-user limitations described for the agent also apply to these helper modes.

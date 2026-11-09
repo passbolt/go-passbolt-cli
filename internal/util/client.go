@@ -57,7 +57,7 @@ func SaveSessionKeysAndLogout(ctx context.Context, client *api.Client) {
 		saved, err := client.SavePendingSessionKeys(ctx)
 		if err != nil {
 			// Log but don't fail - session keys can be re-discovered on next access
-			Eprintf("Warning: failed to save session keys: %v\n", err)
+			SessionKeyWarning(err)
 		} else if saved > 0 {
 			Eprintf("Saved %d session keys to server\n", saved)
 		}
