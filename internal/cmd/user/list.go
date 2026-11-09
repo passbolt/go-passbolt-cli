@@ -21,6 +21,9 @@ var UserListCmd = &cobra.Command{
 
 func init() {
 	flags := UserListCmd.Flags()
+	flags.Bool("include-mfa", false, "Include MFA state (administrator only)")
+	flags.Bool("mfa-enabled", false, "Filter by MFA state; use --mfa-enabled=false for disabled MFA (administrator only)")
+	flags.Bool("scim-entry", false, "Include SCIM directory linkage in JSON output (administrator only)")
 	flags.StringArrayP("group", "g", []string{}, "Users that are members of all of these groups")
 	flags.StringArrayP("resource", "r", []string{}, "Users that have access to resources")
 	flags.StringP("search", "s", "", "Search for Users")
@@ -29,6 +32,9 @@ func init() {
 }
 
 type userListConfig struct {
+	includeMFA     bool
+	mfaEnabled     *bool
+	scimEntry      bool
 	groups         []string
 	resources      []string
 	search         string
@@ -40,17 +46,24 @@ type userListConfig struct {
 }
 
 func UserList(cmd *cobra.Command, args []string) error {
+	return userListWithClient(cmd, args, util.WithClient)
+}
+
+func userListWithClient(cmd *cobra.Command, args []string, runClient userClientRunner) error {
 	config, err := parseUserListFlags(cmd)
 	if err != nil {
 		return err
 	}
 
-	return util.WithClient(cmd, func(ctx context.Context, client *api.Client) error {
+	return runClient(cmd, func(ctx context.Context, client *api.Client) error {
 		users, err := client.GetUsers(ctx, &api.GetUsersOptions{
-			FilterHasGroup:  config.groups,
-			FilterHasAccess: config.resources,
-			FilterSearch:    config.search,
-			FilterIsAdmin:   config.admin,
+			FilterHasGroup:      config.groups,
+			FilterHasAccess:     config.resources,
+			FilterSearch:        config.search,
+			FilterIsAdmin:       config.admin,
+			ContainIsMFAEnabled: config.includeMFA,
+			FilterIsMFAEnabled:  config.mfaEnabled,
+			ContainSCIMEntry:    config.scimEntry,
 		})
 		if err != nil {
 			return fmt.Errorf("listing User: %w", err)
@@ -125,7 +138,30 @@ func parseUserListFlags(cmd *cobra.Command) (*userListConfig, error) {
 		return nil, err
 	}
 
+	includeMFA, err := cmd.Flags().GetBool("include-mfa")
+	if err != nil {
+		return nil, err
+	}
+	scimEntry, err := cmd.Flags().GetBool("scim-entry")
+	if err != nil {
+		return nil, err
+	}
+	var mfaEnabled *bool
+	if cmd.Flags().Changed("mfa-enabled") {
+		value, err := cmd.Flags().GetBool("mfa-enabled")
+		if err != nil {
+			return nil, err
+		}
+		mfaEnabled = &value
+	}
+	for _, column := range columns {
+		if column == "is_mfa_enabled" {
+			includeMFA = true
+		}
+	}
+
 	return &userListConfig{
+		includeMFA: includeMFA, mfaEnabled: mfaEnabled, scimEntry: scimEntry,
 		groups:         groups,
 		resources:      resources,
 		search:         search,

@@ -30,41 +30,91 @@ var userColumns = util.NewColumnRegistry("users", []util.ColumnSpec[api.User]{
 		Name:         "first_name",
 		Aliases:      []string{"FirstName", "firstname"},
 		DefaultTable: true,
-		CelType:      cel.StringType,
-		CelValue:     func(u api.User) any { return u.Profile.FirstName },
-		TableValue:   func(u api.User) string { return u.Profile.FirstName },
+		CelType:      cel.DynType,
+		CelValue: func(u api.User) any {
+			if u.Profile == nil {
+				return nil
+			}
+			return u.Profile.FirstName
+		},
+		TableValue: func(u api.User) string {
+			if u.Profile == nil {
+				return ""
+			}
+			return u.Profile.FirstName
+		},
 	},
 	{
 		Name:         "last_name",
 		Aliases:      []string{"LastName", "lastname"},
 		DefaultTable: true,
-		CelType:      cel.StringType,
-		CelValue:     func(u api.User) any { return u.Profile.LastName },
-		TableValue:   func(u api.User) string { return u.Profile.LastName },
+		CelType:      cel.DynType,
+		CelValue: func(u api.User) any {
+			if u.Profile == nil {
+				return nil
+			}
+			return u.Profile.LastName
+		},
+		TableValue: func(u api.User) string {
+			if u.Profile == nil {
+				return ""
+			}
+			return u.Profile.LastName
+		},
 	},
 	{
 		Name:         "role",
 		Aliases:      []string{"Role"},
 		DefaultTable: true,
-		CelType:      cel.StringType,
-		CelValue:     func(u api.User) any { return u.Role.Name },
-		TableValue:   func(u api.User) string { return u.Role.Name },
+		CelType:      cel.DynType,
+		CelValue: func(u api.User) any {
+			if u.Role == nil {
+				return nil
+			}
+			return u.Role.Name
+		},
+		TableValue: func(u api.User) string {
+			if u.Role == nil {
+				return ""
+			}
+			return u.Role.Name
+		},
 	},
 	{
 		Name:         "created_timestamp",
 		Aliases:      []string{"CreatedTimestamp", "createdtimestamp"},
 		DefaultTable: false,
-		CelType:      cel.TimestampType,
-		CelValue:     func(u api.User) any { return u.Created.Time },
-		TableValue:   func(u api.User) string { return u.Created.Format(time.RFC3339) },
+		CelType:      cel.DynType,
+		CelValue: func(u api.User) any {
+			if u.Created == nil {
+				return nil
+			}
+			return u.Created.Time
+		},
+		TableValue: func(u api.User) string {
+			if u.Created == nil {
+				return ""
+			}
+			return u.Created.Format(time.RFC3339)
+		},
 	},
 	{
 		Name:         "modified_timestamp",
 		Aliases:      []string{"ModifiedTimestamp", "modifiedtimestamp"},
 		DefaultTable: false,
-		CelType:      cel.TimestampType,
-		CelValue:     func(u api.User) any { return u.Modified.Time },
-		TableValue:   func(u api.User) string { return u.Modified.Format(time.RFC3339) },
+		CelType:      cel.DynType,
+		CelValue: func(u api.User) any {
+			if u.Modified == nil {
+				return nil
+			}
+			return u.Modified.Time
+		},
+		TableValue: func(u api.User) string {
+			if u.Modified == nil {
+				return ""
+			}
+			return u.Modified.Format(time.RFC3339)
+		},
 	},
 	{
 		Name:         "active",
@@ -93,5 +143,20 @@ var userColumns = util.NewColumnRegistry("users", []util.ColumnSpec[api.User]{
 		CelType:      cel.BoolType,
 		CelValue:     func(u api.User) any { return u.Disabled != nil },
 		TableValue:   func(u api.User) string { return strconv.FormatBool(u.Disabled != nil) },
+	},
+	{
+		Name: "is_mfa_enabled", Aliases: []string{"IsMFAEnabled"}, CelType: cel.DynType,
+		CelValue: func(u api.User) any {
+			if u.IsMFAEnabled == nil {
+				return nil
+			}
+			return *u.IsMFAEnabled
+		},
+		TableValue: func(u api.User) string {
+			if u.IsMFAEnabled == nil {
+				return "unknown"
+			}
+			return strconv.FormatBool(*u.IsMFAEnabled)
+		},
 	},
 })

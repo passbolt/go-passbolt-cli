@@ -171,3 +171,29 @@ This would resolve the `passbolt://` reference in `GITHUB_TOKEN` to its actual s
 
 Usage for all subcommands is [here](https://github.com/passbolt/go-passbolt-cli/wiki/passbolt).
 And is also available via `man passbolt`
+
+## Read optional user MFA and directory details
+
+User detail JSON preserves `is_mfa_enabled` when the server discloses it. Missing
+MFA data is omitted; an explicit `false` remains false. Administrators can request
+SCIM directory linkage in the server's original JSON schema:
+
+```sh
+passbolt get user --id USER_UUID --scim-entry --json
+passbolt list user --json --scim-entry
+passbolt list user --json --include-mfa
+passbolt list user --mfa-enabled=false --json
+passbolt list user --column Username --column IsMFAEnabled
+```
+
+MFA filtering is tri-state: omitting `--mfa-enabled` leaves the filter unset.
+Explicit true and false both request the MFA data required by the server filter.
+Selecting the MFA column also requests its data. For a CEL expression on
+`is_mfa_enabled`, use `--include-mfa`; unavailable values are null/unknown rather
+than false. Ordinary list requests do not request these administrator-only
+associations. The server controls field visibility and plugin availability.
+SCIM linkage appears in list JSON; this does not expose custom SSO claim mappings
+or server-internal directory records.
+
+Optional profile, role and timestamp columns are null in CEL expressions when
+not returned by the server, and render as blank table cells instead of panicking.

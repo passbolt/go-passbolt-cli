@@ -14,6 +14,9 @@ import (
 func newTestUserListCmd() *cobra.Command {
 	c := &cobra.Command{Use: "user"}
 	f := c.Flags()
+	f.Bool("include-mfa", false, "")
+	f.Bool("mfa-enabled", false, "")
+	f.Bool("scim-entry", false, "")
 	f.StringArrayP("group", "g", []string{}, "")
 	f.StringArrayP("resource", "r", []string{}, "")
 	f.StringP("search", "s", "", "")
