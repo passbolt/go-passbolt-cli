@@ -171,3 +171,15 @@ This would resolve the `passbolt://` reference in `GITHUB_TOKEN` to its actual s
 
 Usage for all subcommands is [here](https://github.com/passbolt/go-passbolt-cli/wiki/passbolt).
 And is also available via `man passbolt`
+
+## Change a group member's manager role
+
+Promote an existing member to manager, or demote a manager while retaining membership:
+
+```sh
+passbolt update group --id GROUP_UUID --manager USER_UUID
+passbolt update group --id GROUP_UUID --user USER_UUID
+```
+
+Demotion requires the SDK to send an explicit `is_admin: false` membership update.
+The command retains the normal dry-run and secret re-encryption workflow.
