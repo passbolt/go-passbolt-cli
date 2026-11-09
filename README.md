@@ -119,7 +119,8 @@ best-effort context, not proof of requester identity. Reading a resource through
 `get resource`, `exec` environment substitution, or a credential helper adds a resource-specific approval after its
 metadata is loaded and before its secret is fetched. The dialog includes the
 resource's full name in its title and body, its UUID, account, and command. If a
-name is unavailable, the UUID remains visible.
+name is unavailable, the UUID remains visible. Bulk list/export operations retain
+command-level approval.
 
 ```sh
 passbolt --agent list user --json | jq .
