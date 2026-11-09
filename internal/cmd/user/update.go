@@ -23,6 +23,7 @@ func init() {
 	UserUpdateCmd.Flags().StringP("firstname", "f", "", "User FirstName")
 	UserUpdateCmd.Flags().StringP("lastname", "l", "", "User LastName")
 	UserUpdateCmd.Flags().StringP("role", "r", "", "User Role")
+	UserUpdateCmd.Flags().Bool("disabled", false, "Disable the account (use --disabled=false to enable it); cannot be combined with profile or role changes")
 
 	UserUpdateCmd.MarkFlagRequired("id")
 }
@@ -45,7 +46,24 @@ func UserUpdate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	stateChanged := cmd.Flags().Changed("disabled")
+	disabled := false
+	if stateChanged {
+		disabled, err = cmd.Flags().GetBool("disabled")
+		if err != nil {
+			return err
+		}
+		for _, flag := range []string{"firstname", "lastname", "role"} {
+			if cmd.Flags().Changed(flag) {
+				return fmt.Errorf("cannot combine --disabled with --%s", flag)
+			}
+		}
+	}
+
 	return util.WithClient(cmd, func(ctx context.Context, client *api.Client) error {
+		if stateChanged {
+			return updateUserState(ctx, client, id, disabled)
+		}
 		if err := helper.UpdateUser(
 			ctx,
 			client,
@@ -58,4 +76,17 @@ func UserUpdate(cmd *cobra.Command, args []string) error {
 		}
 		return nil
 	})
+}
+
+func updateUserState(ctx context.Context, client *api.Client, id string, disabled bool) error {
+	var err error
+	if disabled {
+		err = client.DisableUser(ctx, id)
+	} else {
+		err = client.EnableUser(ctx, id)
+	}
+	if err != nil {
+		return fmt.Errorf("updating user account state: %w", err)
+	}
+	return nil
 }

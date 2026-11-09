@@ -171,3 +171,15 @@ This would resolve the `passbolt://` reference in `GITHUB_TOKEN` to its actual s
 
 Usage for all subcommands is [here](https://github.com/passbolt/go-passbolt-cli/wiki/passbolt).
 And is also available via `man passbolt`
+
+## Enable or disable a user
+
+Administrators can disable an account without deleting it, or enable it again:
+
+```sh
+passbolt update user --id USER_UUID --disabled=true
+passbolt update user --id USER_UUID --disabled=false
+```
+
+Omitting `--disabled` leaves the account state unchanged. Account state changes
+cannot be combined with `--firstname`, `--lastname`, or `--role` in one command.
