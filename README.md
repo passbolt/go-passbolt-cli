@@ -21,9 +21,13 @@ In addition, users should also make sure they are running the latest version of 
 
     brew install passbolt/tap/go-passbolt-cli
 
+Homebrew installs the main `passbolt` CLI along with the helper binaries: `git-credential-passbolt` and `docker-credential-passbolt`.
+
 **Download Binary**
 
 Download the deb/rpm package or archive for your OS and architecture from the [latest release](https://github.com/passbolt/go-passbolt-cli/releases/latest).
+
+The packages include `passbolt`, `git-credential-passbolt`, and `docker-credential-passbolt`.
 
 For deb/rpm, install via your distro's package manager (e.g. `dpkg -i`).
 
@@ -158,12 +162,12 @@ this Passbolt change does not implement or enable that hcloud setting:
 
 ```toml
 [[contexts]]
-name = "cloudmail-bsbhh"
-token_command = "/home/felix.jacobi/bin/passbolt get resource --id CLOUDMAIL_RESOURCE_UUID --field password --raw"
+name = "production"
+token_command = "passbolt get resource --id PROD_RESOURCE_UUID --field password --raw"
 
 [[contexts]]
-name = "iserv-backendservers"
-token_command = "/home/felix.jacobi/bin/passbolt get resource --id BACKENDSERVERS_RESOURCE_UUID --field password --raw"
+name = "staging"
+token_command = "passbolt get resource --id STAGING_RESOURCE_UUID --field password --raw"
 ```
 
 Replace the placeholders with immutable UUIDs. API tokens remain in Passbolt;
@@ -227,7 +231,7 @@ line-protocol characters are rejected before output. `--debug` is unavailable.
 
 ```ini
 [profile passbolt]
-credential_process = /home/felix.jacobi/bin/passbolt credential-helper aws get --id RESOURCE_UUID
+credential_process = passbolt credential-helper aws get --id RESOURCE_UUID
 ```
 
 The AWS version-1 response maps the resource username to `AccessKeyId` and password
@@ -249,7 +253,7 @@ users:
     user:
       exec:
         apiVersion: client.authentication.k8s.io/v1
-        command: /home/felix.jacobi/bin/passbolt
+        command: passbolt
         args: [credential-helper, k8s, get, --id, RESOURCE_UUID]
         interactiveMode: IfAvailable
 ```
