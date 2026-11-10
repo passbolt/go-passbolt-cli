@@ -175,6 +175,8 @@ func HelperArguments(program string, args []string) []string {
 		protocol = "git"
 	case "docker-credential-passbolt":
 		protocol = "docker"
+	case "passbolt-browser-host":
+		return append([]string{"browser", "host"}, args...)
 	default:
 		return args
 	}

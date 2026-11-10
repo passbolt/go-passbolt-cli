@@ -116,3 +116,5 @@ require (
 )
 
 // replace github.com/passbolt/go-passbolt => ../go-passbolt
+
+replace github.com/passbolt/go-passbolt => github.com/FelixJacobi/go-passbolt v0.8.5-0.20261109215944-36f4cbf7b384

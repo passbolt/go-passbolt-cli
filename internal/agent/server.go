@@ -61,6 +61,25 @@ func Serve(ctx context.Context, listener net.Listener, handler Handler) error {
 					_ = conn.Close()
 					return
 				}
+				if req.Action == "browser-pending" || req.Action == "browser-submit" || req.Action == "browser-wait" || req.Action == "browser-cancel" {
+					waitCtx, waitCancel := context.WithTimeout(ctx, 35*time.Second)
+					defer waitCancel()
+					var result Message
+					if browser, ok := handler.(interface {
+						Browser(context.Context, Request) (Message, error)
+					}); ok {
+						result, err = browser.Browser(waitCtx, req)
+					} else {
+						err = fmt.Errorf("browser authentication is unavailable")
+					}
+					if err != nil {
+						result = Message{Kind: "done", Error: err.Error()}
+					}
+					_ = conn.SetWriteDeadline(time.Now().Add(5 * time.Second))
+					_ = WriteFrame(conn, result)
+					_ = conn.Close()
+					return
+				}
 				select {
 				case requests <- pending{conn, req}:
 				case <-ctx.Done():

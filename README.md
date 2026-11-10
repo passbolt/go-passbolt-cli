@@ -21,13 +21,13 @@ In addition, users should also make sure they are running the latest version of 
 
     brew install passbolt/tap/go-passbolt-cli
 
-Homebrew installs the main `passbolt` CLI along with the helper binaries: `git-credential-passbolt` and `docker-credential-passbolt`.
+Homebrew installs the main `passbolt` CLI along with the helper binaries: `passbolt-browser-host`, `git-credential-passbolt`, and `docker-credential-passbolt`.
 
 **Download Binary**
 
 Download the deb/rpm package or archive for your OS and architecture from the [latest release](https://github.com/passbolt/go-passbolt-cli/releases/latest).
 
-The packages include `passbolt`, `git-credential-passbolt`, and `docker-credential-passbolt`.
+The packages include `passbolt`, `passbolt-browser-host`, `git-credential-passbolt`, and `docker-credential-passbolt`.
 
 For deb/rpm, install via your distro's package manager (e.g. `dpkg -i`).
 
@@ -35,9 +35,12 @@ For archives, tab completion and manpages will need to be installed manually.
 
 **Via Go**
 
-    go install github.com/passbolt/go-passbolt-cli@latest
+```sh
+go install github.com/passbolt/go-passbolt-cli@latest
+go install github.com/passbolt/go-passbolt-cli/cmd/passbolt-browser-host@latest
+```
 
-Note: This installs the binary as `go-passbolt-cli`. Tab completion and manpages will be missing.
+Note: Tab completion and manpages will be missing when installing via `go install`.
 
 ## Community Packages
 
@@ -141,6 +144,50 @@ The agent never writes cached authentication to disk or a credential store.
 `--debug` is unavailable in agent mode because SDK debug logging exposes secrets.
 After upgrading the CLI, stop an older running agent before using the new binary.
 See [SECURITY.md](SECURITY.md) for the local security boundary.
+
+### Browser-based authorization (Browser Extension integration)
+
+Instead of saving your private key, passphrase, or MFA seed in the local configuration file or passing them via environment variables, you can authorize CLI commands directly through your active session in the official Passbolt browser extension.
+
+#### 1. Setup
+
+Register the native messaging host manifest for your browser:
+
+```sh
+passbolt browser install
+```
+
+This installs the manifest for Chrome, Chromium, and Firefox in the current user's profile (`~/.config/...` on Linux, `~/Library/Application Support/...` on macOS, `%AppData%\...` on Windows).
+
+To uninstall the manifest:
+
+```sh
+passbolt browser uninstall
+```
+
+#### 2. Usage
+
+Run any command with `--agent --agent-auth=browser`:
+
+```sh
+passbolt list user --serverAddress https://passbolt.example.com --agent --agent-auth=browser
+```
+
+Or configure it in your `go-passbolt-cli.toml`:
+
+```toml
+serverAddress = "https://passbolt.example.com"
+agent = true
+agent-auth = "browser"
+```
+
+When a command needs authentication:
+1. The CLI agent launches an ephemeral request and notifies your browser via native messaging.
+2. The Passbolt extension automatically opens an "Authorize CLI Access" window displaying the server and requester context.
+3. If your extension is locked, you can enter your passphrase directly to unlock it.
+4. Click **Approve**. The authorization window closes automatically.
+5. The extension encrypts your private key in memory using a single-use ECDH P-256 sealed envelope and sends it to the CLI agent.
+6. The CLI agent decrypts the key in memory, logs in to the Passbolt server, and caches the authenticated session according to your agent idle timeout. The private key is never written to disk or the configuration file.
 
 ## Raw secret output for pipelines
 

@@ -37,6 +37,9 @@ func TestHelperExecutableArguments(t *testing.T) {
 			t.Fatal(got)
 		}
 	}
+	if got := HelperArguments("passbolt-browser-host.exe", []string{"foo"}); !reflect.DeepEqual(got, []string{"browser", "host", "foo"}) {
+		t.Fatal(got)
+	}
 	if got := HelperArguments("passbolt", []string{"get", "resource"}); strings.Join(got, " ") != "get resource" {
 		t.Fatal(got)
 	}

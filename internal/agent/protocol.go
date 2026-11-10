@@ -25,6 +25,7 @@ type Request struct {
 	Environment []string
 	Dialog      string
 	Pinentry    string
+	BrowserData []byte
 }
 
 func (r Request) Validate() error {
@@ -32,7 +33,7 @@ func (r Request) Validate() error {
 		return ErrProtocol
 	}
 	switch r.Action {
-	case "run", "status", "lock", "stop":
+	case "run", "status", "lock", "stop", "browser-pending", "browser-submit", "browser-wait", "browser-cancel":
 		return nil
 	}
 	return fmt.Errorf("unknown agent action")
